@@ -7,7 +7,7 @@ src: "https://js.monitor.azure.com/scripts/b/ai.3.gbl.min.js", // The SDK URL So
 //useXhr: 1, // Use XHR instead of fetch to report failures (if available),
 //crossOrigin: "anonymous", // When supplied this will add the provided value as the cross origin attribute on the script tag 
 cfg: { // Application Insights Configuration
-    instrumentationKey: "b9f38539-f426-43e7-b417-6f3009beca8c"
+    instrumentationKey: ""
 }});
  
 //Add Contextual Information
