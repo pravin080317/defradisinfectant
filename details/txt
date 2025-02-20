@@ -1,17 +1,28 @@
-I’d like to provide a clear distinction between the two separate asks from Andrew  to avoid any confusion:
+Draft Email for Topic 2: Performance Analyst Role & Access for Andrew
+Subject: Access for Performance Analyst (Andrew) – Day 1 & Day 2 Approach
 
-1. Retrieving Logs from Azure Entra ID (Day 1 Ask) – No SRS Role Involvement
-Andrew’s primary request is to obtain login-related logs from Azure Entra ID for LA Portal users. This is specifically related to authentication tracking and has nothing to do with SRS roles.
+Hi Team,
 
-The data he is looking for includes:
+Following our discussions regarding Andrew McNeil’s access requirements for retrieving LA Portal data, we have outlined the Day 1 (short-term) and Day 2 (long-term) approach.
 
-User ID of the logged-in LA Portal user
-Login status (success/failure)
-Login timestamp
-Council details associated with the user
-This is strictly an Azure Entra ID data extraction task and does not require any permissions within Dataverse or Power Platform. To fulfill this request, we need assistance from someone in the Azure Identity Management team who has the necessary access to retrieve logs from Entra ID and confirm whether this data is available for extraction.
+Day 1 – Immediate Access in SIT & PROD
+Andrew has been assigned the "VOA - BST Programme Read Only User" role in SIT to test whether he can retrieve the required data.
+Action Required: Can you confirm if this role allows him to run the necessary queries successfully?
+Next Step: If the role in SIT meets his requirements, will Andrew be granted the same role in PROD to run queries in the live environment?
+Ownership: Who from the team will be responsible for assigning this role in PROD?
+Day 2 – Future Role for Performance Analysts
+A new dedicated SRS role will be created for Performance Analysts to extract reports and analyze LA Portal data.
+This role needs to be defined, reviewed, and approved by business stakeholders before implementation.
+Next Steps:
+Identify the exact access requirements for Andrew & Performance Analysts.
+Decide whether to reuse or modify an existing role (e.g., VOA - BST Programme Read Only User) or create a new role.
+Get business approval for the new role before provisioning in the system.
+Implement and test the new role before enabling in PROD.
+Key Questions for Day 1 Implementation
+Is Andrew's access in SIT sufficient for his data retrieval needs?
+Who will be assigning the VOA - BST Programme Read Only User role to Andrew in PROD?
+Are there any dependencies or blockers in providing this access?
+Looking forward to your confirmation and next steps.
 
-2. Assigning SRS Roles for Backend Access (Internal Team Ask)
-Separately, Andrew has an internal request for his access within Dataverse, which involves SRS role assignment. This is unrelated to the login tracking logs and is about allowing him to access back-end transactional data related to LA Portal.
-
-This second request is being handled internally by Rob, and it involves assigning the appropriate SRS roles that provide Andrew with access to Dataverse for deeper analysis. This process is separate from the Day 1 request for login logs and does not require Cloud Team involvement.
+Thanks,
+[Your Name]
