@@ -1,0 +1,26 @@
+Key Points for Upload:
+Data Format: You can upload reports in XML, Excel (XLS, XLSX), or CSV format.
+File Size Limit: Less than 25MB.
+Required Fields:
+BA Report Number (Max 8 digits, unique)
+BA Reference No (Max 25 chars)
+Property Address (Max 600 chars, excluding postcode)
+Postcode (Max 8 chars)
+Coded Reason for Report (Dropdown, starts with CR)
+Date of Change (DD-Mon-YY format, post-1993/2005)
+Band in Valuation List (Dropdown: a, b, c, d, e, f)
+UPRN (Max 12 digits)
+Occupier’s Name (Max 35 chars, owner’s name if vacant)
+Billing Address (Max 175 chars, if different from property address)
+Contact Telephone Number (Max 15 digits, additional in Remarks)
+Plan Available (Y or blank)
+Plan Reference No (Max 25 chars, enter "Not Known" if unavailable)
+Source of Information (Dropdown: BA Inspector or Third Party)
+OS Grid Reference (Max 21 chars, format: X<space>Y)
+Details of Alterations & Remarks (Max 255 chars, including additional entries for splits/mergers)
+Bulk Upload Options:
+XML Export – If your billing authority’s software supports XML export, use that for faster processing.
+Excel or CSV Templates – If XML is not an option:
+Download the official templates for Council Tax reports.
+Populate all required fields carefully, ensuring correct data format and length.
+Save and upload the file in the correct format (CSV/XLS/XLSX).
