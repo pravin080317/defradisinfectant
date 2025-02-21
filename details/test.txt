@@ -40,17 +40,17 @@ Function Import-Excel {
 
 # Define validation rules
 $ValidationRules = @{
-    "BA Report No" = @{ max_length = 8; required = $true; numeric = $true }
-    "BA Reference No" = @{ max_length = 25; required = $true }
-    "Property Address" = @{ max_length = 600; required = $true }
-    "Postcode" = @{ max_length = 8; required = $true }
+    "BA Report No" = @{ min_length = 1; max_length = 8; required = $true; numeric = $true }
+    "BA Reference No" = @{ min_length = 1; max_length = 25; required = $true }
+    "Property Address" = @{ min_length = 1; max_length = 600; required = $true }
+    "Postcode" = @{ min_length = 1; max_length = 8; required = $true }
     "Coded Reason For Report" = @{ required = $true; regex = "^CR\d{2}$" }
-    "Date of Change" = @{ required = $true; date_format = "dd-MMM-yy" }
+    "Date of Change" = @{ required = $true; date_format = "dd-MMM-yy"; min_date = "01-Apr-1993"; min_date_Wales = "01-Apr-2005" }
     "Band in Valuation List" = @{ required = $true; values = @("a", "b", "c", "d", "e", "f") }
-    "UPRN" = @{ max_length = 12; numeric = $true }
+    "UPRN" = @{ min_length = 1; max_length = 12; numeric = $true }
     "Occupier's Name" = @{ max_length = 35 }
     "Billing Address" = @{ max_length = 175 }
-    "Contact Telephone Number" = @{ max_length = 15; numeric = $true }
+    "Contact Telephone Number" = @{ min_length = 10; max_length = 15; numeric = $true }
     "Plan Available" = @{ values = @("Y", "") }
     "Plan Reference No" = @{ max_length = 25 }
     "Source of Information" = @{ required = $true; values = @("BA Inspector", "Third Party") }
@@ -90,6 +90,9 @@ Function Validate-Data {
             if ($Rules.max_length -and $Value.Length -gt $Rules.max_length) {
                 $Errors += "$Column exceeds max length ($($Rules.max_length) chars)"
             }
+            if ($Rules.min_length -and $Value.Length -lt $Rules.min_length) {
+                $Errors += "$Column must be at least ($($Rules.min_length) chars)"
+            }
 
             # Numeric Check
             if ($Rules.numeric -and $Value -match "\D") {
@@ -104,7 +107,10 @@ Function Validate-Data {
             # Date Format Check
             if ($Rules.date_format -and $Value) {
                 try {
-                    [datetime]::ParseExact($Value, "dd-MMM-yy", $null)
+                    $ParsedDate = [datetime]::ParseExact($Value, "dd-MMM-yy", $null)
+                    if ($ParsedDate -lt [datetime]::ParseExact($Rules.min_date, "dd-MMM-yy", $null)) {
+                        $Errors += "$Column must be after $($Rules.min_date)"
+                    }
                 } catch {
                     $Errors += "$Column must be in format dd-MMM-yy"
                 }
