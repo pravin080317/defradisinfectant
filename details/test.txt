@@ -1,59 +1,28 @@
-Function Import-Excel {
-    param([string]$Path)
-    $Excel = New-Object -ComObject Excel.Application
-    $Excel.Visible = $false
-    $Workbook = $Excel.Workbooks.Open((Get-Item $Path).FullName)
-    $Sheet = $Workbook.Sheets.Item(1)
-
-    # Read data, skipping the first 3 rows
-    $Data = @()
-    $Row = 4  # Actual data starts from row 4
-    while ($Sheet.Cells.Item($Row, 1).Value2 -ne $null) {
-        $RowData = @{}
-        $RowData["Row"] = $Row
-        $RowData["BA Report No"] = [string]$Sheet.Cells.Item($Row, 1).Text  # ✅ Convert everything to string
-        $RowData["BA Reference No"] = [string]$Sheet.Cells.Item($Row, 2).Text
-        $RowData["Property Address"] = [string]$Sheet.Cells.Item($Row, 3).Text
-        $RowData["Postcode"] = [string]$Sheet.Cells.Item($Row, 4).Text
-        $RowData["Coded Reason For Report"] = [string]$Sheet.Cells.Item($Row, 5).Text  # ✅ Convert to string
-        $RowData["Date of Change"] = [string]$Sheet.Cells.Item($Row, 6).Text
-        $RowData["Band in Valuation List"] = [string]$Sheet.Cells.Item($Row, 7).Text
-        $RowData["UPRN"] = [string]$Sheet.Cells.Item($Row, 8).Text
-        $RowData["Occupier's Name"] = [string]$Sheet.Cells.Item($Row, 9).Text
-        $RowData["Billing Address"] = [string]$Sheet.Cells.Item($Row, 10).Text
-        $RowData["Contact Telephone Number"] = [string]$Sheet.Cells.Item($Row, 11).Text
-        $RowData["Plan Available"] = [string]$Sheet.Cells.Item($Row, 12).Text
-        $RowData["Plan Reference No"] = [string]$Sheet.Cells.Item($Row, 13).Text
-        $RowData["Source of Information"] = [string]$Sheet.Cells.Item($Row, 14).Text
-        $RowData["OS Grid Ref"] = [string]$Sheet.Cells.Item($Row, 15).Text
-        $RowData["Details of Alterations and other Remarks"] = [string]$Sheet.Cells.Item($Row, 16).Text
-        $Data += $RowData
-        $Row++
-    }
-
-    $Workbook.Close($false)
-    $Excel.Quit()
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($Excel) | Out-Null
-    return $Data
-}
-
 if ($Column -eq "Date of Change" -and $Rules.ContainsKey("date_format") -and $Rules.date_format -and $Value) {
     try {
+        # Convert Excel OADate to a proper date
         if ($Value -match "^\d+$") {
-            # If it's an OADate from Excel, convert it
             $ParsedDate = [datetime]::FromOADate([double]$Value)
         } else {
+            # Parse the date correctly, assuming it is in "dd-MMM-yy" format
             $ParsedDate = [datetime]::ParseExact($Value, "dd-MMM-yy", $null)
+            
+            # If the parsed year is before 2000, assume it's in 2000+ range
+            if ($ParsedDate.Year -lt 2000) {
+                $ParsedDate = $ParsedDate.AddYears(100)  # Fix PowerShell treating 24 as 1924 instead of 2024
+            }
         }
 
-        if ($Rules.ContainsKey("min_date") -and $ParsedDate -lt [datetime]::ParseExact($Rules.min_date, "dd-MMM-yy", $null)) {
-            $Errors += "$Column must be after $($Rules.min_date)"
+        # Convert min_date to a proper datetime format
+        if ($Rules.ContainsKey("min_date")) {
+            $MinDate = [datetime]::ParseExact($Rules.min_date, "dd-MMM-yyyy", $null)  # Use full year format
+            
+            # Validate that the given date is not earlier than allowed
+            if ($ParsedDate -lt $MinDate) {
+                $Errors += "$Column must be after $($Rules.min_date)"
+            }
         }
     } catch {
         $Errors += "$Column must be in format dd-MMM-yy"
     }
 }
-
-
-
-
