@@ -1,3 +1,20 @@
- if ($Rules.ContainsKey("values") -and $Rules.values -is [array] -and $Value -and (-not ($Rules.values -contains $Value))) {
-                $Errors += "$Column must be one of: $($Rules.values -join ', ')"
-            }
+"Date of Change" = @{ required = $true; date_format = "dd-MMM-yy"; min_date = "01-Apr-1993"; min_date_Wales = "01-Apr-2005" }  # ✅ Only date format check
+
+if ($Rules.ContainsKey("date_format") -and $Rules.date_format -and $Value) {
+    try {
+        if ($Value -match "^\d+$") {
+            # If it's an OADate from Excel, convert it
+            $ParsedDate = [datetime]::FromOADate([double]$Value)
+        } else {
+            # Ensure correct parsing for Date of Change
+            $ParsedDate = [datetime]::ParseExact($Value, "dd-MMM-yy", $null)
+        }
+        
+        # Apply minimum date check
+        if ($Rules.ContainsKey("min_date") -and $ParsedDate -lt [datetime]::ParseExact($Rules.min_date, "dd-MMM-yy", $null)) {
+            $Errors += "$Column must be after $($Rules.min_date)"
+        }
+    } catch {
+        $Errors += "$Column must be in format dd-MMM-yy"
+    }
+}
