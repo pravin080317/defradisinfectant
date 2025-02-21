@@ -1,17 +1,20 @@
-# ✅ Fixed UPRN Numeric Validation
 if ($Column -eq "UPRN" -and $Value) {
-    # Remove any whitespace
+    # Ensure the value is treated as a string to preserve formatting
     $Value = $Value.Trim()
 
-    # Check if UPRN contains only digits (no decimals allowed)
-    if ($Value -match "^\d+$") {
-        # If it's in scientific notation, convert it
-        try {
-            $Value = [math]::Round([double]$Value, 0)  # Convert to whole number
-        } catch {
-            $Errors += "$Column contains invalid numeric format"
+    # Check if UPRN is purely numeric (no decimals allowed)
+    if ($Value -match "^\d+(\.\d+)?$") {
+        if ($Value -match "\.") {
+            $Errors += "$Column must be a whole number (no decimals allowed)"
+        } else {
+            # If it's in scientific notation, convert it to a whole number string
+            try {
+                $Value = [math]::Round([double]$Value, 0).ToString()  # Convert to string without decimals
+            } catch {
+                $Errors += "$Column contains invalid numeric format"
+            }
         }
     } else {
-        $Errors += "$Column must be a whole number (no decimals allowed)"
+        $Errors += "$Column must be numeric"
     }
 }
