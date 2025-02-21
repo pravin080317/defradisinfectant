@@ -1,80 +1,9 @@
-Key Discussion Points:
-Current Deployment Pipeline:
+Service Architecture Overview
 
-The main case deployment pipeline is integrated and monolithic.
+The Local Authority Portal is built using Microsoft Power Pages and integrates with Dataverse as the backend storage and workflow engine. The user interface is designed with the GOV.UK Design System, ensuring accessibility and compliance with government standards. Authentication follows a secure Azure B2B model, leveraging Azure Entra ID for identity and access management. Key functionalities include file uploads, address search, schedules listing, and report submissions, all managed through Dataverse API. The solution employs custom plugins for enhanced processing, such as validation and linking of uploaded files to cases, as well as dynamic data retrieval for address searches.
 
-It is not possible to run only the APIM part independently.
+To support scalable processing, the system integrates with Azure API Management (APIM) and Azure Functions for handling file uploads, file processing, and schedule management. Uploaded files undergo validation, antivirus scanning, and formatting checks before being stored in Azure Blob Storage. Schedule data retrieval and downloads are facilitated through API endpoints, ensuring real-time availability and efficient data access. This architecture ensures a robust, cloud-native, and scalable solution for local authorities to interact seamlessly with the system while maintaining data integrity and security.
 
-Any changes to APIM policies by KACE need to be reviewed before deployment to avoid releasing unintended changes.
+Evidence file uploads follow a structured and secure workflow. When users submit evidence files through the portal, a Dataverse plugin is triggered, which sends the file to the SDES system for virus scanning. Once the SDES validation and security checks are completed, the file is transferred to Azure Blob Storage for temporary holding. The Azure API Management (APIM) and Front Door-enabled Azure Functions then pick up the file, process it, and send it to SharePoint for long-term storage.
 
-Options for Deployment:
-
-Option 1 (Manual):
-
-Manually add the required changes in the Azure Portal for APIM.
-
-Requires approval from Helen Murphy.
-
-Simple and quick: someone with permissions can complete it in a few clicks.
-
-Option 2 (Pipeline Update):
-
-Add an extra step to the portal deployment pipeline to deploy the APIM product.
-
-This step can be removed later.
-
-Requires Devesh's involvement to update the pipeline.
-
-Option 3 (Wait for Release 1.1):
-
-Delay until Release 1.1 is deployed.
-
-Not ideal as it would delay the schedule download functionality.
-
-Decision:
-
-Proceed with Option 2 (update the portal pipeline) as the preferred approach.
-
-Option 1 (manual) will be explored as a backup plan.
-
-Option 3 is not viable due to the delay it would cause.
-
-Action Items:
-Michael to Provide Instructions:
-
-Provide clear instructions on what needs to be added manually in the Azure Portal for APIM.
-
-Include a brief description or screenshot of the steps.
-
-Engage Helen Murphy for Manual Option (Plan A):
-
-Discuss the manual deployment option with Helen Murphy for approval.
-
-Ensure this is a temporary solution until Release 1.1.
-
-Update Portal Pipeline (Plan B):
-
-Request Devesh's time to add an extra step to the portal deployment pipeline.
-
-Coordinate with Andy Gill to agree on the pipeline update.
-
-Timeline: Aim to finalize by Monday.
-
-Hold for Release 1.1 (Plan C):
-
-If Plans A and B are not feasible, hold until Release 1.1 is deployed.
-
-Follow-Up with Mikil:
-
-Discuss the findings and confirm that a full deployment from KACE is required for the APIM part.
-
-Ensure segregation of changes to avoid unintended deployments.
-
-Next Steps:
-Michael to provide instructions for manual deployment.
-
-Initiate discussions with Helen Murphy and Devesh for Plans A and B.
-
-Confirm pipeline update timeline with Andy Gill.
-
-Follow up with Mikil for further clarification..
+The status of the uploaded evidence is updated in Dataverse, ensuring that users can track the progress of their submissions through the portal. This automated pipeline enhances security, maintains compliance, and provides a seamless user experience. The combination of Power Pages, Dataverse, SharePoint, Azure Storage, and Azure Functions enables a streamlined, scalable, and secure document management process within the Local Authority Portal.
