@@ -1,28 +1,28 @@
-if ($Column -eq "Date of Change" -and $Rules.ContainsKey("date_format") -and $Rules.date_format -and $Value) {
-    try {
-        # Convert Excel OADate to a proper date
-        if ($Value -match "^\d+$") {
-            $ParsedDate = [datetime]::FromOADate([double]$Value)
-        } else {
-            # Parse the date correctly, assuming it is in "dd-MMM-yy" format
-            $ParsedDate = [datetime]::ParseExact($Value, "dd-MMM-yy", $null)
-            
-            # If the parsed year is before 2000, assume it's in 2000+ range
-            if ($ParsedDate.Year -lt 2000) {
-                $ParsedDate = $ParsedDate.AddYears(100)  # Fix PowerShell treating 24 as 1924 instead of 2024
-            }
-        }
+# Define allowed values for Coded Reason
+$AllowedCodedReasons = @(
+    "CR03 New",
+    "CR04 Change to Domestic Use-Inclusion in Valuation List",
+    "CR05 Reconstitution (including splits/mergers)",
+    "CR06 Composite dwelling not covered by any other code",
+    "CR07 Demolition of part - potential change to band",
+    "CR09 Other cases-Immediate Review",
+    "CR10 Structural alterations - potential increase. LOGGED REPORTS",
+    "CR12 Change of Address",
+    "CR14 Minor Address Change",
+    "CR01", "CR02", "CR03", "CR04", "CR05", "CR06", "CR07", "CR09", "CR10", "CR12", "CR14"
+)
 
-        # Convert min_date to a proper datetime format
-        if ($Rules.ContainsKey("min_date")) {
-            $MinDate = [datetime]::ParseExact($Rules.min_date, "dd-MMM-yyyy", $null)  # Use full year format
-            
-            # Validate that the given date is not earlier than allowed
-            if ($ParsedDate -lt $MinDate) {
-                $Errors += "$Column must be after $($Rules.min_date)"
-            }
-        }
-    } catch {
-        $Errors += "$Column must be in format dd-MMM-yy"
+if ($Column -eq "Coded Reason For Report" -and $Value) {
+    # Normalize the value (remove leading/trailing spaces)
+    $Value = $Value.Trim()
+
+    # Convert to standard format (title case)
+    if ($Value -match "^CR\d{2}$") {
+        $Value = $Value.ToUpper()  # Ensure standard CR format
+    }
+
+    # Validate against allowed list
+    if (-not ($AllowedCodedReasons -contains $Value)) {
+        $Errors += "$Column has invalid value. Must be one of: $($AllowedCodedReasons -join ', ')"
     }
 }
