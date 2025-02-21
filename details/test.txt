@@ -1,28 +1,23 @@
-# Define allowed values for Coded Reason
-$AllowedCodedReasons = @(
-    "CR03 New",
-    "CR04 Change to Domestic Use-Inclusion in Valuation List",
-    "CR05 Reconstitution (including splits/mergers)",
-    "CR06 Composite dwelling not covered by any other code",
-    "CR07 Demolition of part - potential change to band",
-    "CR09 Other cases-Immediate Review",
-    "CR10 Structural alterations - potential increase. LOGGED REPORTS",
-    "CR12 Change of Address",
-    "CR14 Minor Address Change",
-    "CR01", "CR02", "CR03", "CR04", "CR05", "CR06", "CR07", "CR09", "CR10", "CR12", "CR14"
-)
-
-if ($Column -eq "Coded Reason For Report" -and $Value) {
-    # Normalize the value (remove leading/trailing spaces)
-    $Value = $Value.Trim()
-
-    # Convert to standard format (title case)
-    if ($Value -match "^CR\d{2}$") {
-        $Value = $Value.ToUpper()  # Ensure standard CR format
+$ValidationRules = @{
+    "Coded Reason For Report" = @{
+        required = $true;
+        values = @(
+            "CR03 New", 
+            "CR04 Change to Domestic Use-Inclusion in Valuation List", 
+            "CR05 Reconstitution (including splits/mergers)", 
+            "CR06 Composite dwelling not covered by any other code", 
+            "CR07 Demolition of part - potential change to band", 
+            "CR09 Other cases-Immediate Review", 
+            "CR10 Structural alterations - potential increase. LOGGED REPORTS", 
+            "CR12 Change of Address", 
+            "CR14 Minor Address Change", 
+            "CR01", "CR02", "CR03", "CR04", "CR05", "CR06", "CR07", "CR09", "CR10", "CR12", "CR14"
+        )
     }
-
-    # Validate against allowed list
-    if (-not ($AllowedCodedReasons -contains $Value)) {
-        $Errors += "$Column has invalid value. Must be one of: $($AllowedCodedReasons -join ', ')"
+}
+# ✅ Fixed Dropdown Validation for "Coded Reason For Report"
+if ($Column -eq "Coded Reason For Report" -and $Rules.ContainsKey("values") -and $Rules.values -is [array] -and $Value) {
+    if (-not ($Rules.values -contains $Value)) {
+        $Errors += "$Column must be one of: $($Rules.values -join ', ')"
     }
 }
