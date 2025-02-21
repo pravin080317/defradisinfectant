@@ -58,7 +58,6 @@ $ValidationRules = @{
     "Details of Alterations and other Remarks" = @{ max_length = 255 }
 }
 
-# Function to validate data
 Function Validate-Data {
     param([string]$FilePath)
     
@@ -80,6 +79,7 @@ Function Validate-Data {
         foreach ($Column in $ValidationRules.Keys) {
             $Rules = $ValidationRules[$Column]
             $Value = $RowData.$Column -as [string]
+            $Value = $Value.Trim()  # Remove leading/trailing spaces
 
             # Required Field Check
             if ($Rules.required -and (-not $Value)) {
@@ -90,12 +90,9 @@ Function Validate-Data {
             if ($Rules.max_length -and $Value.Length -gt $Rules.max_length) {
                 $Errors += "$Column exceeds max length ($($Rules.max_length) chars)"
             }
-            if ($Rules.min_length -and $Value.Length -lt $Rules.min_length) {
-                $Errors += "$Column must be at least ($($Rules.min_length) chars)"
-            }
 
             # Numeric Check
-            if ($Rules.numeric -and $Value -match "\D") {
+            if ($Rules.numeric -and ($Value -match "\D" -or -not ($Value -as [int]))) {
                 $Errors += "$Column must be numeric"
             }
 
@@ -107,7 +104,11 @@ Function Validate-Data {
             # Date Format Check
             if ($Rules.date_format -and $Value) {
                 try {
-                    $ParsedDate = [datetime]::ParseExact($Value, "dd-MMM-yy", $null)
+                    if ($Value -match "^\d+$") {
+                        $ParsedDate = [datetime]::FromOADate([double]$Value)
+                    } else {
+                        $ParsedDate = [datetime]::ParseExact($Value, "dd-MMM-yy", $null)
+                    }
                     if ($ParsedDate -lt [datetime]::ParseExact($Rules.min_date, "dd-MMM-yy", $null)) {
                         $Errors += "$Column must be after $($Rules.min_date)"
                     }
@@ -129,11 +130,12 @@ Function Validate-Data {
 
     if ($ErrorLog.Count -gt 0) {
         $ErrorLog | Out-File "Validation_Errors.txt"
-        Write-Host "Validation completed. Errors found. Check Validation_Errors.txt"
+        Write-Host "Validation completed. Errors found in Validation_Errors.txt"
     } else {
         Write-Host "Validation completed successfully. No errors found."
     }
 }
+
 
 # Example usage
 $FilePath = "your_file.xlsx"  # Change to your actual file path
