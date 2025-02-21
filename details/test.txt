@@ -91,26 +91,23 @@ Function Validate-Data {
                 $Errors += "$Column exceeds max length ($($Rules.max_length) chars)"
             }
 
-            # Numeric Check
-            if ($Rules.numeric -and ($Value -match "\D" -or -not ($Value -as [int]))) {
-                $Errors += "$Column must be numeric"
+            # Numeric Check (allow spaces in phone numbers)
+            if ($Rules.numeric -and ($Value -match "[^\d\s]")) {
+                $Errors += "$Column must contain only numbers and spaces"
             }
 
-            # Regex Check
+            # Regex Check (OS Grid Ref & Coded Reason)
             if ($Rules.regex -and $Value -and (-not ($Value -match $Rules.regex))) {
                 $Errors += "$Column has invalid format"
             }
 
-            # Date Format Check
+            # Date Format Check (handles OADate)
             if ($Rules.date_format -and $Value) {
                 try {
                     if ($Value -match "^\d+$") {
                         $ParsedDate = [datetime]::FromOADate([double]$Value)
                     } else {
                         $ParsedDate = [datetime]::ParseExact($Value, "dd-MMM-yy", $null)
-                    }
-                    if ($ParsedDate -lt [datetime]::ParseExact($Rules.min_date, "dd-MMM-yy", $null)) {
-                        $Errors += "$Column must be after $($Rules.min_date)"
                     }
                 } catch {
                     $Errors += "$Column must be in format dd-MMM-yy"
@@ -130,12 +127,11 @@ Function Validate-Data {
 
     if ($ErrorLog.Count -gt 0) {
         $ErrorLog | Out-File "Validation_Errors.txt"
-        Write-Host "Validation completed. Errors found in Validation_Errors.txt"
+        Write-Host "Validation completed. Errors found. Check Validation_Errors.txt"
     } else {
         Write-Host "Validation completed successfully. No errors found."
     }
 }
-
 
 # Example usage
 $FilePath = "your_file.xlsx"  # Change to your actual file path
