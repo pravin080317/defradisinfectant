@@ -1,1 +1,80 @@
-.
+Key Discussion Points:
+Current Deployment Pipeline:
+
+The main case deployment pipeline is integrated and monolithic.
+
+It is not possible to run only the APIM part independently.
+
+Any changes to APIM policies by KACE need to be reviewed before deployment to avoid releasing unintended changes.
+
+Options for Deployment:
+
+Option 1 (Manual):
+
+Manually add the required changes in the Azure Portal for APIM.
+
+Requires approval from Helen Murphy.
+
+Simple and quick: someone with permissions can complete it in a few clicks.
+
+Option 2 (Pipeline Update):
+
+Add an extra step to the portal deployment pipeline to deploy the APIM product.
+
+This step can be removed later.
+
+Requires Devesh's involvement to update the pipeline.
+
+Option 3 (Wait for Release 1.1):
+
+Delay until Release 1.1 is deployed.
+
+Not ideal as it would delay the schedule download functionality.
+
+Decision:
+
+Proceed with Option 2 (update the portal pipeline) as the preferred approach.
+
+Option 1 (manual) will be explored as a backup plan.
+
+Option 3 is not viable due to the delay it would cause.
+
+Action Items:
+Michael to Provide Instructions:
+
+Provide clear instructions on what needs to be added manually in the Azure Portal for APIM.
+
+Include a brief description or screenshot of the steps.
+
+Engage Helen Murphy for Manual Option (Plan A):
+
+Discuss the manual deployment option with Helen Murphy for approval.
+
+Ensure this is a temporary solution until Release 1.1.
+
+Update Portal Pipeline (Plan B):
+
+Request Devesh's time to add an extra step to the portal deployment pipeline.
+
+Coordinate with Andy Gill to agree on the pipeline update.
+
+Timeline: Aim to finalize by Monday.
+
+Hold for Release 1.1 (Plan C):
+
+If Plans A and B are not feasible, hold until Release 1.1 is deployed.
+
+Follow-Up with Mikil:
+
+Discuss the findings and confirm that a full deployment from KACE is required for the APIM part.
+
+Ensure segregation of changes to avoid unintended deployments.
+
+Next Steps:
+Michael to provide instructions for manual deployment.
+
+Initiate discussions with Helen Murphy and Devesh for Plans A and B.
+
+Confirm pipeline update timeline with Andy Gill.
+
+Follow up with Mikil for further clarification..
