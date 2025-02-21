@@ -1,23 +1,17 @@
-$ValidationRules = @{
-    "Coded Reason For Report" = @{
-        required = $true;
-        values = @(
-            "CR03 New", 
-            "CR04 Change to Domestic Use-Inclusion in Valuation List", 
-            "CR05 Reconstitution (including splits/mergers)", 
-            "CR06 Composite dwelling not covered by any other code", 
-            "CR07 Demolition of part - potential change to band", 
-            "CR09 Other cases-Immediate Review", 
-            "CR10 Structural alterations - potential increase. LOGGED REPORTS", 
-            "CR12 Change of Address", 
-            "CR14 Minor Address Change", 
-            "CR01", "CR02", "CR03", "CR04", "CR05", "CR06", "CR07", "CR09", "CR10", "CR12", "CR14"
-        )
-    }
-}
-# ✅ Fixed Dropdown Validation for "Coded Reason For Report"
-if ($Column -eq "Coded Reason For Report" -and $Rules.ContainsKey("values") -and $Rules.values -is [array] -and $Value) {
-    if (-not ($Rules.values -contains $Value)) {
-        $Errors += "$Column must be one of: $($Rules.values -join ', ')"
+# ✅ Fixed UPRN Numeric Validation
+if ($Column -eq "UPRN" -and $Value) {
+    # Remove any whitespace
+    $Value = $Value.Trim()
+
+    # Check if UPRN contains only digits (no decimals allowed)
+    if ($Value -match "^\d+$") {
+        # If it's in scientific notation, convert it
+        try {
+            $Value = [math]::Round([double]$Value, 0)  # Convert to whole number
+        } catch {
+            $Errors += "$Column contains invalid numeric format"
+        }
+    } else {
+        $Errors += "$Column must be a whole number (no decimals allowed)"
     }
 }
