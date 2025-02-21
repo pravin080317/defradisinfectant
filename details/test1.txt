@@ -1,0 +1,202 @@
+Meeting Notes: APIM Deployment and Dependency Issues
+Date: [Insert Date]
+Attendees: [List of Attendees]
+Topic: APIM Deployment Pipeline, Dependency Issues, and Fix Options
+
+Key Discussion Points:
+Current Workflow for Schedules Download:
+
+Schedules are created, zipped, and stored in Blob Storage.
+
+Metadata is sent via DAL API to Postgres, which then flows through Dynamics to LA Portal for display.
+
+When a user clicks to download, Dynamics retrieves the file from Blob Storage using a full Blob URL.
+
+The issue arises because Dynamics uses a full Blob URL instead of a container name and file name, requiring a separate endpoint.
+
+Deployment Ownership and History:
+
+Originally, the API was part of the BST Integration project.
+
+Now, it is part of the LA Schedules project.
+
+Dynamics consumes the Schedules API, and the product assignment is managed by the consuming party (Case Management).
+
+Issue with APIM Deployment:
+
+When a new APIM version is deployed, it blanks out the product assignments for APIs consumed by other systems (e.g., Dynamics).
+
+This happens because the consuming party (Case Management) must redeploy their pipeline to reassign the products.
+
+This issue has occurred multiple times in UAT and pre-prod environments.
+
+Root Cause:
+
+The current deployment model requires the consuming party (Case Management) to redeploy immediately after an APIM version change.
+
+If this doesn’t happen, the product assignments are lost, causing functionality to break.
+
+Options for Fixing the Issue:
+
+Option 1 (Manual Fix):
+
+Manually add the missing product assignments in the Azure Portal.
+
+Requires approval from Helen Murphy.
+
+Quick but not a long-term solution.
+
+Option 2 (Update Portal Pipeline):
+
+Add an extra step to the LA Portal deployment pipeline to ensure the product is assigned to the API.
+
+Requires Devesh’s involvement to update the pipeline.
+
+Option 3 (Wait for Release 1.1):
+
+Delay until Release 1.1 is deployed.
+
+Not ideal as it would delay functionality.
+
+Option 4 (Hotfix for Case Management):
+
+Deploy a hotfix in the Case Management pipeline to reassign the products.
+
+Requires coordination with Akhil and Carlo.
+
+Decision:
+
+Proceed with Option 4 (Hotfix) as the primary solution.
+
+Option 2 (Update Portal Pipeline) will be pursued in parallel as a long-term fix.
+
+Option 1 (Manual Fix) will be explored as a temporary workaround if needed.
+
+Action Items:
+Hotfix for Case Management (Option 4):
+
+Michael to coordinate with Akhil and Carlo to deploy a hotfix in the Case Management pipeline.
+
+Ensure the hotfix includes the necessary product assignments for the Download Blob API.
+
+Update Portal Pipeline (Option 2):
+
+Devesh to add an extra step to the LA Portal deployment pipeline to ensure product assignments are maintained.
+
+Michael to provide guidance on the required PowerShell script for the pipeline update.
+
+Manual Fix (Option 1):
+
+Matt to reach out to Helen Murphy for approval to manually add the product assignments in the Azure Portal.
+
+Michael to provide clear instructions and screenshots for the manual steps.
+
+Risk Management:
+
+Dan to raise a risk in the program regarding the dependency issue between APIM and Case Management deployments.
+
+Ensure the risk is documented and communicated to stakeholders.
+
+Long-Term Solution:
+
+Revisit the deployment model to address the dependency issue.
+
+Consider reverting to the previous model where product assignments are included in the APIM deployment.
+
+Next Steps:
+Michael to coordinate the hotfix deployment with Akhil and Carlo.
+
+Devesh to update the LA Portal pipeline with the extra step.
+
+Matt to seek approval for the manual fix from Helen Murphy.
+
+Dan to document and raise the dependency risk in the program.
+
+Meeting Concluded.
+
+what is teh issue here..
+The issue revolves around the APIM (API Management) deployment process and its impact on the Schedules Download functionality, specifically the Download Blob API. Here's a breakdown of the problem:
+
+Core Issue:
+When a new version of the APIM is deployed (via the LA Schedules pipeline), it blanks out the product assignments for APIs that are consumed by other systems (e.g., Dynamics). This happens because the consuming party (Case Management) must redeploy their pipeline to reassign the products. If this redeployment doesn’t happen immediately, the Download Blob API loses its product assignments, causing the Schedules Download functionality to break.
+
+Why This Happens:
+Deployment Model Change:
+
+Previously, the BST Integration project handled API deployments, and product assignments were managed centrally.
+
+Now, the responsibility has shifted to individual product owners (e.g., LA Schedules, Case Management).
+
+When the LA Schedules pipeline deploys a new version of the APIM, it does not retain the product assignments for APIs consumed by other systems (like Dynamics).
+
+Dependency Issue:
+
+The Download Blob API is part of the LA Schedules pipeline, but it is consumed by Dynamics.
+
+After an APIM deployment, the Case Management pipeline must redeploy to reassign the product to the Download Blob API.
+
+If this redeployment doesn’t happen, the product assignments are lost, and the Download Blob API stops working.
+
+Repetitive Problem:
+
+This issue has occurred multiple times in UAT and pre-prod environments.
+
+It is not limited to the Download Blob API; other APIs consumed by different systems could face similar issues.
+
+Impact:
+The Schedules Download functionality breaks because the Download Blob API loses its product assignments after an APIM deployment.
+
+This creates a dependency where the Case Management pipeline must redeploy immediately after every APIM deployment, which is not always feasible.
+
+If not addressed, this issue could recur whenever the LA Schedules pipeline deploys a new version of the APIM.
+
+Proposed Solutions:
+Hotfix for Case Management (Option 4):
+
+Deploy a hotfix in the Case Management pipeline to reassign the product to the Download Blob API.
+
+This is a quick fix but does not address the underlying dependency issue.
+
+Update Portal Pipeline (Option 2):
+
+Add an extra step to the LA Portal deployment pipeline to ensure the product is assigned to the Download Blob API during deployment.
+
+This is a more sustainable solution but requires updates to the pipeline.
+
+Manual Fix (Option 1):
+
+Manually add the missing product assignments in the Azure Portal.
+
+This is a temporary workaround and requires approval from Helen Murphy.
+
+Long-Term Solution:
+
+Revisit the deployment model to address the dependency issue.
+
+Consider reverting to the previous model where product assignments are included in the APIM deployment.
+
+Key Risks:
+If the LA Schedules pipeline deploys a new version of the APIM without the consuming party (Case Management) redeploying, the Download Blob API will break again.
+
+This issue could affect other APIs and systems beyond the Schedules Download functionality.
+
+Next Steps:
+Hotfix Deployment:
+
+Coordinate with Akhil and Carlo to deploy a hotfix in the Case Management pipeline.
+
+Pipeline Update:
+
+Work with Devesh to add an extra step to the LA Portal pipeline to maintain product assignments.
+
+Manual Fix:
+
+Seek approval from Helen Murphy to manually add the product assignments in the Azure Portal.
+
+Risk Management:
+
+Raise a risk in the program to highlight the dependency issue and ensure it is addressed in future deployments.
+
+Conclusion:
+The issue stems from a dependency between the LA Schedules pipeline and the Case Management pipeline. When the LA Schedules pipeline deploys a new version of the APIM, it blanks out the product assignments for APIs consumed by other systems, causing the Download Blob API to break. The proposed solutions aim to fix the immediate issue and address the underlying dependency problem to prevent recurrence.
+
