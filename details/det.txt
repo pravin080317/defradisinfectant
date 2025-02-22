@@ -1,57 +1,31 @@
-5.2.1 Power Pages Portal
+Dataverse Tables Used in LA Portal
 
-Provides an authenticated and user-friendly interface for local authorities to submit and manage reports.
+voap_portalrequest - Stores all request data submitted via the portal.
 
-Implements forms-based authentication using Azure Entra ID B2B.
+voap_portalfilemanagement - Manages uploaded files and related metadata.
 
-Enables submission of individual reports or bulk file uploads.
+voap_portalusersetup - Handles user registration and links users to council information.
 
-Facilitates error resolution and report corrections within the portal.
+contact - Stores user contact information.
 
-Customization for Power Pages:
+voap_satisfactionfeedback - Captures feedback from users regarding portal services.
 
-Power Pages implementation for the LA Portal adheres to the Gov.UK Design System to ensure accessibility, usability, and compliance with government standards.
+adx_webroles - Manages user roles such as CT (Council Tax) or NDR (Non-Domestic Rates).
 
-Customizations to Power Pages are limited to specific use cases while ensuring the core framework remains intact.
+voa_frontdoorportalerrorexceptionreasons - Logs validation errors in the front door process during file uploads.
 
-Design and Styling: Gov.UK Design System
+voap_portalscheduleslist - Stores available schedules for retrieval by local authorities.
 
-All visual components and styles are derived from the Gov.UK Design System.
+voap_scheduleslistdata - Stores detailed schedule data.
 
-Pre-compiled CSS files from the design system are used to maintain consistency and accessibility.
+voap_downloadrequest - Manages requests for downloading schedule lists.
 
-The Gov.UK CSS files are added to the portal as web files in the Portal Management App.
+voap_lpiaddresslookup - Virtual entity enabling address lookups via external APIs.
 
-HTML templates provided by the design system are used with minimal customization, ensuring compliance with accessibility standards.
+voap_lpiaddresslookupds - Data source for LPI address lookup.
 
-Example: Buttons, input fields, and other UI components are customized only for IDs, text, and limited inline styles (e.g., display: none for dynamic visibility).
+voap_pghereditamentlookup - Enables property/hereditament lookup.
 
-Web Files:
+voap_pghereditamentlookupdatasource - Data source for hereditament lookups.
 
-Assets such as fonts, CSS, images, and JavaScript are stored as Web Files in the Portal Management App.
-
-These files are organized with a logical folder structure under assets, fonts, and images.
-
-Custom JavaScript:
-
-Majority of the validations and functions are handled via JavaScript customizations through a consolidated file named validation.js. This file contains reusable functions for common tasks like:
-
-Validating inputs.
-
-Displaying/clearing error messages.
-
-Writing data back to Dataverse using the Web API.
-
-Custom scripts for specific pages, like Dashboard tiles, are placed in a separate JavaScript file called card.js.
-
-Web Form Customizations:
-
-Dynamic Components: Radio buttons, dropdowns, and form inputs are dynamically generated based on Dataverse Choices or other relevant fields.
-
-Example: A set of radio buttons uses the value attribute to map directly to Dataverse fields, with JavaScript reading this value and writing it back using Web API.
-
-Error Handling: Custom error messages are pre-defined with display: none and toggled dynamically using JavaScript.
-
-Webpages, Templates, and Site Settings:
-
-Webpages, templates, site settings, bindings, and table permissions are managed within the Portal Management App to ensure structured access control and security.
+account - Stores organizational account details related to local authorities.
