@@ -1,31 +1,54 @@
-Dataverse Tables Used in LA Portal
+File Upload Plugin Overview
+The File Upload Plugin is responsible for managing bulk file uploads and evidence uploads by ensuring proper validation, storage, and integration with various systems. When a file is uploaded—whether a single report or multiple reports—the plugin is triggered to initiate the file processing workflow. The uploaded file undergoes a virus scan via SDES (Secure Data Exchange Service) to ensure it is safe for processing. If the file passes the validation, it is moved to an Azure Blob Storage container called laportal, where it is categorized based on its type: bulk reports or evidence documents.
 
-voap_portalrequest - Stores all request data submitted via the portal.
+For bulk report uploads, the Front Door Integration Framework (an Azure Function) is triggered via Azure Service Bus. This function picks up the files from the laportal storage container and processes them. Each bulk report corresponds to multiple portal requests, and these are tracked within the Portal Request Table (portal_request) in Dynamics 365. If there are associated supporting documents (evidence files) for these requests, they are stored in the Portal File Management Table (portal_file_management), which maintains metadata about the files and tracks their status.
 
-voap_portalfilemanagement - Manages uploaded files and related metadata.
+For evidence file uploads, the Front Door Integration Framework detects the file type and directs evidence documents to SharePoint for storage instead of processing them in the bulk workflow. Once the evidence file is uploaded to SharePoint, the corresponding record in the Portal File Management Table is updated in Dynamics 365, ensuring that the request has its supporting documents properly linked. Any errors encountered during processing—such as validation failures, file format issues, or processing errors—are logged in the Front Door Exception Table (front_door_exception), which serves as an audit trail and supports troubleshooting efforts.
 
-voap_portalusersetup - Handles user registration and links users to council information.
+Tables Involved in the Process
+Table Name	Purpose	Key Fields Updated
+portal_request	Stores metadata for bulk-uploaded reports, tracking each request.	status, processing_status, created_date, updated_date
+portal_file_management	Tracks uploaded evidence files linked to portal requests. Stores file metadata.	file_name, file_uri, status, error_codes
+front_door_batch	Stores information about each batch of processed records from a bulk upload.	batch_number, size, processed_count, status
+front_door_header	Tracks the overall status of a file’s processing workflow.	total_rows_count, statecode, statuscode
+front_door_exception	Logs errors that occur during processing, used for debugging and audits.	error_message, exception_type, timestamp
+File Upload and Processing Flow
+User Uploads a File
 
-contact - Stores user contact information.
+The user uploads one or multiple reports or an evidence document.
+The File Upload Plugin is triggered.
+File Validation and Virus Check
 
-voap_satisfactionfeedback - Captures feedback from users regarding portal services.
+The file is sent to SDES for a virus scan.
+If the file is safe, it is moved to the laportal Azure Storage container.
+Front Door Integration Framework Processing
 
-adx_webroles - Manages user roles such as CT (Council Tax) or NDR (Non-Domestic Rates).
+For bulk reports:
+The Azure Function picks up the file from laportal via Azure Service Bus.
+The file is split into batches, stored in the Front Door Batch Table (front_door_batch).
+Each request is recorded in Portal Request Table (portal_request).
+For evidence files:
+The Azure Function detects evidence files and stores them in SharePoint.
+The Portal File Management Table (portal_file_management) is updated in Dynamics 365.
+Processing and Status Updates
 
-voa_frontdoorportalerrorexceptionreasons - Logs validation errors in the front door process during file uploads.
+As each batch is processed, the Front Door Header (front_door_header) is updated with row counts and completion status.
+If errors occur (e.g., invalid file format, missing data), they are logged in the Front Door Exception Table (front_door_exception).
+If the file is successfully processed, the status in portal_request and portal_file_management is updated to reflect completion.
+Finalization and Integration Notifications
 
-voap_portalscheduleslist - Stores available schedules for retrieval by local authorities.
+Once the last batch is processed, a final integration message is sent via Azure Service Bus.
+Dynamics 365 updates the Portal Request and Portal File Management tables to indicate successful processing.
+Any failed uploads are retried, and errors are recorded for troubleshooting.
+Error Handling and Exception Logging
+The Front Door Exception Table (front_door_exception) ensures that any issues during file processing are logged and available for review. Common errors include:
 
-voap_scheduleslistdata - Stores detailed schedule data.
+Virus detection failures (SDES rejects the file).
+Incorrect file format (e.g., a non-CSV file for bulk reports).
+Missing required fields in the file.
+Azure Service Bus failures (e.g., message loss or processing timeout).
+SharePoint upload errors for evidence files.
+These errors are used in the runbook to help IT teams troubleshoot and retry failed uploads efficiently.
 
-voap_downloadrequest - Manages requests for downloading schedule lists.
-
-voap_lpiaddresslookup - Virtual entity enabling address lookups via external APIs.
-
-voap_lpiaddresslookupds - Data source for LPI address lookup.
-
-voap_pghereditamentlookup - Enables property/hereditament lookup.
-
-voap_pghereditamentlookupdatasource - Data source for hereditament lookups.
-
-account - Stores organizational account details related to local authorities.
+Final Thoughts
+The File Upload Plugin automates and streamlines the bulk upload and evidence submission process, ensuring data integrity, security, and traceability. By integrating Azure Storage, Azure Service Bus, Dynamics 365, and SharePoint, the system efficiently processes high-volume requests while providing robust error handling and logging.
