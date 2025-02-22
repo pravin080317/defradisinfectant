@@ -1,54 +1,259 @@
-File Upload Plugin Overview
-The File Upload Plugin is responsible for managing bulk file uploads and evidence uploads by ensuring proper validation, storage, and integration with various systems. When a file is uploaded—whether a single report or multiple reports—the plugin is triggered to initiate the file processing workflow. The uploaded file undergoes a virus scan via SDES (Secure Data Exchange Service) to ensure it is safe for processing. If the file passes the validation, it is moved to an Azure Blob Storage container called laportal, where it is categorized based on its type: bulk reports or evidence documents.
+# **Dataverse Virtual Table Used in PG Hereditament Lookup Plugin**  
 
-For bulk report uploads, the Front Door Integration Framework (an Azure Function) is triggered via Azure Service Bus. This function picks up the files from the laportal storage container and processes them. Each bulk report corresponds to multiple portal requests, and these are tracked within the Portal Request Table (portal_request) in Dynamics 365. If there are associated supporting documents (evidence files) for these requests, they are stored in the Portal File Management Table (portal_file_management), which maintains metadata about the files and tracks their status.
+## **Overview**  
+The **PG Hereditament Lookup Plugin** interacts with a **Dataverse Virtual Table** to dynamically store and return hereditament details in real-time. This approach ensures seamless integration between **Microsoft Dataverse** and the **VOA Property API**, allowing **on-demand data retrieval** without persisting information within Dataverse.  
 
-For evidence file uploads, the Front Door Integration Framework detects the file type and directs evidence documents to SharePoint for storage instead of processing them in the bulk workflow. Once the evidence file is uploaded to SharePoint, the corresponding record in the Portal File Management Table is updated in Dynamics 365, ensuring that the request has its supporting documents properly linked. Any errors encountered during processing—such as validation failures, file format issues, or processing errors—are logged in the Front Door Exception Table (front_door_exception), which serves as an audit trail and supports troubleshooting efforts.
+The plugin leverages the **voap_pghereditamentlookup** virtual table to **store API responses temporarily**, making the retrieved hereditament details available for **PowerApps Portals and other integrated services**.  
 
-Tables Involved in the Process
-Table Name	Purpose	Key Fields Updated
-portal_request	Stores metadata for bulk-uploaded reports, tracking each request.	status, processing_status, created_date, updated_date
-portal_file_management	Tracks uploaded evidence files linked to portal requests. Stores file metadata.	file_name, file_uri, status, error_codes
-front_door_batch	Stores information about each batch of processed records from a bulk upload.	batch_number, size, processed_count, status
-front_door_header	Tracks the overall status of a file’s processing workflow.	total_rows_count, statecode, statuscode
-front_door_exception	Logs errors that occur during processing, used for debugging and audits.	error_message, exception_type, timestamp
-File Upload and Processing Flow
-User Uploads a File
+---
 
-The user uploads one or multiple reports or an evidence document.
-The File Upload Plugin is triggered.
-File Validation and Virus Check
+## **Virtual Table Utilized**  
+The **PG Hereditament Lookup Plugin** integrates with the following **Dataverse Virtual Table**:  
 
-The file is sent to SDES for a virus scan.
-If the file is safe, it is moved to the laportal Azure Storage container.
-Front Door Integration Framework Processing
+| **Virtual Table Name**         | **Description** |
+|--------------------------------|--------------------------------------------------|
+| `voap_pghereditamentlookup`    | Temporarily stores retrieved hereditament details, including API status, response metadata, and property details. |
 
-For bulk reports:
-The Azure Function picks up the file from laportal via Azure Service Bus.
-The file is split into batches, stored in the Front Door Batch Table (front_door_batch).
-Each request is recorded in Portal Request Table (portal_request).
-For evidence files:
-The Azure Function detects evidence files and stores them in SharePoint.
-The Portal File Management Table (portal_file_management) is updated in Dynamics 365.
-Processing and Status Updates
+### **Purpose & Functionality**  
+- Acts as a **bridge between Dataverse and the VOA API**, enabling real-time data access.  
+- **Does not persist data**—records are populated dynamically upon API response and **expire once the transaction is complete**.  
+- **Facilitates structured data retrieval**, ensuring seamless integration with **PowerApps Portals, custom applications, and business workflows**.  
+- Provides **status updates** related to the API call, allowing users to see success, failure, or partial response messages.  
 
-As each batch is processed, the Front Door Header (front_door_header) is updated with row counts and completion status.
-If errors occur (e.g., invalid file format, missing data), they are logged in the Front Door Exception Table (front_door_exception).
-If the file is successfully processed, the status in portal_request and portal_file_management is updated to reflect completion.
-Finalization and Integration Notifications
+---
 
-Once the last batch is processed, a final integration message is sent via Azure Service Bus.
-Dynamics 365 updates the Portal Request and Portal File Management tables to indicate successful processing.
-Any failed uploads are retried, and errors are recorded for troubleshooting.
-Error Handling and Exception Logging
-The Front Door Exception Table (front_door_exception) ensures that any issues during file processing are logged and available for review. Common errors include:
+## **Data Fields in `voap_pghereditamentlookup`**  
+Each API response is mapped to the **virtual table fields**, enabling structured data retrieval. Below are the key attributes stored in this entity:  
 
-Virus detection failures (SDES rejects the file).
-Incorrect file format (e.g., a non-CSV file for bulk reports).
-Missing required fields in the file.
-Azure Service Bus failures (e.g., message loss or processing timeout).
-SharePoint upload errors for evidence files.
-These errors are used in the runbook to help IT teams troubleshoot and retry failed uploads efficiently.
+| **Column Name**        | **Description** |
+|------------------------|--------------------------------------------------|
+| `voap_status`         | Indicates the **success or failure** of the API call. |
+| `voap_substatus`      | Provides **specific error codes or response statuses** returned by the API. |
+| `voap_furtherinfo`    | Stores **detailed response information**, such as error messages or additional context. |
+| `voap_bacode`         | Captures the **Billing Authority Code** used in the query. |
+| `voap_bareference`    | Stores the **Billing Authority Reference** queried. |
+| `voap_addressstring`  | The **formatted address** retrieved from the VOA API. |
+| `voap_townname`       | The **town or locality** where the property is located. |
+| `voap_postcode`       | The **postal code** associated with the hereditament. |
+| `voap_uprn`           | The **Unique Property Reference Number (UPRN)**. |
+| `voap_usrn`           | The **Unique Street Reference Number (USRN)**. |
 
-Final Thoughts
-The File Upload Plugin automates and streamlines the bulk upload and evidence submission process, ensuring data integrity, security, and traceability. By integrating Azure Storage, Azure Service Bus, Dynamics 365, and SharePoint, the system efficiently processes high-volume requests while providing robust error handling and logging.
+### **How Data is Processed**
+1. **User enters BA Code and BA Reference** via PowerApps Portals or an integrated application.  
+2. **Plugin triggers API request** to VOA Property API.  
+3. **API response is processed**, and relevant hereditament details are extracted.  
+4. **Data is dynamically stored** in `voap_pghereditamentlookup`.  
+5. **Results are displayed** in PowerApps Portals or any connected Dataverse application.  
+6. **Data is not persisted**—each new request overwrites the previous response, ensuring the latest details are fetched directly from the VOA API.  
+
+---
+
+## **Integration with PowerApps Portals**  
+The **PG Hereditament Lookup Plugin** is designed to integrate seamlessly with **PowerApps Portals**, enabling users to query hereditament details in real-time. The retrieved data is temporarily stored in **Dataverse Virtual Tables**, ensuring that responses are displayed in the portal UI without requiring data persistence.  
+
+**Key Benefits of Using Virtual Tables for Integration:**
+- **Real-time data access** without the need for local storage.  
+- **Secure API authentication** ensuring that sensitive data is not exposed.  
+- **Faster query execution** as data is fetched on demand from the external API.  
+- **Improved maintainability** by reducing the need for scheduled data synchronization.  
+
+---
+
+## **Advantages of Using a Virtual Table**  
+By utilizing a **Dataverse Virtual Table** instead of a standard entity, the plugin benefits from:  
+✔ **On-Demand Data Retrieval** – Ensuring the latest hereditament details are always available.  
+✔ **No Data Duplication** – Eliminating the need for periodic synchronization with the external system.  
+✔ **Reduced Storage Requirements** – Since data is not persisted, there is no unnecessary database growth.  
+✔ **Improved Security** – The plugin interacts with the VOA API dynamically, keeping sensitive data secure.  
+✔ **High Performance** – Queries execute faster because records are not stored permanently.  
+
+---
+
+## **Deployment & Maintenance Considerations**  
+To ensure smooth operation of the **PG Hereditament Lookup Plugin**, the following best practices should be followed:  
+
+### **Configuration Requirements**  
+1. **Ensure the Virtual Table (`voap_pghereditamentlookup`) is properly set up** in Dataverse.  
+2. **API credentials should be securely stored** using the `voa_CredentialProvider` custom action.  
+3. **PowerApps Portals should be configured to fetch real-time data** from the virtual table.  
+4. **Ensure correct mapping of API response fields to the virtual table columns** to prevent data inconsistencies.  
+
+### **Ongoing Maintenance**  
+- **Monitor API availability** to prevent disruptions in data retrieval.  
+- **Regularly audit API credentials** to ensure secure authentication.  
+- **Verify PowerApps Portals integration** to ensure data is displayed correctly.  
+- **Check Dataverse logs for error messages** related to API failures or missing data.  
+
+---
+
+## **Conclusion**  
+The **PG Hereditament Lookup Plugin** leverages the **voap_pghereditamentlookup** **Dataverse Virtual Table** to enable real-time hereditament data retrieval from the **VOA API**. This approach eliminates **data persistence** while ensuring **secure, dynamic, and efficient property lookup capabilities**.  
+
+By integrating with **PowerApps Portals and other Dataverse applications**, the plugin provides a **scalable and maintainable solution** for querying VOA hereditament data. Proper **configuration, monitoring, and API security practices** will ensure seamless and reliable operation.
+
+
+
+
+
+# **Runbook: PG Hereditament Lookup Plugin for VOA Property Records**  
+
+## **Overview**  
+The **PG Hereditament Lookup Plugin** is a **Microsoft Dataverse plugin** that retrieves **property hereditament details** from an external API based on the **Billing Authority Code (BA Code)** and **Billing Authority Reference (BA Reference)**. This plugin is triggered in the **Dataverse Plugin Execution Context** and interacts with the **VOA (Valuation Office Agency) API** to fetch property details dynamically.  
+
+The plugin **validates input parameters, authenticates API requests using OAuth2, processes API responses, and updates Dataverse virtual tables**. It ensures **secure credential storage, robust logging, and structured error handling**, making it a critical component in property data retrieval workflows.  
+
+---
+
+## **Execution Workflow**  
+The plugin is executed when a **user or system process** queries hereditament records. It first **validates the execution context** to ensure it is not null. If the context is missing, execution is halted by throwing an `ArgumentNullException`.  
+
+Once validated, the plugin retrieves **execution context details**, including:
+- **`PluginExecutionContext`** – Provides metadata about the execution.
+- **`TracingService`** – Enables logging for debugging and monitoring.
+- **`OrganizationService`** – Facilitates interaction with **Dataverse Virtual Tables**.  
+
+The plugin then **extracts query parameters**, including:
+- **BA Code (`pgbacode`)**  
+- **BA Reference (`pgbareference`)**  
+
+If either parameter is missing, an error response is generated and logged using the **TracingService**.  
+
+---
+
+## **Authentication & API Request**  
+After validating the input parameters, the plugin retrieves **API credentials** using a **custom action (`voa_CredentialProvider`)**. These credentials include:
+- **API Base Address**
+- **Client ID & Client Secret**
+- **Subscription Key**
+- **Scope & Tenant ID**  
+
+The plugin **generates an OAuth2 authentication token** to authorize API requests securely. Once authenticated, it constructs an **HTTP GET request** to fetch hereditament details, using the following request format:  
+```
+{API Address}/bacode/{BillingAuthorityCode}/baref/{BillingAuthorityReference}
+```  
+The request headers include:
+- **Authorization Header** (`Bearer <AccessToken>`)
+- **Subscription Key** (`Ocp-Apim-Subscription-Key`)  
+
+Once the request is sent, the plugin logs the **request URL, response status, and error messages** for debugging.  
+
+---
+
+## **API Used**  
+The plugin interacts with the **VOA Property API** hosted at:  
+```
+https://voagw.npd.hmrc.gov.uk/dev/internal/bst/property-app/v1.1/statutorySpatialUnitLabel
+```  
+This API is responsible for retrieving property details such as:
+- **Property Address**
+- **Building Number**
+- **Postcode**
+- **Locality & Town Name**
+- **Coordinates (X, Y)**
+- **UPRN (Unique Property Reference Number)**
+- **USRN (Unique Street Reference Number)**  
+
+---
+
+## **Handling API Responses**  
+After receiving a response from the VOA API, the plugin processes the returned data and handles different response scenarios:  
+
+1. **`200 OK` (Successful Response)**  
+   - The API returns valid hereditament details.
+   - The plugin **parses and extracts property data** from the response.
+   - Data is **stored in Dataverse Virtual Tables** and logged for reference.  
+
+2. **`404 Not Found` or `204 No Content` (No Records Found)**  
+   - The API does not return any hereditament details for the given **BA Code and BA Reference**.
+   - The plugin logs a **"No Results Found"** message.
+   - A structured response is sent back indicating no available data.  
+
+3. **`500 Internal Server Error` or Other HTTP Errors (`400`, `403`, etc.)**  
+   - The API request fails due to server-side issues or incorrect parameters.
+   - The plugin logs the **status code and API error message**.
+   - A failure response is returned to notify the user/system.  
+
+If any execution failure occurs within the plugin, it is **logged under a general plugin failure category** for further troubleshooting.  
+
+---
+
+## **Dataverse Virtual Tables Used**  
+The plugin interacts with **Dataverse Virtual Tables** to fetch and store hereditament details dynamically. The key virtual tables involved are:  
+
+| **Table Name**              | **Description**                                       | **Operation** |
+|-----------------------------|------------------------------------------------------|--------------|
+| `voap_pghereditamentlookup` | Stores retrieved hereditament details.               | Insert/Update |
+| `voap_credentialstore`      | Stores API credentials securely.                     | Read Only    |
+| `voap_requestlog`           | Logs API request and response details.               | Insert       |
+| `voap_errorlog`             | Captures errors encountered during execution.        | Insert       |
+
+The **`voap_pghereditamentlookup`** table is updated with retrieved hereditament data, while the **`voap_requestlog`** table logs each API request made by the plugin. If errors occur, they are logged in **`voap_errorlog`** to facilitate debugging.  
+
+---
+
+## **Where Credentials Are Stored**  
+The plugin retrieves **securely stored API credentials** from the **Dataverse Secure Configuration** via the `voa_CredentialProvider` custom action. This ensures that sensitive details like **Client ID, Client Secret, and Subscription Key** are not exposed in plaintext.  
+
+The **stored credentials are accessed dynamically** during runtime, ensuring that API requests remain **secure and compliant with best practices**.  
+
+---
+
+## **Logging & Trace Details**  
+The plugin uses **Dataverse TracingService** to log execution details, including:
+1. **Query Parameters**
+   - BA Code & BA Reference used in the request.
+2. **Authentication & API Calls**
+   - OAuth2 token generation process.
+   - API request details (URL, headers, parameters).
+3. **API Response Handling**
+   - Received property data.
+   - Error messages, if applicable.
+4. **Virtual Table Updates**
+   - Data written to `voap_pghereditamentlookup`.  
+
+### **Example Trace Log Output**
+```
+[+47ms] QE Filters voap_pgbacode Values 8116
+[+0ms] QE Filters voap_pgbareference Values 14855023007
+[+1,601ms] Attempting to retrieve secret values from voa Credential Provider action
+[+4,483ms] Request made to: https://voagw.npd.hmrc.gov.uk/dev/internal/bst/property-app/v1.1/statutorySpatialUnitLabel/bacode/8116/baref/14855023007
+[+8ms] Status Code: OK Reason: OK
+[+95ms] Returned Addresses:
+{"addressString": "23 HUNGERFORD GARDENS, BRISTOL, BS4 5HA"}
+[+0ms] Finished generating entities.
+```
+
+---
+
+## **Error Handling & Common Scenarios**  
+The plugin incorporates structured error handling to manage execution failures effectively.  
+
+| **Error Code** | **Description**                                      | **Resolution** |
+|--------------|--------------------------------------------------|--------------|
+| `Err01`     | Missing BA Code in request.                      | Validate request parameters. |
+| `Err02`     | Missing BA Reference in request.                 | Ensure BA Reference is provided. |
+| `Err03`     | API Call Failed.                                  | Check API availability and credentials. |
+| `Err04`     | Authentication Failure.                          | Validate stored credentials and OAuth flow. |
+| `Err05`     | Plugin Execution Failure.                        | Check logs for further troubleshooting. |
+
+---
+
+## **Deployment & Maintenance**  
+To ensure smooth execution, the **plugin should be configured correctly in Dataverse** and linked to appropriate entity triggers. The **VOA Credential Provider custom action** should be set up to return the correct credentials securely. Additionally, the API should be **accessible and operational** at all times.  
+
+### **Routine Maintenance Checklist**  
+1. **Monitor Tracing Logs** for execution errors.  
+2. **Verify API Credentials** periodically to prevent authentication failures.  
+3. **Test API Connectivity** after deployments or infrastructure updates.  
+4. **Review Dataverse Virtual Tables** to ensure data integrity and update accuracy.  
+
+If failures occur:
+- **Check the Tracing Logs** to identify root causes.
+- **Validate API availability** using manual test calls.
+- **Ensure OAuth2 authentication is working correctly**.
+- **Confirm Dataverse Virtual Tables are correctly mapped and accessible**.  
+
+---
+
+## **Conclusion**  
+The **PG Hereditament Lookup Plugin** is a key component for retrieving property hereditament details via the **VOA Property API**. With **secure authentication, structured API handling, and detailed logging**, this plugin provides **a scalable and reliable solution** for property record retrieval. Proper **configuration, monitoring, and maintenance** are essential to ensure continuous operation.
