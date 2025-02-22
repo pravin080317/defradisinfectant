@@ -1,9 +1,57 @@
-Service Architecture Overview
+5.2.1 Power Pages Portal
 
-The Local Authority Portal is built using Microsoft Power Pages and integrates with Dataverse as the backend storage and workflow engine. The user interface is designed with the GOV.UK Design System, ensuring accessibility and compliance with government standards. Authentication follows a secure Azure B2B model, leveraging Azure Entra ID for identity and access management. Key functionalities include file uploads, address search, schedules listing, and report submissions, all managed through Dataverse API. The solution employs custom plugins for enhanced processing, such as validation and linking of uploaded files to cases, as well as dynamic data retrieval for address searches.
+Provides an authenticated and user-friendly interface for local authorities to submit and manage reports.
 
-To support scalable processing, the system integrates with Azure API Management (APIM) and Azure Functions for handling file uploads, file processing, and schedule management. Uploaded files undergo validation, antivirus scanning, and formatting checks before being stored in Azure Blob Storage. Schedule data retrieval and downloads are facilitated through API endpoints, ensuring real-time availability and efficient data access. This architecture ensures a robust, cloud-native, and scalable solution for local authorities to interact seamlessly with the system while maintaining data integrity and security.
+Implements forms-based authentication using Azure Entra ID B2B.
 
-Evidence file uploads follow a structured and secure workflow. When users submit evidence files through the portal, a Dataverse plugin is triggered, which sends the file to the SDES system for virus scanning. Once the SDES validation and security checks are completed, the file is transferred to Azure Blob Storage for temporary holding. The Azure API Management (APIM) and Front Door-enabled Azure Functions then pick up the file, process it, and send it to SharePoint for long-term storage.
+Enables submission of individual reports or bulk file uploads.
 
-The status of the uploaded evidence is updated in Dataverse, ensuring that users can track the progress of their submissions through the portal. This automated pipeline enhances security, maintains compliance, and provides a seamless user experience. The combination of Power Pages, Dataverse, SharePoint, Azure Storage, and Azure Functions enables a streamlined, scalable, and secure document management process within the Local Authority Portal.
+Facilitates error resolution and report corrections within the portal.
+
+Customization for Power Pages:
+
+Power Pages implementation for the LA Portal adheres to the Gov.UK Design System to ensure accessibility, usability, and compliance with government standards.
+
+Customizations to Power Pages are limited to specific use cases while ensuring the core framework remains intact.
+
+Design and Styling: Gov.UK Design System
+
+All visual components and styles are derived from the Gov.UK Design System.
+
+Pre-compiled CSS files from the design system are used to maintain consistency and accessibility.
+
+The Gov.UK CSS files are added to the portal as web files in the Portal Management App.
+
+HTML templates provided by the design system are used with minimal customization, ensuring compliance with accessibility standards.
+
+Example: Buttons, input fields, and other UI components are customized only for IDs, text, and limited inline styles (e.g., display: none for dynamic visibility).
+
+Web Files:
+
+Assets such as fonts, CSS, images, and JavaScript are stored as Web Files in the Portal Management App.
+
+These files are organized with a logical folder structure under assets, fonts, and images.
+
+Custom JavaScript:
+
+Majority of the validations and functions are handled via JavaScript customizations through a consolidated file named validation.js. This file contains reusable functions for common tasks like:
+
+Validating inputs.
+
+Displaying/clearing error messages.
+
+Writing data back to Dataverse using the Web API.
+
+Custom scripts for specific pages, like Dashboard tiles, are placed in a separate JavaScript file called card.js.
+
+Web Form Customizations:
+
+Dynamic Components: Radio buttons, dropdowns, and form inputs are dynamically generated based on Dataverse Choices or other relevant fields.
+
+Example: A set of radio buttons uses the value attribute to map directly to Dataverse fields, with JavaScript reading this value and writing it back using Web API.
+
+Error Handling: Custom error messages are pre-defined with display: none and toggled dynamically using JavaScript.
+
+Webpages, Templates, and Site Settings:
+
+Webpages, templates, site settings, bindings, and table permissions are managed within the Portal Management App to ensure structured access control and security.
