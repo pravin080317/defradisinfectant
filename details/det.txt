@@ -1,218 +1,110 @@
-# **Dataverse Virtual Table Used in PG Hereditament Lookup Plugin**  
+Runbook: PG Hereditament Lookup Plugin for VOA Property Records
+Overview
+The PG Hereditament Lookup Plugin is a Microsoft Dataverse plugin that retrieves property hereditament details from an external API based on the Billing Authority Code (BA Code) and Billing Authority Reference (BA Reference). This plugin is triggered in the Dataverse Plugin Execution Context and interacts with the VOA (Valuation Office Agency) API to fetch property details dynamically.
 
-## **Overview**  
-The **PG Hereditament Lookup Plugin** interacts with a **Dataverse Virtual Table** to dynamically store and return hereditament details in real-time. This approach ensures seamless integration between **Microsoft Dataverse** and the **VOA Property API**, allowing **on-demand data retrieval** without persisting information within Dataverse.  
+The plugin validates input parameters, authenticates API requests using OAuth2, processes API responses, and updates Dataverse virtual tables. It ensures secure credential storage, robust logging, and structured error handling, making it a critical component in property data retrieval workflows.
 
-The plugin leverages the **voap_pghereditamentlookup** virtual table to **store API responses temporarily**, making the retrieved hereditament details available for **PowerApps Portals and other integrated services**.  
+Execution Workflow
+The plugin is executed when a user or system process queries hereditament records. It first validates the execution context to ensure it is not null. If the context is missing, execution is halted by throwing an ArgumentNullException.
 
----
+Once validated, the plugin retrieves execution context details, including:
 
-## **Virtual Table Utilized**  
-The **PG Hereditament Lookup Plugin** integrates with the following **Dataverse Virtual Table**:  
+PluginExecutionContext – Provides metadata about the execution.
+TracingService – Enables logging for debugging and monitoring.
+OrganizationService – Facilitates interaction with Dataverse Virtual Tables.
+The plugin then extracts query parameters, including:
 
-| **Virtual Table Name**         | **Description** |
-|--------------------------------|--------------------------------------------------|
-| `voap_pghereditamentlookup`    | Temporarily stores retrieved hereditament details, including API status, response metadata, and property details. |
+BA Code (pgbacode)
+BA Reference (pgbareference)
+If either parameter is missing, an error response is generated and logged using the TracingService.
 
-### **Purpose & Functionality**  
-- Acts as a **bridge between Dataverse and the VOA API**, enabling real-time data access.  
-- **Does not persist data**—records are populated dynamically upon API response and **expire once the transaction is complete**.  
-- **Facilitates structured data retrieval**, ensuring seamless integration with **PowerApps Portals, custom applications, and business workflows**.  
-- Provides **status updates** related to the API call, allowing users to see success, failure, or partial response messages.  
+Authentication & API Request
+After validating the input parameters, the plugin retrieves API credentials using a custom action (voa_CredentialProvider). These credentials include:
 
----
+API Base Address
+Client ID & Client Secret
+Subscription Key
+Scope & Tenant ID
+The plugin generates an OAuth2 authentication token to authorize API requests securely. Once authenticated, it constructs an HTTP GET request to fetch hereditament details, using the following request format:
 
-## **Data Fields in `voap_pghereditamentlookup`**  
-Each API response is mapped to the **virtual table fields**, enabling structured data retrieval. Below are the key attributes stored in this entity:  
-
-| **Column Name**        | **Description** |
-|------------------------|--------------------------------------------------|
-| `voap_status`         | Indicates the **success or failure** of the API call. |
-| `voap_substatus`      | Provides **specific error codes or response statuses** returned by the API. |
-| `voap_furtherinfo`    | Stores **detailed response information**, such as error messages or additional context. |
-| `voap_bacode`         | Captures the **Billing Authority Code** used in the query. |
-| `voap_bareference`    | Stores the **Billing Authority Reference** queried. |
-| `voap_addressstring`  | The **formatted address** retrieved from the VOA API. |
-| `voap_townname`       | The **town or locality** where the property is located. |
-| `voap_postcode`       | The **postal code** associated with the hereditament. |
-| `voap_uprn`           | The **Unique Property Reference Number (UPRN)**. |
-| `voap_usrn`           | The **Unique Street Reference Number (USRN)**. |
-
-### **How Data is Processed**
-1. **User enters BA Code and BA Reference** via PowerApps Portals or an integrated application.  
-2. **Plugin triggers API request** to VOA Property API.  
-3. **API response is processed**, and relevant hereditament details are extracted.  
-4. **Data is dynamically stored** in `voap_pghereditamentlookup`.  
-5. **Results are displayed** in PowerApps Portals or any connected Dataverse application.  
-6. **Data is not persisted**—each new request overwrites the previous response, ensuring the latest details are fetched directly from the VOA API.  
-
----
-
-## **Integration with PowerApps Portals**  
-The **PG Hereditament Lookup Plugin** is designed to integrate seamlessly with **PowerApps Portals**, enabling users to query hereditament details in real-time. The retrieved data is temporarily stored in **Dataverse Virtual Tables**, ensuring that responses are displayed in the portal UI without requiring data persistence.  
-
-**Key Benefits of Using Virtual Tables for Integration:**
-- **Real-time data access** without the need for local storage.  
-- **Secure API authentication** ensuring that sensitive data is not exposed.  
-- **Faster query execution** as data is fetched on demand from the external API.  
-- **Improved maintainability** by reducing the need for scheduled data synchronization.  
-
----
-
-## **Advantages of Using a Virtual Table**  
-By utilizing a **Dataverse Virtual Table** instead of a standard entity, the plugin benefits from:  
-✔ **On-Demand Data Retrieval** – Ensuring the latest hereditament details are always available.  
-✔ **No Data Duplication** – Eliminating the need for periodic synchronization with the external system.  
-✔ **Reduced Storage Requirements** – Since data is not persisted, there is no unnecessary database growth.  
-✔ **Improved Security** – The plugin interacts with the VOA API dynamically, keeping sensitive data secure.  
-✔ **High Performance** – Queries execute faster because records are not stored permanently.  
-
----
-
-## **Deployment & Maintenance Considerations**  
-To ensure smooth operation of the **PG Hereditament Lookup Plugin**, the following best practices should be followed:  
-
-### **Configuration Requirements**  
-1. **Ensure the Virtual Table (`voap_pghereditamentlookup`) is properly set up** in Dataverse.  
-2. **API credentials should be securely stored** using the `voa_CredentialProvider` custom action.  
-3. **PowerApps Portals should be configured to fetch real-time data** from the virtual table.  
-4. **Ensure correct mapping of API response fields to the virtual table columns** to prevent data inconsistencies.  
-
-### **Ongoing Maintenance**  
-- **Monitor API availability** to prevent disruptions in data retrieval.  
-- **Regularly audit API credentials** to ensure secure authentication.  
-- **Verify PowerApps Portals integration** to ensure data is displayed correctly.  
-- **Check Dataverse logs for error messages** related to API failures or missing data.  
-
----
-
-## **Conclusion**  
-The **PG Hereditament Lookup Plugin** leverages the **voap_pghereditamentlookup** **Dataverse Virtual Table** to enable real-time hereditament data retrieval from the **VOA API**. This approach eliminates **data persistence** while ensuring **secure, dynamic, and efficient property lookup capabilities**.  
-
-By integrating with **PowerApps Portals and other Dataverse applications**, the plugin provides a **scalable and maintainable solution** for querying VOA hereditament data. Proper **configuration, monitoring, and API security practices** will ensure seamless and reliable operation.
-
-
-
-
-
-# **Runbook: PG Hereditament Lookup Plugin for VOA Property Records**  
-
-## **Overview**  
-The **PG Hereditament Lookup Plugin** is a **Microsoft Dataverse plugin** that retrieves **property hereditament details** from an external API based on the **Billing Authority Code (BA Code)** and **Billing Authority Reference (BA Reference)**. This plugin is triggered in the **Dataverse Plugin Execution Context** and interacts with the **VOA (Valuation Office Agency) API** to fetch property details dynamically.  
-
-The plugin **validates input parameters, authenticates API requests using OAuth2, processes API responses, and updates Dataverse virtual tables**. It ensures **secure credential storage, robust logging, and structured error handling**, making it a critical component in property data retrieval workflows.  
-
----
-
-## **Execution Workflow**  
-The plugin is executed when a **user or system process** queries hereditament records. It first **validates the execution context** to ensure it is not null. If the context is missing, execution is halted by throwing an `ArgumentNullException`.  
-
-Once validated, the plugin retrieves **execution context details**, including:
-- **`PluginExecutionContext`** – Provides metadata about the execution.
-- **`TracingService`** – Enables logging for debugging and monitoring.
-- **`OrganizationService`** – Facilitates interaction with **Dataverse Virtual Tables**.  
-
-The plugin then **extracts query parameters**, including:
-- **BA Code (`pgbacode`)**  
-- **BA Reference (`pgbareference`)**  
-
-If either parameter is missing, an error response is generated and logged using the **TracingService**.  
-
----
-
-## **Authentication & API Request**  
-After validating the input parameters, the plugin retrieves **API credentials** using a **custom action (`voa_CredentialProvider`)**. These credentials include:
-- **API Base Address**
-- **Client ID & Client Secret**
-- **Subscription Key**
-- **Scope & Tenant ID**  
-
-The plugin **generates an OAuth2 authentication token** to authorize API requests securely. Once authenticated, it constructs an **HTTP GET request** to fetch hereditament details, using the following request format:  
-```
+bash
+Copy
+Edit
 {API Address}/bacode/{BillingAuthorityCode}/baref/{BillingAuthorityReference}
-```  
 The request headers include:
-- **Authorization Header** (`Bearer <AccessToken>`)
-- **Subscription Key** (`Ocp-Apim-Subscription-Key`)  
 
-Once the request is sent, the plugin logs the **request URL, response status, and error messages** for debugging.  
+Authorization Header (Bearer <AccessToken>)
+Subscription Key (Ocp-Apim-Subscription-Key)
+Once the request is sent, the plugin logs the request URL, response status, and error messages for debugging.
 
----
+API Used
+The plugin interacts with the VOA Property API hosted at:
 
-## **API Used**  
-The plugin interacts with the **VOA Property API** hosted at:  
-```
+ruby
+Copy
+Edit
 https://voagw.npd.hmrc.gov.uk/dev/internal/bst/property-app/v1.1/statutorySpatialUnitLabel
-```  
 This API is responsible for retrieving property details such as:
-- **Property Address**
-- **Building Number**
-- **Postcode**
-- **Locality & Town Name**
-- **Coordinates (X, Y)**
-- **UPRN (Unique Property Reference Number)**
-- **USRN (Unique Street Reference Number)**  
 
----
+Property Address
+Building Number
+Postcode
+Locality & Town Name
+Coordinates (X, Y)
+UPRN (Unique Property Reference Number)
+USRN (Unique Street Reference Number)
+Handling API Responses
+After receiving a response from the VOA API, the plugin processes the returned data and handles different response scenarios:
 
-## **Handling API Responses**  
-After receiving a response from the VOA API, the plugin processes the returned data and handles different response scenarios:  
+200 OK (Successful Response)
 
-1. **`200 OK` (Successful Response)**  
-   - The API returns valid hereditament details.
-   - The plugin **parses and extracts property data** from the response.
-   - Data is **stored in Dataverse Virtual Tables** and logged for reference.  
+The API returns valid hereditament details.
+The plugin parses and extracts property data from the response.
+Data is stored in Dataverse Virtual Tables and logged for reference.
+404 Not Found or 204 No Content (No Records Found)
 
-2. **`404 Not Found` or `204 No Content` (No Records Found)**  
-   - The API does not return any hereditament details for the given **BA Code and BA Reference**.
-   - The plugin logs a **"No Results Found"** message.
-   - A structured response is sent back indicating no available data.  
+The API does not return any hereditament details for the given BA Code and BA Reference.
+The plugin logs a "No Results Found" message.
+A structured response is sent back indicating no available data.
+500 Internal Server Error or Other HTTP Errors (400, 403, etc.)
 
-3. **`500 Internal Server Error` or Other HTTP Errors (`400`, `403`, etc.)**  
-   - The API request fails due to server-side issues or incorrect parameters.
-   - The plugin logs the **status code and API error message**.
-   - A failure response is returned to notify the user/system.  
+The API request fails due to server-side issues or incorrect parameters.
+The plugin logs the status code and API error message.
+A failure response is returned to notify the user/system.
+If any execution failure occurs within the plugin, it is logged under a general plugin failure category for further troubleshooting.
 
-If any execution failure occurs within the plugin, it is **logged under a general plugin failure category** for further troubleshooting.  
+Dataverse Virtual Tables Used
+The plugin interacts with Dataverse Virtual Tables to fetch and store hereditament details dynamically. The key virtual tables involved are:
 
----
+Table Name	Description	Operation
+voap_pghereditamentlookup	Stores retrieved hereditament details.	Insert/Update
+voap_credentialstore	Stores API credentials securely.	Read Only
+voap_requestlog	Logs API request and response details.	Insert
+voap_errorlog	Captures errors encountered during execution.	Insert
+The voap_pghereditamentlookup table is updated with retrieved hereditament data, while the voap_requestlog table logs each API request made by the plugin. If errors occur, they are logged in voap_errorlog to facilitate debugging.
 
-## **Dataverse Virtual Tables Used**  
-The plugin interacts with **Dataverse Virtual Tables** to fetch and store hereditament details dynamically. The key virtual tables involved are:  
+Where Credentials Are Stored
+The plugin retrieves securely stored API credentials from the Dataverse Secure Configuration via the voa_CredentialProvider custom action. This ensures that sensitive details like Client ID, Client Secret, and Subscription Key are not exposed in plaintext.
 
-| **Table Name**              | **Description**                                       | **Operation** |
-|-----------------------------|------------------------------------------------------|--------------|
-| `voap_pghereditamentlookup` | Stores retrieved hereditament details.               | Insert/Update |
-| `voap_credentialstore`      | Stores API credentials securely.                     | Read Only    |
-| `voap_requestlog`           | Logs API request and response details.               | Insert       |
-| `voap_errorlog`             | Captures errors encountered during execution.        | Insert       |
+The stored credentials are accessed dynamically during runtime, ensuring that API requests remain secure and compliant with best practices.
 
-The **`voap_pghereditamentlookup`** table is updated with retrieved hereditament data, while the **`voap_requestlog`** table logs each API request made by the plugin. If errors occur, they are logged in **`voap_errorlog`** to facilitate debugging.  
+Logging & Trace Details
+The plugin uses Dataverse TracingService to log execution details, including:
 
----
-
-## **Where Credentials Are Stored**  
-The plugin retrieves **securely stored API credentials** from the **Dataverse Secure Configuration** via the `voa_CredentialProvider` custom action. This ensures that sensitive details like **Client ID, Client Secret, and Subscription Key** are not exposed in plaintext.  
-
-The **stored credentials are accessed dynamically** during runtime, ensuring that API requests remain **secure and compliant with best practices**.  
-
----
-
-## **Logging & Trace Details**  
-The plugin uses **Dataverse TracingService** to log execution details, including:
-1. **Query Parameters**
-   - BA Code & BA Reference used in the request.
-2. **Authentication & API Calls**
-   - OAuth2 token generation process.
-   - API request details (URL, headers, parameters).
-3. **API Response Handling**
-   - Received property data.
-   - Error messages, if applicable.
-4. **Virtual Table Updates**
-   - Data written to `voap_pghereditamentlookup`.  
-
-### **Example Trace Log Output**
-```
+Query Parameters
+BA Code & BA Reference used in the request.
+Authentication & API Calls
+OAuth2 token generation process.
+API request details (URL, headers, parameters).
+API Response Handling
+Received property data.
+Error messages, if applicable.
+Virtual Table Updates
+Data written to voap_pghereditamentlookup.
+Example Trace Log Output
+css
+Copy
+Edit
 [+47ms] QE Filters voap_pgbacode Values 8116
 [+0ms] QE Filters voap_pgbareference Values 14855023007
 [+1,601ms] Attempting to retrieve secret values from voa Credential Provider action
@@ -221,39 +113,28 @@ The plugin uses **Dataverse TracingService** to log execution details, including
 [+95ms] Returned Addresses:
 {"addressString": "23 HUNGERFORD GARDENS, BRISTOL, BS4 5HA"}
 [+0ms] Finished generating entities.
-```
+Error Handling & Common Scenarios
+The plugin incorporates structured error handling to manage execution failures effectively.
 
----
+Error Code	Description	Resolution
+Err01	Missing BA Code in request.	Validate request parameters.
+Err02	Missing BA Reference in request.	Ensure BA Reference is provided.
+Err03	API Call Failed.	Check API availability and credentials.
+Err04	Authentication Failure.	Validate stored credentials and OAuth flow.
+Err05	Plugin Execution Failure.	Check logs for further troubleshooting.
+Deployment & Maintenance
+To ensure smooth execution, the plugin should be configured correctly in Dataverse and linked to appropriate entity triggers. The VOA Credential Provider custom action should be set up to return the correct credentials securely. Additionally, the API should be accessible and operational at all times.
 
-## **Error Handling & Common Scenarios**  
-The plugin incorporates structured error handling to manage execution failures effectively.  
-
-| **Error Code** | **Description**                                      | **Resolution** |
-|--------------|--------------------------------------------------|--------------|
-| `Err01`     | Missing BA Code in request.                      | Validate request parameters. |
-| `Err02`     | Missing BA Reference in request.                 | Ensure BA Reference is provided. |
-| `Err03`     | API Call Failed.                                  | Check API availability and credentials. |
-| `Err04`     | Authentication Failure.                          | Validate stored credentials and OAuth flow. |
-| `Err05`     | Plugin Execution Failure.                        | Check logs for further troubleshooting. |
-
----
-
-## **Deployment & Maintenance**  
-To ensure smooth execution, the **plugin should be configured correctly in Dataverse** and linked to appropriate entity triggers. The **VOA Credential Provider custom action** should be set up to return the correct credentials securely. Additionally, the API should be **accessible and operational** at all times.  
-
-### **Routine Maintenance Checklist**  
-1. **Monitor Tracing Logs** for execution errors.  
-2. **Verify API Credentials** periodically to prevent authentication failures.  
-3. **Test API Connectivity** after deployments or infrastructure updates.  
-4. **Review Dataverse Virtual Tables** to ensure data integrity and update accuracy.  
-
+Routine Maintenance Checklist
+Monitor Tracing Logs for execution errors.
+Verify API Credentials periodically to prevent authentication failures.
+Test API Connectivity after deployments or infrastructure updates.
+Review Dataverse Virtual Tables to ensure data integrity and update accuracy.
 If failures occur:
-- **Check the Tracing Logs** to identify root causes.
-- **Validate API availability** using manual test calls.
-- **Ensure OAuth2 authentication is working correctly**.
-- **Confirm Dataverse Virtual Tables are correctly mapped and accessible**.  
 
----
-
-## **Conclusion**  
-The **PG Hereditament Lookup Plugin** is a key component for retrieving property hereditament details via the **VOA Property API**. With **secure authentication, structured API handling, and detailed logging**, this plugin provides **a scalable and reliable solution** for property record retrieval. Proper **configuration, monitoring, and maintenance** are essential to ensure continuous operation.
+Check the Tracing Logs to identify root causes.
+Validate API availability using manual test calls.
+Ensure OAuth2 authentication is working correctly.
+Confirm Dataverse Virtual Tables are correctly mapped and accessible.
+Conclusion
+The PG Hereditament Lookup Plugin is a key component for retrieving property hereditament details via the VOA Property API. With secure authentication, structured API handling, and detailed logging, this plugin provides a scalable and reliable solution for property record retrieval. Proper configuration, monitoring, and maintenance are essential to ensure continuous operation.
