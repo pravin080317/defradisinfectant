@@ -1,134 +1,101 @@
-Runbook: Schedules File Download Plugin
+6.2 Deployment Pipeline Flow and Configuration
 
-Overview
+6.2.1 Deployment Pipeline Overview
 
-The Schedules File Download Plugin enables the downloading of schedule files from an external VOA storage system. It securely retrieves files based on user-selected criteria from PowerApps Portals, supporting multiple formats, such as HTML, XML, CSV, ASV, and ZIP. The plugin manages secure API authentication, structured file retrieval, and dynamic responses to user requests.
+The deployment process for the LA Portal consists of two distinct workflows for managing changes:
 
-Execution Workflow
+Case Management Pipeline:
 
-Plugin Invocation
+Managed using solutions.
 
-Triggered when a user initiates a schedule file download request from PowerApps Portals.
+Includes schema changes such as updates to tables, fields, and Power Automate flows.
 
-Validates the plugin execution context and ensures parameters (filename, container, and storage account URL) are provided.
+Changes are managed incrementally through a Delta Solution.
 
-Retrieving API Credentials
+Deployment Workflow:
 
-Retrieves credentials securely from the voa_CredentialProvider custom Dataverse action.
+Development in Dev: Create or update components and track these changes in an Unmanaged solution.
 
-Credentials include API base URL, Client ID, Client Secret, Scope, Subscription Key, and Tenant ID.
+Delta Solution: All new or updated components are added to the Delta solution.
 
-Authentication Generation
+Merging Delta to Main Solution: The Case Management Team merges the Delta solution into the Master Solution and then clears the Delta solution.
 
-Generates an OAuth2 token using retrieved credentials for secure API requests.
+Pipeline Deployment: The Case Management team manages the deployment pipeline, moving the Master solution across environments: Dev → FAT → SIT → UAT → MO → PPE → PROD.
 
-Constructing and Sending API Request
+LA Portal Pipeline:
 
-Constructs an HTTP GET request to the external API for file retrieval:
+Managed using the XRM Portal Code Mover Tool for frontend code-level changes (JavaScript, HTML, CSS).
 
-https://voagw.npd.hmrc.gov.uk/dev/internal/bst/download-blob-file/download
+Deployment Workflow:
 
-Includes authentication headers:
+Development in Dev: Code changes are implemented and validated locally. Updates are prepared for incremental deployment.
 
-Bearer token (Authorization header)
+Incremental Deployment to FAT: Using the XRM Portal Code Mover tool, changes are packaged as XML files and deployed to FAT.
 
-API Management subscription key (Ocp-Apim-Subscription-Key header)
+CI/CD Pipeline Full Deployment:
 
-Blob URL provided in the request headers
+FAT to SIT: Automatically handled by the CI/CD pipeline after validation in FAT.
 
-File Retrieval and Response
+SIT to UAT, MO, PPE: Requires approval from at least one developer and matthew.askill@hmrc.gov.uk.
 
-Retrieves file stream from the blob storage response.
+PPE to PROD: Requires approval from matthew.askill@hmrc.gov.uk.
 
-Converts the file stream to Base64 encoded format for transfer.
+6.2.2 CI/CD Setup and Release Management Process
 
-Response Handling in Dataverse
+Each release is uniquely tagged with a Release Tag provided by the DevOps Release Manager (riyaz.tiruppattur@hmrc.gov.uk) or their team.
 
-Populates a Dataverse virtual entity (voap_downloadrequest) with file details:
+All stories/bugs included in the release must be tagged with this release number.
 
-MIME type
+During pipeline execution, the release tag is updated in each environment.
 
-File content (Base64)
+For higher environment deployments (SIT, UAT, MO, PPE, PROD), inform the Release and Deployment teams via Teams chat with details including:
 
-Download status (success or failure)
+Track: LA PORTAL
 
-Error message (if applicable)
+Environment(s): SIT, UAT, MO, PPE, PROD
 
-Returns the structured response to PowerApps Portals for file download.
+Release Tag(s): e.g., 15.5.LAPortal.1.PPE-PV:1.15.5.002
 
-API Endpoint
+Release No.: e.g., 1.15.5.002
 
-Endpoint:
+Description: Clear details of each change including enhancements, deprecations, and bug fixes.
 
-https://voagw.npd.hmrc.gov.uk/dev/internal/bst/download-blob-file/download
+Link Pipelines: LA PORTAL
 
-Dataverse Virtual Table Used
+Start Time: Date of deployment initiation
 
-Virtual Table Name
+Deployment Status: Current progress status
 
-Description
+6.2.3 Pre-Deployment and Post-Deployment Steps
 
-Operation
+Pre-deployment Steps:
 
-voap_downloadrequest
+Validate all changes thoroughly in the Dev environment.
 
-Temporarily stores downloaded file data and metadata.
+Clearly document and capture descriptions of each change.
 
-Insert/Update
+Ensure all necessary approvals are planned and received for the target environment.
 
-Virtual Table Data Fields
+Ensure the Delta Master solution includes all required updates.
 
-Field Name
+Verify stories and bugs have accurate release tags.
 
-Description
+Record start time and deployment details prior to deployment.
 
-voap_downloadrequestid
+Post-deployment Validations:
 
-Unique identifier for the request.
+Validate critical portal functionalities such as multiple uploads, single form submissions, and error handling.
 
-voap_mimetype
+Conduct a Smoke Test to verify the basic operational functionality of the portal.
 
-MIME type of the downloaded file.
+6.2.4 SharePoint Documentation for Portal Code Changes
 
-voap_filebinary
+For portal deployments, the team maintains comprehensive documentation in SharePoint. This includes:
 
-File content encoded in Base64.
+Detailed records of changes made using the XRM Portal Code Mover.
 
-voap_downloadstatus
+XML files capturing frontend code updates (JavaScript, HTML, CSS).
 
-Indicates success or failure.
+Documented change logs and deployment details.
 
-voap_errormessage
-
-Error message if download fails.
-
-Logging and Traceability
-
-The plugin uses Dataverse's TracingService to log:
-
-API credential retrieval
-
-OAuth2 authentication
-
-API requests and file download responses
-
-File conversion and storage status
-
-Deployment & Maintenance
-
-Configuration:
-
-Verify secure credential storage in voa_CredentialProvider.
-
-Confirm file retrieval parameters are correctly configured.
-
-Routine Maintenance:
-
-Regularly check API endpoint availability and token validity.
-
-Monitor plugin logs for issues and timely resolution.
-
-Conclusion
-
-The Schedules File Download Plugin facilitates secure, efficient downloading of schedule files from external storage, ensuring seamless integration and user-friendly experiences through PowerApps Portals. Proper monitoring and regular maintenance are crucial for uninterrupted operation.
-
+These documents are maintained and organized within the SharePoint release folders, ensuring traceability and easy reference for all deployments.
