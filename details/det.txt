@@ -1,112 +1,127 @@
-Runbook: LPI Address Lookup Plugin for VOA Property Records
-Overview
-The LPI Address Lookup Plugin is a Microsoft Dataverse plugin designed to fetch Local Property Identifier (LPI) address details using a postcode-based search. This plugin communicates with the VOA Gazetteer API, enabling users to retrieve structured property address data dynamically via PowerApps Portals.
+Runbook: Schedules List Plugin
 
-The plugin ensures secure API authentication, structured data transformation, and dynamic storage within Dataverse Virtual Tables. The retrieved address records are not persisted, making this an on-demand lookup solution that enhances real-time address searches.
+Overview
+
+The Schedules List Plugin is a Dataverse plugin designed to dynamically retrieve and display a list of council tax schedule documents through integration with the VOA (Valuation Office Agency) internal API. The plugin leverages secure authentication, structured API requests, and real-time data retrieval without persisting sensitive data directly within Dataverse.
 
 Execution Workflow
-1. Plugin Invocation
-The plugin is triggered when a user or system process queries an address using an LPI Postcode via PowerApps Portals.
-The execution context is validated to ensure it is not null. If the context is missing, execution is halted by throwing an ArgumentNullException.
-2. Retrieve API Credentials
-The plugin retrieves VOA API credentials securely from voa_CredentialProvider.
-The credentials retrieved include:
-API Base Address
-Client ID & Client Secret
-Subscription Key
-Scope & Tenant ID
-These credentials ensure secure API communication.
-3. Generate Authentication Token
-The plugin generates an OAuth2 authentication token using the retrieved credentials.
-The token is used to authenticate the API request.
-4. Construct & Send API Request
-A GET request is made to the VOA Gazetteer API, querying the LPI Postcode.
-The API request is structured as follows:
-perl
-Copy
-Edit
-https://voagw.npd.hmrc.gov.uk/dev/internal/bst/gazetteer/ordnanceSurvey/geocode/findAddressCandidates?
-f=json&maxLocations=100&outSR=%7B%22wkid%22%3A27700%7D&outFields=*&singleLine={LPI_Postcode}
-The request includes authentication headers:
-Bearer <AccessToken>
-Ocp-Apim-Subscription-Key
-5. Process API Response
-The API returns a list of address candidates matching the requested postcode.
-The plugin parses the response and extracts structured address details.
-6. Transform & Store Data in Dataverse
-The API response is converted into a structured entity format.
-The Dataverse Virtual Table (voap_lpiaddresslookup) is dynamically updated.
-The formatted address results are returned to PowerApps Portals for display.
-7. Response Handling
-If an address is found, it is converted, stored, and displayed.
-If no address is found, the plugin logs the failure.
-If the API request fails, the failure is logged and execution continues.
-API Used
-The plugin interacts with the VOA Gazetteer API, which provides postcode-based address geolocation services.
+
+Step 1: Plugin Invocation
+
+Triggered by user interaction from PowerApps Portals requesting council tax schedules.
+
+Validates the plugin execution context to ensure all necessary inputs and services are available.
+
+Step 2: Secure Credentials Retrieval
+
+Retrieves API credentials securely from the voa_CredentialProvider custom action.
+
+Credentials obtained include:
+
+API Base URL
+
+Client ID
+
+Client Secret
+
+API Management Subscription Key
+
+Scope
+
+Tenant ID
+
+Step 3: OAuth2 Authentication
+
+Utilizes OAuth2 protocol to securely generate an authentication token.
+
+The token is essential for authenticating subsequent API requests.
+
+Step 4: API Request Construction & Execution
+
+Constructs an API request to fetch schedule metadata based on provided parameters (BACode, FileType).
 
 API Endpoint:
 
-ruby
-Copy
-Edit
-https://voagw.npd.hmrc.gov.uk/dev/internal/bst/gazetteer/ordnanceSurvey/geocode/findAddressCandidates
-API Parameters:
+https://voagw.npd.hmrc.gov.uk/dev/internal/bst/property-app/v1/laSchedule/metadata?bacode={BACode}&filetype={FileType}
 
-f=json → JSON response format
-maxLocations=100 → Maximum number of address candidates
-outSR=%7B%22wkid%22%3A27700%7D → Spatial reference (Ordnance Survey)
-singleLine={LPI_Postcode} → The postcode query parameter
+The request includes authorization headers (Bearer Token) and subscription key for secure access.
+
+Step 5: Processing the API Response
+
+Parses the JSON response received from the VOA API.
+
+Converts the response into structured Dataverse-compatible entities.
+
+Step 6: Data Population into Virtual Table
+
+Dynamically populates the retrieved records into the Dataverse virtual table (voap_portalscheduleslist).
+
+Key fields populated include:
+
+voap_id
+
+voap_groupid
+
+voap_bacode
+
+voap_listid
+
+voap_listyear
+
+voap_listtype
+
+voap_billingauthorityid
+
+voap_filetype
+
+voap_filepath
+
+voap_filesize
+
+voap_filename
+
+voap_description
+
+voap_language
+
+voap_createddate
+
 Dataverse Virtual Table Used
-Virtual Table Name	Description	Operation
-voap_lpiaddresslookup	Temporarily stores retrieved LPI address details.	Insert/Update
-Purpose & Functionality
-Acts as a bridge between Dataverse and the VOA API, enabling real-time address retrieval.
-No data persistence—records are retrieved dynamically and are not stored permanently.
-Optimized for PowerApps Portals, ensuring fast response times.
-Structured response handling, mapping API responses to Dataverse fields.
-Data Fields Stored in voap_lpiaddresslookup
-Column Name	Description
-voap_lpipostcode	The postcode used for the address lookup.
-voap_lpiaddressstring	The formatted address retrieved from the API.
-voap_lpiuprn	The Unique Property Reference Number (UPRN).
-voap_lpiusrn	The Unique Street Reference Number (USRN).
-voap_lpitownname	The town name where the property is located.
-voap_lpilocalityname	The locality name of the property.
-voap_lpiadministrativearea	The administrative area assigned to the property.
-voap_lpixcoordinate	The X-coordinate (Easting) of the property.
-voap_lpiycoordinate	The Y-coordinate (Northing) of the property.
-Logging & Trace Details
-The plugin logs execution steps, API interactions, and results using Dataverse TracingService.
 
-Example Trace Log Output
-css
-Copy
-Edit
-[+732ms] Entered VOA.Plugins.Plugins.CustomAPI.voa_AddressLabelSearch.Execute()
-[+63ms] Generating authentication
-[+219ms] Returning token object
-[+16ms] Making request to VOA Gazetteer API
-[+2,838ms] Address Retrieved: "CAR PARKING SPACE 1, ARODENE HOUSE, PERTH ROAD, GANTS HILL, ILFORD, IG2 6FL"
-[+606ms] QueryExp voap_lpiaddresslookup
-[+3,277ms] Request stored
-[+8ms] Key Result is found in the response
-[+63ms] Address converted
-[+8ms] Response sent to portal
-These logs provide critical debugging information and allow for quick issue resolution in case of failures.
+Virtual Table Name
+
+Description
+
+Operation
+
+voap_portalscheduleslist
+
+Temporarily stores retrieved schedule details for immediate display
+
+Insert/Update
+
+Logging & Monitoring
+
+The plugin utilizes Dataverse's TracingService for logging detailed execution steps, API request URLs, response statuses, and any encountered exceptions. This facilitates debugging, performance monitoring, and quick resolution of issues.
 
 Deployment & Maintenance
+
 Configuration Requirements
-Ensure the Virtual Table (voap_lpiaddresslookup) is correctly configured in Dataverse.
-API credentials should be securely stored in voa_CredentialProvider.
-PowerApps Portals should be configured to fetch real-time data from the virtual table.
-Verify that API response fields are correctly mapped to Dataverse attributes.
+
+Ensure correct configuration of the virtual entity (voap_portalscheduleslist) within Dataverse.
+
+Secure storage and regular verification of API credentials within the voa_CredentialProvider.
+
+PowerApps Portal must be properly configured to interact with the virtual table for real-time data display.
+
 Routine Maintenance Checklist
-✔ Monitor API availability to prevent disruptions in address lookups.
-✔ Verify API credentials periodically to avoid authentication failures.
-✔ Check PowerApps Portals integration to ensure accurate data retrieval.
-✔ Analyze Dataverse logs for performance improvements and debugging.
+
+Regularly verify the availability and responsiveness of the VOA internal API.
+
+Periodically validate OAuth2 tokens and API credential validity.
+
+Monitor Dataverse logs regularly to ensure smooth plugin operation and quickly identify issues.
 
 Conclusion
-The LPI Address Lookup Plugin is a real-time address search solution that integrates Dataverse Virtual Tables with VOA Gazetteer API. It eliminates the need for data persistence, ensuring fast, secure, and accurate address lookups within PowerApps Portals.
 
-By leveraging OAuth2 authentication, structured logging, and dynamic entity updates, this plugin enhances user experience while maintaining high-performance standards. Proper configuration, API monitoring, and error handling are essential to maintain seamless operation across integrated services.
+The Schedules List Plugin provides secure, reliable, and real-time access to council tax schedules through seamless integration with Dataverse and the VOA API, enhancing user experience and operational efficiency.
