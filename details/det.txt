@@ -1,140 +1,112 @@
-Runbook: PG Hereditament Lookup Plugin for VOA Property Records
+Runbook: LPI Address Lookup Plugin for VOA Property Records
 Overview
-The PG Hereditament Lookup Plugin is a Microsoft Dataverse plugin that retrieves property hereditament details from an external API based on the Billing Authority Code (BA Code) and Billing Authority Reference (BA Reference). This plugin is triggered in the Dataverse Plugin Execution Context and interacts with the VOA (Valuation Office Agency) API to fetch property details dynamically.
+The LPI Address Lookup Plugin is a Microsoft Dataverse plugin designed to fetch Local Property Identifier (LPI) address details using a postcode-based search. This plugin communicates with the VOA Gazetteer API, enabling users to retrieve structured property address data dynamically via PowerApps Portals.
 
-The plugin validates input parameters, authenticates API requests using OAuth2, processes API responses, and updates Dataverse virtual tables. It ensures secure credential storage, robust logging, and structured error handling, making it a critical component in property data retrieval workflows.
+The plugin ensures secure API authentication, structured data transformation, and dynamic storage within Dataverse Virtual Tables. The retrieved address records are not persisted, making this an on-demand lookup solution that enhances real-time address searches.
 
 Execution Workflow
-The plugin is executed when a user or system process queries hereditament records. It first validates the execution context to ensure it is not null. If the context is missing, execution is halted by throwing an ArgumentNullException.
-
-Once validated, the plugin retrieves execution context details, including:
-
-PluginExecutionContext – Provides metadata about the execution.
-TracingService – Enables logging for debugging and monitoring.
-OrganizationService – Facilitates interaction with Dataverse Virtual Tables.
-The plugin then extracts query parameters, including:
-
-BA Code (pgbacode)
-BA Reference (pgbareference)
-If either parameter is missing, an error response is generated and logged using the TracingService.
-
-Authentication & API Request
-After validating the input parameters, the plugin retrieves API credentials using a custom action (voa_CredentialProvider). These credentials include:
-
+1. Plugin Invocation
+The plugin is triggered when a user or system process queries an address using an LPI Postcode via PowerApps Portals.
+The execution context is validated to ensure it is not null. If the context is missing, execution is halted by throwing an ArgumentNullException.
+2. Retrieve API Credentials
+The plugin retrieves VOA API credentials securely from voa_CredentialProvider.
+The credentials retrieved include:
 API Base Address
 Client ID & Client Secret
 Subscription Key
 Scope & Tenant ID
-The plugin generates an OAuth2 authentication token to authorize API requests securely. Once authenticated, it constructs an HTTP GET request to fetch hereditament details, using the following request format:
-
-bash
+These credentials ensure secure API communication.
+3. Generate Authentication Token
+The plugin generates an OAuth2 authentication token using the retrieved credentials.
+The token is used to authenticate the API request.
+4. Construct & Send API Request
+A GET request is made to the VOA Gazetteer API, querying the LPI Postcode.
+The API request is structured as follows:
+perl
 Copy
 Edit
-{API Address}/bacode/{BillingAuthorityCode}/baref/{BillingAuthorityReference}
-The request headers include:
-
-Authorization Header (Bearer <AccessToken>)
-Subscription Key (Ocp-Apim-Subscription-Key)
-Once the request is sent, the plugin logs the request URL, response status, and error messages for debugging.
-
+https://voagw.npd.hmrc.gov.uk/dev/internal/bst/gazetteer/ordnanceSurvey/geocode/findAddressCandidates?
+f=json&maxLocations=100&outSR=%7B%22wkid%22%3A27700%7D&outFields=*&singleLine={LPI_Postcode}
+The request includes authentication headers:
+Bearer <AccessToken>
+Ocp-Apim-Subscription-Key
+5. Process API Response
+The API returns a list of address candidates matching the requested postcode.
+The plugin parses the response and extracts structured address details.
+6. Transform & Store Data in Dataverse
+The API response is converted into a structured entity format.
+The Dataverse Virtual Table (voap_lpiaddresslookup) is dynamically updated.
+The formatted address results are returned to PowerApps Portals for display.
+7. Response Handling
+If an address is found, it is converted, stored, and displayed.
+If no address is found, the plugin logs the failure.
+If the API request fails, the failure is logged and execution continues.
 API Used
-The plugin interacts with the VOA Property API hosted at:
+The plugin interacts with the VOA Gazetteer API, which provides postcode-based address geolocation services.
+
+API Endpoint:
 
 ruby
 Copy
 Edit
-https://voagw.npd.hmrc.gov.uk/dev/internal/bst/property-app/v1.1/statutorySpatialUnitLabel
-This API is responsible for retrieving property details such as:
+https://voagw.npd.hmrc.gov.uk/dev/internal/bst/gazetteer/ordnanceSurvey/geocode/findAddressCandidates
+API Parameters:
 
-Property Address
-Building Number
-Postcode
-Locality & Town Name
-Coordinates (X, Y)
-UPRN (Unique Property Reference Number)
-USRN (Unique Street Reference Number)
-Handling API Responses
-After receiving a response from the VOA API, the plugin processes the returned data and handles different response scenarios:
-
-200 OK (Successful Response)
-
-The API returns valid hereditament details.
-The plugin parses and extracts property data from the response.
-Data is stored in Dataverse Virtual Tables and logged for reference.
-404 Not Found or 204 No Content (No Records Found)
-
-The API does not return any hereditament details for the given BA Code and BA Reference.
-The plugin logs a "No Results Found" message.
-A structured response is sent back indicating no available data.
-500 Internal Server Error or Other HTTP Errors (400, 403, etc.)
-
-The API request fails due to server-side issues or incorrect parameters.
-The plugin logs the status code and API error message.
-A failure response is returned to notify the user/system.
-If any execution failure occurs within the plugin, it is logged under a general plugin failure category for further troubleshooting.
-
-Dataverse Virtual Tables Used
-The plugin interacts with Dataverse Virtual Tables to fetch and store hereditament details dynamically. The key virtual tables involved are:
-
-Table Name	Description	Operation
-voap_pghereditamentlookup	Stores retrieved hereditament details.	Insert/Update
-voap_credentialstore	Stores API credentials securely.	Read Only
-voap_requestlog	Logs API request and response details.	Insert
-voap_errorlog	Captures errors encountered during execution.	Insert
-The voap_pghereditamentlookup table is updated with retrieved hereditament data, while the voap_requestlog table logs each API request made by the plugin. If errors occur, they are logged in voap_errorlog to facilitate debugging.
-
-Where Credentials Are Stored
-The plugin retrieves securely stored API credentials from the Dataverse Secure Configuration via the voa_CredentialProvider custom action. This ensures that sensitive details like Client ID, Client Secret, and Subscription Key are not exposed in plaintext.
-
-The stored credentials are accessed dynamically during runtime, ensuring that API requests remain secure and compliant with best practices.
-
+f=json → JSON response format
+maxLocations=100 → Maximum number of address candidates
+outSR=%7B%22wkid%22%3A27700%7D → Spatial reference (Ordnance Survey)
+singleLine={LPI_Postcode} → The postcode query parameter
+Dataverse Virtual Table Used
+Virtual Table Name	Description	Operation
+voap_lpiaddresslookup	Temporarily stores retrieved LPI address details.	Insert/Update
+Purpose & Functionality
+Acts as a bridge between Dataverse and the VOA API, enabling real-time address retrieval.
+No data persistence—records are retrieved dynamically and are not stored permanently.
+Optimized for PowerApps Portals, ensuring fast response times.
+Structured response handling, mapping API responses to Dataverse fields.
+Data Fields Stored in voap_lpiaddresslookup
+Column Name	Description
+voap_lpipostcode	The postcode used for the address lookup.
+voap_lpiaddressstring	The formatted address retrieved from the API.
+voap_lpiuprn	The Unique Property Reference Number (UPRN).
+voap_lpiusrn	The Unique Street Reference Number (USRN).
+voap_lpitownname	The town name where the property is located.
+voap_lpilocalityname	The locality name of the property.
+voap_lpiadministrativearea	The administrative area assigned to the property.
+voap_lpixcoordinate	The X-coordinate (Easting) of the property.
+voap_lpiycoordinate	The Y-coordinate (Northing) of the property.
 Logging & Trace Details
-The plugin uses Dataverse TracingService to log execution details, including:
+The plugin logs execution steps, API interactions, and results using Dataverse TracingService.
 
-Query Parameters
-BA Code & BA Reference used in the request.
-Authentication & API Calls
-OAuth2 token generation process.
-API request details (URL, headers, parameters).
-API Response Handling
-Received property data.
-Error messages, if applicable.
-Virtual Table Updates
-Data written to voap_pghereditamentlookup.
 Example Trace Log Output
 css
 Copy
 Edit
-[+47ms] QE Filters voap_pgbacode Values 8116
-[+0ms] QE Filters voap_pgbareference Values 14855023007
-[+1,601ms] Attempting to retrieve secret values from voa Credential Provider action
-[+4,483ms] Request made to: https://voagw.npd.hmrc.gov.uk/dev/internal/bst/property-app/v1.1/statutorySpatialUnitLabel/bacode/8116/baref/14855023007
-[+8ms] Status Code: OK Reason: OK
-[+95ms] Returned Addresses:
-{"addressString": "23 HUNGERFORD GARDENS, BRISTOL, BS4 5HA"}
-[+0ms] Finished generating entities.
-Error Handling & Common Scenarios
-The plugin incorporates structured error handling to manage execution failures effectively.
+[+732ms] Entered VOA.Plugins.Plugins.CustomAPI.voa_AddressLabelSearch.Execute()
+[+63ms] Generating authentication
+[+219ms] Returning token object
+[+16ms] Making request to VOA Gazetteer API
+[+2,838ms] Address Retrieved: "CAR PARKING SPACE 1, ARODENE HOUSE, PERTH ROAD, GANTS HILL, ILFORD, IG2 6FL"
+[+606ms] QueryExp voap_lpiaddresslookup
+[+3,277ms] Request stored
+[+8ms] Key Result is found in the response
+[+63ms] Address converted
+[+8ms] Response sent to portal
+These logs provide critical debugging information and allow for quick issue resolution in case of failures.
 
-Error Code	Description	Resolution
-Err01	Missing BA Code in request.	Validate request parameters.
-Err02	Missing BA Reference in request.	Ensure BA Reference is provided.
-Err03	API Call Failed.	Check API availability and credentials.
-Err04	Authentication Failure.	Validate stored credentials and OAuth flow.
-Err05	Plugin Execution Failure.	Check logs for further troubleshooting.
 Deployment & Maintenance
-To ensure smooth execution, the plugin should be configured correctly in Dataverse and linked to appropriate entity triggers. The VOA Credential Provider custom action should be set up to return the correct credentials securely. Additionally, the API should be accessible and operational at all times.
-
+Configuration Requirements
+Ensure the Virtual Table (voap_lpiaddresslookup) is correctly configured in Dataverse.
+API credentials should be securely stored in voa_CredentialProvider.
+PowerApps Portals should be configured to fetch real-time data from the virtual table.
+Verify that API response fields are correctly mapped to Dataverse attributes.
 Routine Maintenance Checklist
-Monitor Tracing Logs for execution errors.
-Verify API Credentials periodically to prevent authentication failures.
-Test API Connectivity after deployments or infrastructure updates.
-Review Dataverse Virtual Tables to ensure data integrity and update accuracy.
-If failures occur:
+✔ Monitor API availability to prevent disruptions in address lookups.
+✔ Verify API credentials periodically to avoid authentication failures.
+✔ Check PowerApps Portals integration to ensure accurate data retrieval.
+✔ Analyze Dataverse logs for performance improvements and debugging.
 
-Check the Tracing Logs to identify root causes.
-Validate API availability using manual test calls.
-Ensure OAuth2 authentication is working correctly.
-Confirm Dataverse Virtual Tables are correctly mapped and accessible.
 Conclusion
-The PG Hereditament Lookup Plugin is a key component for retrieving property hereditament details via the VOA Property API. With secure authentication, structured API handling, and detailed logging, this plugin provides a scalable and reliable solution for property record retrieval. Proper configuration, monitoring, and maintenance are essential to ensure continuous operation.
+The LPI Address Lookup Plugin is a real-time address search solution that integrates Dataverse Virtual Tables with VOA Gazetteer API. It eliminates the need for data persistence, ensuring fast, secure, and accurate address lookups within PowerApps Portals.
+
+By leveraging OAuth2 authentication, structured logging, and dynamic entity updates, this plugin enhances user experience while maintaining high-performance standards. Proper configuration, API monitoring, and error handling are essential to maintain seamless operation across integrated services.
