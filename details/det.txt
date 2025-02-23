@@ -1,90 +1,66 @@
-Runbook: Schedules List Plugin
+Runbook: Schedules File Download Plugin
 
 Overview
 
-The Schedules List Plugin is a Dataverse plugin designed to dynamically retrieve and display a list of council tax schedule documents through integration with the VOA (Valuation Office Agency) internal API. The plugin leverages secure authentication, structured API requests, and real-time data retrieval without persisting sensitive data directly within Dataverse.
+The Schedules File Download Plugin enables the downloading of schedule files from an external VOA storage system. It securely retrieves files based on user-selected criteria from PowerApps Portals, supporting multiple formats, such as HTML, XML, CSV, ASV, and ZIP. The plugin manages secure API authentication, structured file retrieval, and dynamic responses to user requests.
 
 Execution Workflow
 
-Step 1: Plugin Invocation
+Plugin Invocation
 
-Triggered by user interaction from PowerApps Portals requesting council tax schedules.
+Triggered when a user initiates a schedule file download request from PowerApps Portals.
 
-Validates the plugin execution context to ensure all necessary inputs and services are available.
+Validates the plugin execution context and ensures parameters (filename, container, and storage account URL) are provided.
 
-Step 2: Secure Credentials Retrieval
+Retrieving API Credentials
 
-Retrieves API credentials securely from the voa_CredentialProvider custom action.
+Retrieves credentials securely from the voa_CredentialProvider custom Dataverse action.
 
-Credentials obtained include:
+Credentials include API base URL, Client ID, Client Secret, Scope, Subscription Key, and Tenant ID.
 
-API Base URL
+Authentication Generation
 
-Client ID
+Generates an OAuth2 token using retrieved credentials for secure API requests.
 
-Client Secret
+Constructing and Sending API Request
 
-API Management Subscription Key
+Constructs an HTTP GET request to the external API for file retrieval:
 
-Scope
+https://voagw.npd.hmrc.gov.uk/dev/internal/bst/download-blob-file/download
 
-Tenant ID
+Includes authentication headers:
 
-Step 3: OAuth2 Authentication
+Bearer token (Authorization header)
 
-Utilizes OAuth2 protocol to securely generate an authentication token.
+API Management subscription key (Ocp-Apim-Subscription-Key header)
 
-The token is essential for authenticating subsequent API requests.
+Blob URL provided in the request headers
 
-Step 4: API Request Construction & Execution
+File Retrieval and Response
 
-Constructs an API request to fetch schedule metadata based on provided parameters (BACode, FileType).
+Retrieves file stream from the blob storage response.
 
-API Endpoint:
+Converts the file stream to Base64 encoded format for transfer.
 
-https://voagw.npd.hmrc.gov.uk/dev/internal/bst/property-app/v1/laSchedule/metadata?bacode={BACode}&filetype={FileType}
+Response Handling in Dataverse
 
-The request includes authorization headers (Bearer Token) and subscription key for secure access.
+Populates a Dataverse virtual entity (voap_downloadrequest) with file details:
 
-Step 5: Processing the API Response
+MIME type
 
-Parses the JSON response received from the VOA API.
+File content (Base64)
 
-Converts the response into structured Dataverse-compatible entities.
+Download status (success or failure)
 
-Step 6: Data Population into Virtual Table
+Error message (if applicable)
 
-Dynamically populates the retrieved records into the Dataverse virtual table (voap_portalscheduleslist).
+Returns the structured response to PowerApps Portals for file download.
 
-Key fields populated include:
+API Endpoint
 
-voap_id
+Endpoint:
 
-voap_groupid
-
-voap_bacode
-
-voap_listid
-
-voap_listyear
-
-voap_listtype
-
-voap_billingauthorityid
-
-voap_filetype
-
-voap_filepath
-
-voap_filesize
-
-voap_filename
-
-voap_description
-
-voap_language
-
-voap_createddate
+https://voagw.npd.hmrc.gov.uk/dev/internal/bst/download-blob-file/download
 
 Dataverse Virtual Table Used
 
@@ -94,34 +70,65 @@ Description
 
 Operation
 
-voap_portalscheduleslist
+voap_downloadrequest
 
-Temporarily stores retrieved schedule details for immediate display
+Temporarily stores downloaded file data and metadata.
 
 Insert/Update
 
-Logging & Monitoring
+Virtual Table Data Fields
 
-The plugin utilizes Dataverse's TracingService for logging detailed execution steps, API request URLs, response statuses, and any encountered exceptions. This facilitates debugging, performance monitoring, and quick resolution of issues.
+Field Name
+
+Description
+
+voap_downloadrequestid
+
+Unique identifier for the request.
+
+voap_mimetype
+
+MIME type of the downloaded file.
+
+voap_filebinary
+
+File content encoded in Base64.
+
+voap_downloadstatus
+
+Indicates success or failure.
+
+voap_errormessage
+
+Error message if download fails.
+
+Logging and Traceability
+
+The plugin uses Dataverse's TracingService to log:
+
+API credential retrieval
+
+OAuth2 authentication
+
+API requests and file download responses
+
+File conversion and storage status
 
 Deployment & Maintenance
 
-Configuration Requirements
+Configuration:
 
-Ensure correct configuration of the virtual entity (voap_portalscheduleslist) within Dataverse.
+Verify secure credential storage in voa_CredentialProvider.
 
-Secure storage and regular verification of API credentials within the voa_CredentialProvider.
+Confirm file retrieval parameters are correctly configured.
 
-PowerApps Portal must be properly configured to interact with the virtual table for real-time data display.
+Routine Maintenance:
 
-Routine Maintenance Checklist
+Regularly check API endpoint availability and token validity.
 
-Regularly verify the availability and responsiveness of the VOA internal API.
-
-Periodically validate OAuth2 tokens and API credential validity.
-
-Monitor Dataverse logs regularly to ensure smooth plugin operation and quickly identify issues.
+Monitor plugin logs for issues and timely resolution.
 
 Conclusion
 
-The Schedules List Plugin provides secure, reliable, and real-time access to council tax schedules through seamless integration with Dataverse and the VOA API, enhancing user experience and operational efficiency.
+The Schedules File Download Plugin facilitates secure, efficient downloading of schedule files from external storage, ensuring seamless integration and user-friendly experiences through PowerApps Portals. Proper monitoring and regular maintenance are crucial for uninterrupted operation.
+
