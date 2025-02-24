@@ -1,3 +1,35 @@
-https://learn.microsoft.com/en-us/power-platform/admin/business-continuity-disaster-recovery
+Summary of the Custom Application Insights Implementation
 
-https://learn.microsoft.com/en-us/power-platform/admin/backup-restore-environments
+1. Overview & Rationale
+We introduced a custom Application Insights setup to track user telemetry—page views, logins, and related interactions—in our Power Pages portal. This approach allows us to capture important insights such as usage patterns, user journeys, and potential areas for improvement.
+
+2. What We Implemented
+
+Instrumentation Key (IK) usage: We integrated the standard Azure Monitor JavaScript snippet into the portal using only an Instrumentation Key—no OAuth tokens or other sensitive credentials are exposed.
+Data Captured: User IDs (in this case, contact IDs), page access timestamps, and basic user status (e.g., logged in vs. anonymous).
+No Impact on Portal Security: Because we are only sharing the read-only Instrumentation Key for telemetry, no administrative or read-access to data is granted.
+3. Identified Issue & Discussion
+
+Potential for Spam: If an external party obtained the IK, they could inject spammy telemetry into our Application Insights resource. Although it wouldn’t compromise the portal’s data or functionality, it could inflate costs and clutter logs.
+Limited Risk: Enforcement of Azure AD B2B authentication already protects actual portal features. The Instrumentation Key alone cannot read portal data or cause changes in the environment; it only allows sending telemetry events.
+4. Impact & Considerations
+
+Security Perspective:
+Attackers or unauthorized users can submit fake telemetry, but cannot access or modify our live systems.
+Additional conversations are needed to formally “raise” this as a risk in our register so it’s documented and tracked.
+Operational:
+If spam became significant, it could affect cost and data accuracy in telemetry.
+We can mitigate with sampling, ingestion filters, or rotating the key if absolutely necessary.
+5. Proposed Agreements & Actions
+
+Raise the Security Risk: Document it formally and share it with the security team (including the new contact, Stathis) so they can weigh in and advise.
+Refine Mitigations:
+Implement server-side or adaptive sampling in Application Insights.
+Optionally configure filters or thresholds to block spam patterns.
+Maintain Proper Documentation: Clarify that the Instrumentation Key is not a high-risk secret, but note its potential for spam injection.
+Evaluate User Privacy: Ensure that capturing user attributes (like user name or council details) aligns with privacy and compliance requirements.
+Portal Security: Confirm that even if someone gains the IK, no direct harm can be done to the portal itself, beyond inflating telemetry data.
+6. Conclusion
+We’ve implemented custom telemetry to better understand portal usage, and the system is functioning as intended. While the Instrumentation Key is by nature public, it poses no direct threat to portal security. The main consideration is spam or cost if misused. Our next steps are to raise and document the risk, involve security stakeholders, and confirm that each team is comfortable with the existing controls and potential mitigations.
+
+This concludes our plan for Application Insights in the portal. If additional changes or reviews are needed, we’ll coordinate with the security team and relevant stakeholders.
