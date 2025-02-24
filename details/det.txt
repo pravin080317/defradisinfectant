@@ -1,12 +1,39 @@
-Security Roles Mapping for LA Portal
+Topic 1: Security Role Mapping (SRS Roles to Dataverse Security Roles)
+Explain briefly:
 
-Out of the five SRS roles defined for the LA Portal, only the following three roles require Dynamics Security Roles mapping, as these roles are intended for internal users who need backend access (Dataverse):
+Only 3 out of 5 existing SRS roles require mapping to Dynamics Security Roles (VOA Portal Admin, VOA Portal Page Admin, VOA Portal Viewer).
+Remaining two roles (VOA Portal Only Viewer Prod, VOA Portal Only Admin Prod) are portal-only, require no Dataverse access, and currently handle all external user interactions.
+Highlight that internal user access will depend on these 3 roles for future functionalities like onboarding, internal processes, etc.
+Discuss next steps clearly:
 
-VOA Portal Admin – Provides administrative access to manage both the portal and backend data.
-VOA Portal Page Admin – Manages configurations and content of the portal pages.
-VOA Portal Viewer – Read-only access for internal users to view backend data.
-The remaining two SRS roles listed below do not require Dynamics Security Roles as they are intended exclusively for external users interacting directly with the portal:
+Confirm the creation of three new Dataverse security roles to map these SRS roles.
+Agree on role naming conventions, e.g.,
+VOA Portal Administrator
+VOA Portal Page Administrator
+VOA Portal Internal Viewer
+Clarify testing in DEV, and later including them in the case management pipeline.
+Topic 2: Performance Analyst Role Requirements (Andrew McNeil)
+Clearly split into two-day approach:
 
-VOA Portal Only Viewer Prod – Read-only access for external users (no backend Dataverse access).
-VOA Portal Only Admin Prod – Admin-level portal access for external users managing portal submissions (no backend Dataverse access).
-All external user requests and submissions are managed through these two roles. Only select internal users are assigned the three Dynamics-backed roles mentioned above to accommodate future enhancements, internal processes, onboarding, and related functionalities.
+Day 1 – Immediate Approach (short-term solution)
+
+Confirm that Andrew currently has the "VOA-BST Programme Read Only User" role in SIT.
+Verify with Andrew that he can successfully query data.
+Once confirmed, clarify who will grant this existing role in PROD.
+Day 2 – Future Approach (long-term solution)
+
+Consider creating a dedicated SRS role for Performance Analysts.
+Confirm if existing roles like "VOA-BST Programme Read Only User" can be reused or if a new dedicated role is needed.
+Explore use of Azure Application Insights as part of a future enhancement to track detailed user activity.
+Suggested Meeting Flow:
+Clearly introduce both topics.
+Get confirmation on the immediate tasks for Topic 1 (security roles).
+Transition smoothly into Topic 2, starting with immediate access requirement for Andrew.
+Clarify Day 1 immediate action points clearly.
+Then discuss Day 2 approach for long-term enhancement clearly mentioning Azure Application Insights.
+Be prepared to clarify or discuss:
+Why only 3 roles need Dataverse security roles.
+Implications of reusing existing roles vs. creating new roles.
+Timeline and ownership clarity for Day 1 access in PROD.
+Clarification on expectations around Azure Application Insights for Day 2.
+This structure ensures clarity and sets distinct next steps, helping keep the discussion on track and productive.
