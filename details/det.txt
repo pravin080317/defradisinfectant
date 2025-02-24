@@ -1,55 +1,12 @@
-LA Portal SRS and Security Role Mapping
+Security Roles Mapping for LA Portal
 
-SRS Roles Categorization
+Out of the five SRS roles defined for the LA Portal, only the following three roles require Dynamics Security Roles mapping, as these roles are intended for internal users who need backend access (Dataverse):
 
-The LA Portal has five distinct SRS roles categorized based on whether they require Dynamics (Dataverse) licenses:
+VOA Portal Admin – Provides administrative access to manage both the portal and backend data.
+VOA Portal Page Admin – Manages configurations and content of the portal pages.
+VOA Portal Viewer – Read-only access for internal users to view backend data.
+The remaining two SRS roles listed below do not require Dynamics Security Roles as they are intended exclusively for external users interacting directly with the portal:
 
-Category 1: Dynamics License Required (Internal Users - Dataverse Access)
-
-These roles are intended for a limited number of internal users, primarily to manage future enhancements, user onboarding, and backend Dataverse operations:
-
-Role Name
-
-Purpose
-
-VOA Portal Admin
-
-Full administrative access to the portal and backend.
-
-VOA Portal Page Admin
-
-Administrative access focused on managing Power Pages.
-
-VOA Portal Viewer
-
-Read-only access to portal functionalities and Dataverse.
-
-Category 2: No Dynamics License Required (Portal Access Only)
-
-These roles cover most external users who interact directly with the portal:
-
-Role Name
-
-Purpose
-
-VOA Portal Only Viewer Prod
-
-Read-only portal access without Dataverse interaction.
-
-VOA Portal Only Admin Prod
-
-Admin-level portal access without Dataverse interaction.
-
-Security Role Mapping for Dynamics License Roles
-
-Currently, only the three Category 1 SRS roles require associated Dynamics security roles. The team has been tasked to:
-
-Create three new Dynamics security roles in the development environment.
-
-Conduct testing and validation in the sandbox environment.
-
-Map these newly created security roles to the corresponding SRS roles.
-
-Include these new roles in the solution and delta solution so they are picked up by the Case Management pipeline in the next build cycle.
-
-These roles will support internal operational needs such as managing user onboarding, handling backend data access, and enabling specific administrative functionalities.
+VOA Portal Only Viewer Prod – Read-only access for external users (no backend Dataverse access).
+VOA Portal Only Admin Prod – Admin-level portal access for external users managing portal submissions (no backend Dataverse access).
+All external user requests and submissions are managed through these two roles. Only select internal users are assigned the three Dynamics-backed roles mentioned above to accommodate future enhancements, internal processes, onboarding, and related functionalities.
