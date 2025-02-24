@@ -1,1 +1,51 @@
-.
+8. Backup, Restore, and Disaster Recovery
+
+8.1 Backup Strategy for Dataverse
+
+Automated backups are enabled in all higher environments utilizing the Power Platform’s built-in backup functionality.
+
+Default retention for daily backups is 7 days; long-term backups can be configured based on specific requirements.
+
+Manual backups are initiated before major deployments or significant updates.
+
+8.2 Recovery Process for Dataverse
+
+Restoration is managed and initiated through the Power Platform Admin Centre.
+
+Only users with Admin privileges can trigger Dataverse backups restoration.
+
+8.3 Disaster Recovery (DR) for Microsoft Dynamics 365 Power Pages
+
+Overview:
+
+Microsoft Dynamics 365 Power Pages inherently includes disaster recovery (DR) and high availability capabilities managed by Microsoft. This ensures:
+
+Automated backups of Dataverse and configurations.
+
+Regional redundancy, providing high availability and rapid failover.
+
+Comprehensive data protection mechanisms.
+
+Microsoft Managed DR Capabilities:
+
+Regional redundancy to ensure high availability.
+
+Automated and continuous backups of Dataverse and Power Pages configurations.
+
+Organizational DR Responsibilities:
+
+Regularly validate custom integrations, configurations, and extensions.
+
+Maintain clear documentation on the DR solutions provided by Microsoft.
+
+Ensure recovery procedures for custom components are clearly documented and periodically tested.
+---------
+
+
+The runbook clearly states that Microsoft Dynamics 365 Power Pages inherently includes built-in Disaster Recovery (DR) managed by Microsoft, ensuring automated backups, regional redundancy, and high availability. The existing runbook documentation explicitly acknowledges Microsoft's responsibility for DR.
+
+Based on this, the relevant confirmation to select for this ticket is:
+
+✅ "Confirmation that there is no additional DR solution required, as Microsoft manages the DR solution inherently."
+
+Please ensure the Live Service Owner acknowledges this explicitly in the runbook by signing off accordingly.
