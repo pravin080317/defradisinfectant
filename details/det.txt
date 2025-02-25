@@ -1,64 +1,109 @@
-Power Pages Table Permissions Management
-1️⃣ Purpose of Table Permissions in Power Pages
-Power Pages Table Permissions control which records users can read, write, delete, or update in a Power Pages website. They define the granularity of access to Dataverse tables for portal users and ensure that data is securely exposed only to authorized users.
+Power Pages Security Model: Table Permissions, Dataverse Security Roles, and SRS Roles
 
-2️⃣ Why Table Permissions Are Needed?
-✅ Security: Prevent unauthorized users from viewing or modifying sensitive records.
-✅ Access Control: Enforce role-based access within Power Pages.
-✅ Granular Permissions: Unlike Dataverse security roles, table permissions allow specific record-level control.
-✅ Compliance: Ensure GDPR and data privacy regulations are met.
-3️⃣ Difference Between Power Pages Table Permissions & Security Roles in Dynamics
-Feature	Power Pages Table Permissions	Dynamics 365 Security Roles
-Scope	Controls access to portal users only	Applies to internal Dynamics users
-Access Level	Record-level access (individual tables, parent-child relationships)	Broad security roles (business unit, team, organization)
-Where It Applies?	External users accessing Power Pages via portal authentication	Internal CRM users (Dynamics 365 UI)
-Configuration Location	Managed in Power Pages Table Permissions settings	Configured in Power Platform Admin Center
-Permissions Available	Read, Write, Create, Delete, Append, Append To	Full user permissions (including business unit, team, entity-level security)
-Use Case	Restrict what portal users can see or edit	Restrict what Dynamics users can see or edit
-Examples	✅ Limit customers to view only their own requests. ✅ Restrict file uploads based on roles.	✅ Allow CRM Admins to modify customer records. ✅ Restrict specific users from modifying sensitive data.
-4️⃣ How to Modify Table Permissions in Power Pages?
-If there are issues with table permissions, follow these steps:
+This section outlines the access control mechanisms used in the LA Portal, differentiating between Table Permissions for external users, Dataverse Security Roles for internal users, and SRS Roles (Azure AD Teams) for managing internal role-based access.
 
-✅ Step 1: Identify the Issue
-Users unable to see data? → Check if Read permission is granted.
-Users seeing all records instead of only their own? → Ensure Parent or Global filtering is applied.
-Unable to modify/delete records? → Verify if Write/Delete permissions are enabled.
-✅ Step 2: Modify the Table Permissions
-Go to Power Pages Admin Center.
-Navigate to Table Permissions under the selected website.
-Select the relevant table (e.g., voap_portalrequests, annotations, file management, etc.).
-Adjust the following permissions:
-Read: Allow users to view records.
-Write: Allow users to edit records.
-Create: Allow users to add new records.
-Delete: Allow users to remove records.
-Append: Allow users to relate records to other tables.
-Append To: Allow records to be linked to other entities.
-Click Save & Publish to apply changes.
-✅ Step 3: Verify Permissions
-Login as a portal user and test data access.
-Use "Preview Mode" to validate access for different user roles.
-Clear cache if changes do not reflect immediately.
-5️⃣ Common Issues & Fixes
-Issue	Possible Cause	Fix
-❌ Users can see all records instead of their own	No parent-child filtering is applied	Apply Parent Table Permission
-❌ Users cannot see any records	Read permission is missing	Enable Read access
-❌ Users cannot create or edit records	Write/Create/Delete permissions missing	Grant necessary permissions
-❌ Users cannot see files or upload documents	File management table permissions missing	Enable access for voap_portalfilemanagement
-❌ API endpoint exposes too many records	No filtering applied to API queries	Use OData $select and $filter
-6️⃣ Recommended Best Practices
-✔ Grant Minimum Required Access
+Key Components
 
-Always follow "Least Privilege" principle (only give users the permissions they need).
-✔ Use Parent-Child Relationships
+1️⃣ Table Permissions (For External Users)
 
-For cases where users should only see their own records, apply "Parent Table Permission" instead of "Global".
-✔ Enable Role-Based Access
+What They Control:
 
-Assign Web Roles in Power Pages and link them to table permissions.
-✔ Test Permissions Before Deployment
+✅ Define access control inside Power Pages for external users.✅ Restrict what data (tables) external users can read, write, update, or delete.✅ Ensure that only the right external users can access specific records.✅ Not linked to Dataverse security roles or Azure AD teams—specific to Power Pages only.
 
-Always validate access before making changes live.
-✔ Monitor & Review Regularly
+How They Work:
 
-Review permissions after Microsoft updates, as new site settings might expose additional data.
+📌 They control access only within the portal by defining what records external users can interact with.📌 Can be configured with:
+
+Global: All records in the table.
+
+Parent-Filtered: Only records related to a parent entity.
+
+Contact-Based: Only records linked to the logged-in user.
+
+Account-Based: Only records linked to the user’s account.
+
+Your Configuration Example:
+
+VOA Portal Request → Parent-Filtered access.
+
+VOA Portal File Management → Parent-Filtered access.
+
+VOA Portal Only Viewer Prod → No Dataverse access, only portal access.
+
+2️⃣ Dataverse Security Roles (For Internal Users)
+
+What They Control:
+
+✅ Define Dataverse-level permissions for internal users.✅ Control what internal users can see & do inside Dataverse, Power Pages backend, and Dynamics 365.✅ These are mapped to Azure AD Teams (SRS Roles).
+
+How They Work:
+
+📌 Internal users in Dataverse/Dynamics 365 need proper Dataverse Security Roles to access tables directly.📌 Power Pages does NOT use Dataverse Security Roles directly—only internal users in Dynamics use them.📌 Security roles in Dataverse can be assigned manually or mapped via Azure AD teams.
+
+Your Configuration Example:
+
+VOA Portal Administrator → Full control over portal-related Dataverse records.
+
+VOA Portal Page Administrator → Can manage Power Pages but limited backend access.
+
+VOA Portal Internal Viewer → Read-only access to backend records.
+
+3️⃣ SRS Roles (Azure AD Teams)
+
+What They Control:
+
+✅ SRS Roles are Azure AD Teams that help manage internal user permissions at an organizational level.✅ These roles are mapped to Dataverse Security Roles, meaning they control internal users' access to backend systems like Dataverse & Dynamics 365.✅ Internal users are assigned an SRS role, which is mapped to a Dataverse Security Role.
+
+How They Work:
+
+📌 Azure AD Teams (SRS Roles) → Mapped to Dataverse Security Roles → Control access inside Dynamics/Dataverse.📌 Internal users do not directly use table permissions in Power Pages. Instead, they rely on security roles assigned via Azure AD Teams.
+
+Your Configuration Example:
+
+SRS Role: VOA Portal Admin → Mapped to VOA Portal Administrator Security Role.
+
+SRS Role: VOA Portal Page Admin → Mapped to VOA Portal Page Administrator Security Role.
+
+SRS Role: VOA Portal Viewer → Mapped to VOA Portal Internal Viewer Security Role.
+
+🔹 Summary of Differences
+
+Feature
+
+Table Permissions (Power Pages)
+
+Dataverse Security Roles
+
+SRS Roles (Azure AD Teams)
+
+Who Uses It?
+
+External Users (Portal Users)
+
+Internal Users (Dataverse, Dynamics 365, Power Pages Admins)
+
+Internal Users (Assigned via Azure AD)
+
+What It Controls?
+
+Portal Data Access
+
+Backend Dataverse Access
+
+Dataverse Security Role Assignments
+
+Access Type
+
+Table-level access inside Power Pages
+
+Full Dataverse access control (CRUD operations)
+
+Azure AD-based role management
+
+Examples
+
+External users can only see their own files
+
+Internal users can access all request records
+
+Internal user groups mapped to security roles
