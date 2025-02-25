@@ -1,24 +1,64 @@
-Setting Name	Description	Sensitivity	Recommended Action
-Search/Enabled	Enables search functionality	Low	Ensure it aligns with business requirements
-Search/EnableGenerativeAI	Enables AI-powered search	Medium	Ensure AI implementation aligns with security policies
-Search/FacetedView	Enables faceted search	Medium	Ensure it is configured correctly for filtering and relevance
-Search/Filters	Defines filters for search results	Medium	Ensure filters are correctly applied to prevent irrelevant search results
-Search/IndexNotesAttachments	Indexes notes and attachments in search	High	Ensure attachments do not expose sensitive data
-Search/IndexQueryName	Defines index query names	Low	Ensure query naming conventions are correct
-search/query	search query weight configuration, likely used in Power Pages search indexing.		
-Search/RecordTypeFacetsEntities	Defines record types indexed in search	Medium	Ensure relevant entities are included
-ThemeFeature	Controls UI theme settings	Low	Ensure theming aligns with branding requirements
-UserSetup/PortalURL	Defines portal URL	High	Ensure correct and secure portal URL
-Webapi/annotation/disableodatafilter	Disables OData filtering for annotations API	High	Ensure it is enabled to prevent mass data exposure
-Webapi/annotation/enabled	Enables annotation API	High	Restrict access if not required
-Webapi/annotation/fields	Defines fields exposed in annotation API	High	Limit fields to prevent data leaks
-WebAPI/enableReadOperationPreview	Enables read operation in preview mode	Medium	Ensure it is only enabled in test environments
-Webapi/error/innererror	Controls exposure of detailed error messages	High	Ensure sensitive information is not exposed
-Webapi/voap_portalfilemanagement/disableodatafilter	Disables OData filtering for file management API	High	Ensure this is properly configured
-Webapi/voap_portalfilemanagement/enabled	Enables file management API	High	Ensure only authorized users have access
-Webapi/voap_portalfilemanagement/fields	Defines fields exposed in file management API	High	Restrict fields to prevent data leaks
-Webapi/voap_portalrequest/disableodatafilter	Disables OData filtering for portal request API	High	Ensure proper filtering to prevent mass exposure
-Webapi/voap_portalrequest/enabled	Enables portal request API	High	Restrict access to authorized users
-Webapi/voap_portalrequest/fields	Defines fields exposed in portal request API	High	Ensure only necessary fields are included
-Webapi/voap_satisfactionfeedback/enabled	Enables satisfaction feedback API	Medium	Ensure feedback data security
-Webapi/voap_satisfactionfeedback/fields	Defines fields exposed in feedback API	Medium	Restrict unnecessary fields
+Power Pages Table Permissions Management
+1️⃣ Purpose of Table Permissions in Power Pages
+Power Pages Table Permissions control which records users can read, write, delete, or update in a Power Pages website. They define the granularity of access to Dataverse tables for portal users and ensure that data is securely exposed only to authorized users.
+
+2️⃣ Why Table Permissions Are Needed?
+✅ Security: Prevent unauthorized users from viewing or modifying sensitive records.
+✅ Access Control: Enforce role-based access within Power Pages.
+✅ Granular Permissions: Unlike Dataverse security roles, table permissions allow specific record-level control.
+✅ Compliance: Ensure GDPR and data privacy regulations are met.
+3️⃣ Difference Between Power Pages Table Permissions & Security Roles in Dynamics
+Feature	Power Pages Table Permissions	Dynamics 365 Security Roles
+Scope	Controls access to portal users only	Applies to internal Dynamics users
+Access Level	Record-level access (individual tables, parent-child relationships)	Broad security roles (business unit, team, organization)
+Where It Applies?	External users accessing Power Pages via portal authentication	Internal CRM users (Dynamics 365 UI)
+Configuration Location	Managed in Power Pages Table Permissions settings	Configured in Power Platform Admin Center
+Permissions Available	Read, Write, Create, Delete, Append, Append To	Full user permissions (including business unit, team, entity-level security)
+Use Case	Restrict what portal users can see or edit	Restrict what Dynamics users can see or edit
+Examples	✅ Limit customers to view only their own requests. ✅ Restrict file uploads based on roles.	✅ Allow CRM Admins to modify customer records. ✅ Restrict specific users from modifying sensitive data.
+4️⃣ How to Modify Table Permissions in Power Pages?
+If there are issues with table permissions, follow these steps:
+
+✅ Step 1: Identify the Issue
+Users unable to see data? → Check if Read permission is granted.
+Users seeing all records instead of only their own? → Ensure Parent or Global filtering is applied.
+Unable to modify/delete records? → Verify if Write/Delete permissions are enabled.
+✅ Step 2: Modify the Table Permissions
+Go to Power Pages Admin Center.
+Navigate to Table Permissions under the selected website.
+Select the relevant table (e.g., voap_portalrequests, annotations, file management, etc.).
+Adjust the following permissions:
+Read: Allow users to view records.
+Write: Allow users to edit records.
+Create: Allow users to add new records.
+Delete: Allow users to remove records.
+Append: Allow users to relate records to other tables.
+Append To: Allow records to be linked to other entities.
+Click Save & Publish to apply changes.
+✅ Step 3: Verify Permissions
+Login as a portal user and test data access.
+Use "Preview Mode" to validate access for different user roles.
+Clear cache if changes do not reflect immediately.
+5️⃣ Common Issues & Fixes
+Issue	Possible Cause	Fix
+❌ Users can see all records instead of their own	No parent-child filtering is applied	Apply Parent Table Permission
+❌ Users cannot see any records	Read permission is missing	Enable Read access
+❌ Users cannot create or edit records	Write/Create/Delete permissions missing	Grant necessary permissions
+❌ Users cannot see files or upload documents	File management table permissions missing	Enable access for voap_portalfilemanagement
+❌ API endpoint exposes too many records	No filtering applied to API queries	Use OData $select and $filter
+6️⃣ Recommended Best Practices
+✔ Grant Minimum Required Access
+
+Always follow "Least Privilege" principle (only give users the permissions they need).
+✔ Use Parent-Child Relationships
+
+For cases where users should only see their own records, apply "Parent Table Permission" instead of "Global".
+✔ Enable Role-Based Access
+
+Assign Web Roles in Power Pages and link them to table permissions.
+✔ Test Permissions Before Deployment
+
+Always validate access before making changes live.
+✔ Monitor & Review Regularly
+
+Review permissions after Microsoft updates, as new site settings might expose additional data.
