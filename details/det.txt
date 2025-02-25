@@ -1,39 +1,33 @@
-Topic 1: Security Role Mapping (SRS Roles to Dataverse Security Roles)
-Explain briefly:
+Following our discussion, please find below the key points and agreements captured regarding SRS Role and Dataverse Security Role Mapping for the LA Portal.
 
-Only 3 out of 5 existing SRS roles require mapping to Dynamics Security Roles (VOA Portal Admin, VOA Portal Page Admin, VOA Portal Viewer).
-Remaining two roles (VOA Portal Only Viewer Prod, VOA Portal Only Admin Prod) are portal-only, require no Dataverse access, and currently handle all external user interactions.
-Highlight that internal user access will depend on these 3 roles for future functionalities like onboarding, internal processes, etc.
-Discuss next steps clearly:
+Current Status
+We have five existing SRS roles for the LA Portal, categorized based on whether they require a Dynamics license:
 
-Confirm the creation of three new Dataverse security roles to map these SRS roles.
-Agree on role naming conventions, e.g.,
-VOA Portal Administrator
-VOA Portal Page Administrator
-VOA Portal Internal Viewer
-Clarify testing in DEV, and later including them in the case management pipeline.
-Topic 2: Performance Analyst Role Requirements (Andrew McNeil)
-Clearly split into two-day approach:
+SRS Role	Dynamics License Required	Notes
+VOA Portal Admin	✅ Yes	Admin for portal and backend
+VOA Portal Page Admin	✅ Yes	Manages Power Pages
+VOA Portal Viewer	✅ Yes	Read-only access for internal users
+VOA Portal Only Viewer Prod	❌ No	Read-only portal access, no Dataverse access
+VOA Portal Only Admin Prod	❌ No	Portal admin, no Dataverse access
+Clarification:
+The two external roles (VOA Portal Only Viewer Prod & VOA Portal Only Admin Prod) are for external users accessing the portal and do not require Dataverse access.
+The three internal roles (VOA Portal Admin, VOA Portal Page Admin, VOA Portal Viewer) are designed for future functionalities like user onboarding, internal process automation, and advanced portal management.
+Current Action Items
+Security role mapping analysis for the three internal roles has been completed.
+Three new Dataverse security roles are being created, configured, and tested in the DEV environment:
+VOA Portal Administrator – Future role for an individual who can administer the LA Portal (e.g., approve new users, manage portal settings).
+VOA Portal Page Administrator – Manages portal content without full administrative access.
+VOA Portal Internal Viewer – Read-only access for internal users.
+Post DEV validation, testing and pipeline updates will follow for the next release cycle.
+Decision & Next Steps (Agreed by All)
+✅ Day 1 (Go-Live) Impact:
 
-Day 1 – Immediate Approach (short-term solution)
+These three internal SRS roles and their security role mappings are not critical for immediate Go-Live.
+Agreed to treat this as a Day 2 activity and implement after review, approval, and thorough testing.
+✅ Temporary Support Plan:
 
-Confirm that Andrew currently has the "VOA-BST Programme Read Only User" role in SIT.
-Verify with Andrew that he can successfully query data.
-Once confirmed, clarify who will grant this existing role in PROD.
-Day 2 – Future Approach (long-term solution)
-
-Consider creating a dedicated SRS role for Performance Analysts.
-Confirm if existing roles like "VOA-BST Programme Read Only User" can be reused or if a new dedicated role is needed.
-Explore use of Azure Application Insights as part of a future enhancement to track detailed user activity.
-Suggested Meeting Flow:
-Clearly introduce both topics.
-Get confirmation on the immediate tasks for Topic 1 (security roles).
-Transition smoothly into Topic 2, starting with immediate access requirement for Andrew.
-Clarify Day 1 immediate action points clearly.
-Then discuss Day 2 approach for long-term enhancement clearly mentioning Azure Application Insights.
-Be prepared to clarify or discuss:
-Why only 3 roles need Dataverse security roles.
-Implications of reusing existing roles vs. creating new roles.
-Timeline and ownership clarity for Day 1 access in PROD.
-Clarification on expectations around Azure Application Insights for Day 2.
-This structure ensures clarity and sets distinct next steps, helping keep the discussion on track and productive.
+Until these roles are finalized and deployed, any internal administrative support requirements will be temporarily handled through ECS or appropriate system admin channels.
+Next Meeting & Follow-ups:
+Once the DEV testing is completed, we will revisit this plan and confirm the next steps for implementation.
+Any changes or refinements required for the new roles will be reviewed before moving to higher environments.
+Please let me know if I missed anything or if there are any further clarifications required.
