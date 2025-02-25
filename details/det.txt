@@ -1,33 +1,88 @@
-Following our discussion, please find below the key points and agreements captured regarding SRS Role and Dataverse Security Role Mapping for the LA Portal.
-
-Current Status
-We have five existing SRS roles for the LA Portal, categorized based on whether they require a Dynamics license:
-
-SRS Role	Dynamics License Required	Notes
-VOA Portal Admin	✅ Yes	Admin for portal and backend
-VOA Portal Page Admin	✅ Yes	Manages Power Pages
-VOA Portal Viewer	✅ Yes	Read-only access for internal users
-VOA Portal Only Viewer Prod	❌ No	Read-only portal access, no Dataverse access
-VOA Portal Only Admin Prod	❌ No	Portal admin, no Dataverse access
-Clarification:
-The two external roles (VOA Portal Only Viewer Prod & VOA Portal Only Admin Prod) are for external users accessing the portal and do not require Dataverse access.
-The three internal roles (VOA Portal Admin, VOA Portal Page Admin, VOA Portal Viewer) are designed for future functionalities like user onboarding, internal process automation, and advanced portal management.
-Current Action Items
-Security role mapping analysis for the three internal roles has been completed.
-Three new Dataverse security roles are being created, configured, and tested in the DEV environment:
-VOA Portal Administrator – Future role for an individual who can administer the LA Portal (e.g., approve new users, manage portal settings).
-VOA Portal Page Administrator – Manages portal content without full administrative access.
-VOA Portal Internal Viewer – Read-only access for internal users.
-Post DEV validation, testing and pipeline updates will follow for the next release cycle.
-Decision & Next Steps (Agreed by All)
-✅ Day 1 (Go-Live) Impact:
-
-These three internal SRS roles and their security role mappings are not critical for immediate Go-Live.
-Agreed to treat this as a Day 2 activity and implement after review, approval, and thorough testing.
-✅ Temporary Support Plan:
-
-Until these roles are finalized and deployed, any internal administrative support requirements will be temporarily handled through ECS or appropriate system admin channels.
-Next Meeting & Follow-ups:
-Once the DEV testing is completed, we will revisit this plan and confirm the next steps for implementation.
-Any changes or refinements required for the new roles will be reviewed before moving to higher environments.
-Please let me know if I missed anything or if there are any further clarifications required.
+Setting Name	Description	Sensitivity	Recommended Action
+CustomerSupport/CaseEntitlementEnabled	Enables case entitlement verification in customer support	Low	Ensure business requirement before enabling
+CustomerSupport/DisplayAllUserActivitiesOnTimeline	Displays all user activities on the timeline	Medium	Ensure compliance with privacy policies
+DisableValidationWebTemplate	Disables validation for web templates	High	Ensure this is not disabled unnecessarily
+Footer/OutputCache/Enabled	Enables caching for footer	Low	No immediate security concern
+Footer/Template	Defines footer menu and copy settings	Low	Ensure it matches branding requirements
+Header/OutputCache/Enabled	Enables caching for header	Low	No immediate security concern
+HTTP/X-Frame-Options	Defines clickjacking protection (X-Frame-Options)	High	Ensure 'DENY' or 'SAMEORIGIN' is set
+KnowledgeManagement/Analytics/CaptureKnowledgeArticleReferrer	Tracks knowledge article referrals	Medium	Ensure compliance with tracking policies
+KnowledgeManagement/Analytics/ExternalSearchEngines	Defines external search engines for knowledge management	Low	Ensure correct search engine list
+KnowledgeManagement/Article/CaptureViewCount	Tracks article view counts	Medium	Ensure business requirement before enabling
+KnowledgeManagement/ContentAccessLevel/Enabled	Enables content access control	Medium	Ensure proper role-based access control
+KnowledgeManagement/DisplayNotes	Enables display of notes in knowledge articles	Medium	Ensure sensitive data is not exposed
+KnowledgeManagement/NotesFilter	Defines filter for displaying notes	Medium	Ensure notes comply with content policies
+Multilanguage/DisplayLanguageCodeInURL	Controls language code display in URLs	Low	Ensure consistent URL structure
+Multilanguage/MaximumDepthToClone	Defines max depth for language cloning	Low	Ensure it aligns with language strategy
+OnlineDomains	Defines allowed online domains	High	Ensure only trusted domains are listed
+PrimaryD365Table	Defines the primary Dynamics 365 table	High	Ensure correct table is used
+ProductFiltering/AccountToProductRelationshipNames	Defines account-to-product relationships	Low	Ensure business relevance
+ProductFiltering/ContactToProductRelationshipNames	Defines contact-to-product relationships	Low	Ensure business relevance
+ProductFiltering/DisplayArticlesWithoutAssociatedProducts	Enables display of articles without linked products	Low	Ensure relevance for users
+ProductFiltering/Enabled	Enables product filtering	Low	Ensure proper filtering options are applied
+Profile/ForceSignUp	Forces users to sign up before proceeding	Medium	Ensure it's necessary
+Profile/ShowMarketingOptionsPanel	Displays marketing options in profile settings	Low	Ensure compliance with marketing policies
+Search/Enabled	Enables search functionality	Low	Ensure business requirement
+Search/EnableGenerativeAI	Enables AI-powered search	Medium	Ensure AI implementation aligns with security policies
+Search/FacetedView	Configures faceted search	Medium	Ensure search relevance and filtering accuracy
+Search/Filters	Defines filters for search results	Medium	Ensure filters match search expectations
+Search/IndexNotesAttachments	Indexes notes and attachments in search	High	Ensure attachments do not expose sensitive data
+Search/IndexQueryName	Defines index query names	Low	Ensure query naming conventions are correct
+Search/RecordTypeFacetsEntities	Defines record types indexed in search	Medium	Ensure relevant entities are included
+ThemeFeature	Controls UI theme settings	Low	Ensure correct theming
+UserSetup/PortalURL	Defines portal URL	High	Ensure correct URL is configured
+Webapi/annotation/disableodatafilter	Disables OData filtering for annotations API	High	Ensure it is enabled to prevent data exposure
+Webapi/annotation/enabled	Enables annotation API	High	Restrict access if not required
+Webapi/annotation/fields	Defines fields exposed in annotation API	High	Limit fields to prevent data leaks
+WebAPI/enableReadOperationPreview	Enables preview of read operations in Web API	Medium	Ensure it does not expose unnecessary data
+Webapi/error/innererror	Defines exposure of detailed error messages	High	Ensure sensitive information is not exposed
+Webapi/voap_portalfilemanagement/disableodatafilter	Disables OData filtering for file management API	High	Ensure it is enabled to prevent data leaks
+Webapi/voap_portalfilemanagement/enabled	Enables file management API	High	Ensure proper access control is applied
+Webapi/voap_portalfilemanagement/fields	Defines fields exposed in file management API	High	Restrict to necessary fields
+Webapi/voap_portalrequest/disableodatafilter	Disables OData filtering for portal request API	High	Ensure it is enabled to prevent unauthorized data access
+Webapi/voap_portalrequest/enabled	Enables portal request API	High	Restrict access to authorized users
+Webapi/voap_portalrequest/fields	Defines fields exposed in portal request API	High	Ensure only necessary fields are included
+Webapi/voap_satisfactionfeedback/enabled	Enables satisfaction feedback API	Medium	Ensure proper access control
+Webapi/voap_satisfactionfeedback/fields	Defines fields exposed in feedback API	Medium	Restrict unnecessary fields to prevent data leaks
+CustomerSupport/CaseEntitlementEnabled	Enables entitlement check for customer support cases	Low	Ensure it's required for business needs
+CustomerSupport/DisplayAllUserActivitiesOnTimeline	Displays all user activities in timeline	Medium	Ensure it aligns with privacy policies
+DisableValidationWebTemplate	Disables validation for web templates	High	Ensure this is not disabled unnecessarily
+Footer/OutputCache/Enabled	Enables caching for footer	Low	No immediate security concern
+Footer/Template	Defines footer template	Low	Ensure correct footer layout is applied
+Header/OutputCache/Enabled	Enables caching for header	Low	No immediate security concern
+HTTP/X-Frame-Options	Prevents clickjacking attacks	High	Ensure it's set to 'DENY' or 'SAMEORIGIN'
+KnowledgeManagement/Analytics/CaptureKnowledgeArticleReferrer	Tracks knowledge article referrer	Low	Ensure compliance with data tracking policies
+KnowledgeManagement/Analytics/ExternalSearchEngines	Defines external search engines for knowledge management	Low	Ensure relevance
+KnowledgeManagement/Article/CaptureViewCount	Tracks article view counts	Medium	Ensure tracking aligns with business needs
+KnowledgeManagement/ContentAccessLevel/Enabled	Enables content access level settings	Medium	Ensure correct access levels
+KnowledgeManagement/DisplayNotes	Enables notes display in knowledge management	Medium	Ensure notes do not expose sensitive data
+Multilanguage/DisplayLanguageCodeInURL	Controls display of language code in URLs	Low	Ensure consistency in URLs
+Multilanguage/MaximumDepthToClone	Defines maximum depth for language cloning	Low	Ensure it aligns with language strategy
+OnlineDomains	Defines online domains allowed	High	Ensure only trusted domains are listed
+PrimaryD365Table	Primary Dynamics 365 table used	High	Ensure correct table mapping
+ProductFiltering/AccountToProductRelationshipNames	Defines account-to-product relationships	Low	Ensure business relevance
+ProductFiltering/ContactToProductRelationshipNames	Defines contact-to-product relationships	Low	Ensure business relevance
+ProductFiltering/DisplayArticlesWithoutAssociatedProducts	Displays articles even without associated products	Low	Ensure relevance for content management
+ProductFiltering/Enabled	Enables filtering for products	Low	Ensure it is necessary
+Profile/ForceSignUp	Forces user to sign up before proceeding	Medium	Ensure it's necessary for user onboarding
+Profile/ShowMarketingOptionsPanel	Displays marketing options in profile settings	Low	Ensure compliance with marketing policies
+Search/Enabled	Enables search functionality	Low	Ensure business requirement
+Search/EnableGenerativeAI	Enables AI-powered search	Medium	Ensure AI implementation aligns with security policies
+Search/FacetedView	Configures faceted search	Medium	Ensure search relevance and filtering accuracy
+Search/Filters	Defines filters for search results	Medium	Ensure filters match search expectations
+Search/IndexNotesAttachments	Indexes notes and attachments in search	High	Ensure attachments do not expose sensitive data
+Search/IndexQueryName	Defines index query names	Low	Ensure query naming conventions are correct
+Search/RecordTypeFacetsEntities	Defines record types indexed in search	Medium	Ensure relevant entities are included
+ThemeFeature	Controls UI theme	Low	Ensure correct theming
+UserSetup/PortalURL	Defines portal URL	High	Ensure correct URL configuration
+Webapi/annotation/disableodatafilter	Disables OData filtering for annotations API	High	Ensure it's enabled to prevent excessive data exposure
+Webapi/annotation/enabled	Enables annotation API	High	Restrict access if not required
+Webapi/annotation/fields	Defines fields exposed in annotation API	High	Limit fields to prevent data leaks
+Webapi/voap_portalfilemanagement/disableodatafilter	Disables OData filtering for file management API	High	Ensure it is enabled
+Webapi/voap_portalfilemanagement/enabled	Enables file management API	High	Ensure only authorized users can access
+Webapi/voap_portalfilemanagement/fields	Defines fields exposed in file management API	High	Restrict fields to prevent data leaks
+Webapi/voap_portalrequest/disableodatafilter	Disables OData filtering for portal request API	High	Ensure proper filtering to prevent mass exposure
+Webapi/voap_portalrequest/enabled	Enables portal request API	High	Restrict access to authorized users
+Webapi/voap_portalrequest/fields	Defines fields exposed in portal request API	High	Ensure only necessary fields are included
+Webapi/voap_satisfactionfeedback/enabled	Enables satisfaction feedback API	Medium	Ensure security of feedback data
+Webapi/voap_satisfactionfeedback/fields	Defines fields exposed in feedback API	Medium	Restrict unnecessary fields
