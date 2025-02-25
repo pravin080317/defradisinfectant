@@ -1,36 +1,23 @@
-Setting Name	Description	Sensitivity	Recommended Action
-Authentication/LoginThrottling/IpAddressTimeoutTimeSpan	Defines IP address timeout for login throttling	Medium	Ensure reasonable timeout to prevent brute-force attacks
-Authentication/LoginThrottling/MaxAttemptsTimeLimitTimeSpan	Defines max attempts within a time frame	Medium	Set a strict limit to prevent excessive login attempts
-Authentication/LoginThrottling/MaxInvalidAttemptsFromIPAddress	Defines max invalid attempts allowed from an IP	High	Reduce the limit if too high to prevent brute-force attacks
-Authentication/LoginTrackingEnabled	Tracks login attempts for security monitoring	Low	Consider enabling for better tracking
-Authentication/OpenAuth/Microsoft/ClientId	OAuth Client ID for Microsoft login	High	Ensure it is securely stored and not exposed
-Authentication/OpenAuth/Microsoft/ClientSecret	OAuth Client Secret for Microsoft login	High	Ensure Client Secret is securely stored and rotated periodically
-Authentication/OpenIdConnect/AzureAD/AllowContactMappingWithEmail	Allows Azure AD to map contacts via email	Medium	Ensure this is necessary for your business needs
-Authentication/OpenIdConnect/AzureAD/Caption	Caption shown for Azure AD login	Low	No immediate security concern
-Authentication/OpenIdConnect/AzureAD/RebrandDisclaimerEnabled	Enables rebranding disclaimer for Azure AD login	Low	Ensure it is required for branding purposes
-Authentication/OpenIdConnect/B2B/Authority	Authority URL for B2B authentication	High	Ensure correct tenant ID is used and access is restricted
-Authentication/OpenIdConnect/B2B/Caption	Authority caption for B2B authentication		
-Authentication/OpenIdConnect/B2B/ClientId	B2B OAuth Client ID	High	Ensure Client ID is valid and restricted
-Authentication/OpenIdConnect/B2B/RedirectUri	Redirect URI for B2B authentication	High	Ensure it points to a secure domain
-Authentication/OpenIdConnect/OpenId_1/Authority	Authority URL for OpenID authentication	High	Ensure it is correctly configured and secure
-Authentication/OpenIdConnect/OpenId_1/Caption	Caption shown for OpenID login	Low	No immediate security concern
-Authentication/OpenIdConnect/OpenId_1/ClientId	Client ID for OpenID authentication	High	Ensure it is securely stored and used correctly
-Authentication/OpenIdConnect/OpenId_1/MetadataAddress	Metadata URL for OpenID authentication	High	Ensure it is correctly configured and secure
-Authentication/OpenIdConnect/OpenId_1/RedirectUri	Redirect URI for OpenID authentication	High	Ensure it points to a secure domain
-Authentication/OpenIdConnect/OpenId_1/ResponseMode	Defines OpenID response mode	Medium	Use 'form_post' for security
-Authentication/OpenIdConnect/OpenId_1/ResponseType	Defines OpenID response type	High	Ensure correct response type is used
-Authentication/OpenIdConnect/OpenId_1/Scope	Scopes for OpenID authentication	High	Restrict to necessary scopes only
-Authentication/Registration/AzureADLoginEnabled	Enables Azure AD login	Medium	Ensure it is required for business authentication
-Authentication/Registration/DenyMinors	Denies registration for minors	Low	Ensure compliance with legal requirements
-Authentication/Registration/DenyMinorsWithoutParentalConsent	Denies registration for minors without consent	Medium	Ensure compliance with child protection policies
-Authentication/Registration/EmailConfirmationEnabled	Requires email confirmation for registration	Medium	Enable for additional security
-Authentication/Registration/Enabled	Enables user registration	Medium	Ensure registration is needed for public users
-Authentication/Registration/ExternalLoginEnabled	Allows external login providers	Medium	Restrict to trusted providers only
-Authentication/Registration/InvitationEnabled	Allows users to register via invitations	Medium	Ensure invitations are controlled
-Authentication/Registration/LocalLoginDeprecated	Marks local login as deprecated	Low	Ensure local login is not required
-Authentication/Registration/LocalLoginEnabled	Enables local login	Medium	Ensure it is necessary and secure
-Authentication/Registration/LoginButtonAuthenticationType	Defines authentication type for login button	Low	Ensure it is correctly configured
-Authentication/Registration/OpenRegistrationEnabled	Allows open user registration	High	Disable if not required for security reasons
-Authentication/Registration/ProfileRedirectEnabled	Enables profile redirection after login	Low	Ensure it aligns with user experience needs
-Authentication/Registration/TermsAgreementEnabled	Enables user agreement acceptance during registration	Medium	Ensure compliance with legal requirements
-Authentication/Registration/TermsPublicationDate	Defines the publication date of terms of service	Low	Ensure it is up to date
+CustomerSupport/CaseEntitlementEnabled	Enables case entitlement verification in customer support	Low	Ensure business requirement before enabling
+CustomerSupport/DisplayAllUserActivitiesOnTimeline	Displays all user activities in timeline	Medium	Ensure compliance with privacy policies
+DisableValidationWebTemplate	Disables validation for web templates	High	Ensure this is not disabled unnecessarily
+Footer/OutputCache/Enabled	Enables caching for footer	Low	No immediate security concern
+Footer/Template	Defines footer menu and copy settings	Low	Ensure it matches branding requirements
+Header/OutputCache/Enabled	Enables caching for header	Low	No immediate security concern
+HTTP/X-Frame-Options	Prevents clickjacking attacks	High	Ensure it is set to 'DENY' or 'SAMEORIGIN'
+KnowledgeManagement/Analytics/CaptureKnowledgeArticleReferrer	Tracks knowledge article referrals	Low	Ensure compliance with data tracking policies
+KnowledgeManagement/Analytics/ExternalSearchEngines	Defines external search engines for knowledge management	Low	Ensure relevance and compliance
+KnowledgeManagement/ContentAccessLevel/Enabled	Enables content access level settings	Medium	Ensure correct access levels
+KnowledgeManagement/Article/CaptureViewCount	Tracks article view counts	Medium	Ensure tracking aligns with business needs
+KnowledgeManagement/DisplayNotes	Enables notes display in knowledge management	Medium	Ensure notes do not expose sensitive data
+KnowledgeManagement/NotesFilter	Defines filter criteria for knowledge management notes	Medium	Ensure the filtering is correctly applied
+Multilanguage/DisplayLanguageCodeInURL	Controls display of language code in URLs	Low	Ensure consistency in URLs
+Multilanguage/MaximumDepthToClone	Defines maximum depth for language cloning	Low	Ensure it aligns with language strategy
+OnlineDomains	Defines allowed online domains	High	Ensure only trusted domains are listed
+PrimaryD365Table	Primary Dynamics 365 table used	High	Ensure correct table mapping
+ProductFiltering/AccountToProductRelationshipNames	Defines account-to-product relationships	Low	Ensure business relevance
+ProductFiltering/ContactToProductRelationshipNames	Defines contact-to-product relationships	Low	Ensure business relevance
+ProductFiltering/DisplayArticlesWithoutAssociatedProducts	Displays articles even if no associated products	Low	Ensure it matches content strategy
+ProductFiltering/Enabled	Enables product filtering	Medium	Ensure correct filters are applied
+Profile/ForceSignup	Forces users to sign up before proceeding	Medium	Ensure it is necessary for business logic
+Profile/ShowMarketingOptionsPanel	Displays marketing options in profile settings	Low	Ensure compliance with marketing policies
