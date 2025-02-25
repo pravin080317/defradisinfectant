@@ -1,23 +1,24 @@
-CustomerSupport/CaseEntitlementEnabled	Enables case entitlement verification in customer support	Low	Ensure business requirement before enabling
-CustomerSupport/DisplayAllUserActivitiesOnTimeline	Displays all user activities in timeline	Medium	Ensure compliance with privacy policies
-DisableValidationWebTemplate	Disables validation for web templates	High	Ensure this is not disabled unnecessarily
-Footer/OutputCache/Enabled	Enables caching for footer	Low	No immediate security concern
-Footer/Template	Defines footer menu and copy settings	Low	Ensure it matches branding requirements
-Header/OutputCache/Enabled	Enables caching for header	Low	No immediate security concern
-HTTP/X-Frame-Options	Prevents clickjacking attacks	High	Ensure it is set to 'DENY' or 'SAMEORIGIN'
-KnowledgeManagement/Analytics/CaptureKnowledgeArticleReferrer	Tracks knowledge article referrals	Low	Ensure compliance with data tracking policies
-KnowledgeManagement/Analytics/ExternalSearchEngines	Defines external search engines for knowledge management	Low	Ensure relevance and compliance
-KnowledgeManagement/ContentAccessLevel/Enabled	Enables content access level settings	Medium	Ensure correct access levels
-KnowledgeManagement/Article/CaptureViewCount	Tracks article view counts	Medium	Ensure tracking aligns with business needs
-KnowledgeManagement/DisplayNotes	Enables notes display in knowledge management	Medium	Ensure notes do not expose sensitive data
-KnowledgeManagement/NotesFilter	Defines filter criteria for knowledge management notes	Medium	Ensure the filtering is correctly applied
-Multilanguage/DisplayLanguageCodeInURL	Controls display of language code in URLs	Low	Ensure consistency in URLs
-Multilanguage/MaximumDepthToClone	Defines maximum depth for language cloning	Low	Ensure it aligns with language strategy
-OnlineDomains	Defines allowed online domains	High	Ensure only trusted domains are listed
-PrimaryD365Table	Primary Dynamics 365 table used	High	Ensure correct table mapping
-ProductFiltering/AccountToProductRelationshipNames	Defines account-to-product relationships	Low	Ensure business relevance
-ProductFiltering/ContactToProductRelationshipNames	Defines contact-to-product relationships	Low	Ensure business relevance
-ProductFiltering/DisplayArticlesWithoutAssociatedProducts	Displays articles even if no associated products	Low	Ensure it matches content strategy
-ProductFiltering/Enabled	Enables product filtering	Medium	Ensure correct filters are applied
-Profile/ForceSignup	Forces users to sign up before proceeding	Medium	Ensure it is necessary for business logic
-Profile/ShowMarketingOptionsPanel	Displays marketing options in profile settings	Low	Ensure compliance with marketing policies
+Setting Name	Description	Sensitivity	Recommended Action
+Search/Enabled	Enables search functionality	Low	Ensure it aligns with business requirements
+Search/EnableGenerativeAI	Enables AI-powered search	Medium	Ensure AI implementation aligns with security policies
+Search/FacetedView	Enables faceted search	Medium	Ensure it is configured correctly for filtering and relevance
+Search/Filters	Defines filters for search results	Medium	Ensure filters are correctly applied to prevent irrelevant search results
+Search/IndexNotesAttachments	Indexes notes and attachments in search	High	Ensure attachments do not expose sensitive data
+Search/IndexQueryName	Defines index query names	Low	Ensure query naming conventions are correct
+search/query	search query weight configuration, likely used in Power Pages search indexing.		
+Search/RecordTypeFacetsEntities	Defines record types indexed in search	Medium	Ensure relevant entities are included
+ThemeFeature	Controls UI theme settings	Low	Ensure theming aligns with branding requirements
+UserSetup/PortalURL	Defines portal URL	High	Ensure correct and secure portal URL
+Webapi/annotation/disableodatafilter	Disables OData filtering for annotations API	High	Ensure it is enabled to prevent mass data exposure
+Webapi/annotation/enabled	Enables annotation API	High	Restrict access if not required
+Webapi/annotation/fields	Defines fields exposed in annotation API	High	Limit fields to prevent data leaks
+WebAPI/enableReadOperationPreview	Enables read operation in preview mode	Medium	Ensure it is only enabled in test environments
+Webapi/error/innererror	Controls exposure of detailed error messages	High	Ensure sensitive information is not exposed
+Webapi/voap_portalfilemanagement/disableodatafilter	Disables OData filtering for file management API	High	Ensure this is properly configured
+Webapi/voap_portalfilemanagement/enabled	Enables file management API	High	Ensure only authorized users have access
+Webapi/voap_portalfilemanagement/fields	Defines fields exposed in file management API	High	Restrict fields to prevent data leaks
+Webapi/voap_portalrequest/disableodatafilter	Disables OData filtering for portal request API	High	Ensure proper filtering to prevent mass exposure
+Webapi/voap_portalrequest/enabled	Enables portal request API	High	Restrict access to authorized users
+Webapi/voap_portalrequest/fields	Defines fields exposed in portal request API	High	Ensure only necessary fields are included
+Webapi/voap_satisfactionfeedback/enabled	Enables satisfaction feedback API	Medium	Ensure feedback data security
+Webapi/voap_satisfactionfeedback/fields	Defines fields exposed in feedback API	Medium	Restrict unnecessary fields
