@@ -1,8 +1,70 @@
-Feature	Power Pages Table Permissions	Dynamics 365 Security Roles	SRS Roles (Azure AD Teams)
-Scope	Controls access to portal users only	Applies to internal Dynamics users	Manages internal user access via Azure AD Teams
-Access Level	Record-level access (individual tables, parent-child relationships)	Broad security roles (business unit, team, organization)	Maps internal users to corresponding Dataverse security roles
-Where It Applies?	External users accessing Power Pages via portal authentication	Internal CRM users (Dynamics 365 UI)	Internal users assigned to an Azure AD Team
-Configuration Location	Managed in Power Pages Table Permissions settings	Configured in Power Platform Admin Center	Managed in Azure AD Teams and mapped to Dataverse Security Roles
-Permissions Available	Read, Write, Create, Delete, Append, Append To	Full user permissions (business unit, team, entity-level security)	Determines what security roles a user gets in Dataverse
-Use Case	✅ Restrict what portal users can see or edit	✅ Restrict what Dynamics users can see or edit	✅ Manage access centrally via Azure AD without direct role assignments
-Examples	✅ Limit customers to view only their own requests. ✅ Restrict file uploads based on roles.	✅ Allow CRM Admins to modify customer records. ✅ Restrict specific users from modifying sensitive data.	✅ Assign VOA Portal Admin SRS Role, which automatically grants the VOA Portal Administrator security role in Dataverse.
+Action Items from the Discussion
+The following action items were identified to resolve the SSL certificate issue and improve security processes:
+
+Immediate Actions (Mitigation & Cleanup)
+✅ [Completed] Delete the ADO Repository
+
+The repository containing the private key has been deleted to prevent further exposure.
+Any local copies on individual machines have also been removed.
+✅ [Completed] Confirm Certificate Presence in Key Vault
+
+Verified that the correct SSL certificate is stored securely in Azure Key Vault.
+✅ [Completed] Document the Incident & Initial Fix
+
+Logged the issue in the security incident management system for tracking and audit purposes.
+Next Steps (Process Fixes & Preventive Measures)
+🚀 1. Establish a Secure Certificate Transfer Process (High Priority)
+Owner: Colin & Cloud Team
+Due Date: Next Security Meeting (Tentatively Tuesday)
+
+Define a process for securely transferring certificates between:
+Estes (Procurement Team)
+Cloud Team (Azure Key Vault Management)
+ECS Team (SSL Certificate Installation)
+Investigate automated solutions, such as:
+Granting ECS temporary access to Key Vault.
+Using Key Vault’s built-in certificate management features to share securely.
+🚀 2. Request & Deploy a New SSL Certificate (High Priority)
+Owner: Sharon & Cloud Team
+Due Date: Before March 11 Go-Live
+
+Initiate a request for a new SSL certificate.
+Delay delivery until a secure transfer mechanism is in place.
+Engage ECS early to avoid last-minute deployment delays.
+🚀 3. Review & Restrict Access to Key Vault (Security Measure)
+Owner: Cloud Team
+Due Date: Post-Go-Live
+
+Restrict access to Key Vault certificates to only necessary users.
+Audit Key Vault permissions and ensure only authorized teams can handle SSL certificates.
+🚀 4. Implement a Certificate Management Governance Policy (Process Improvement)
+Owner: Cynthia & Colin
+Due Date: Before the next certificate renewal cycle
+
+Develop an official governance policy for handling SSL certificates.
+Document:
+Who owns certificate procurement, storage, and installation?
+What secure transfer methods should be followed?
+How certificate expiration and renewals should be managed?
+🚀 5. Engage Microsoft Consultants for Best Practices (Optional Support)
+Owner: Colin
+Due Date: As needed
+
+Check with Microsoft’s Customer Success Account Manager (CSAM) to validate security best practices.
+🚀 6. Raise ECS Ticket for Certificate Deployment (Proactive Step) (Avoid Delay)
+Owner: Richard & Sharon
+Due Date: Immediately
+
+Raise an ECS ticket in advance to schedule SSL certificate installation once the new cert is available.
+Ensure global admin permissions are available to complete the installation.
+Follow-Up Meeting:
+📅 Next Catch-up: Tuesday (Tentative)
+
+Review progress on the new certificate procurement.
+Validate secure transfer mechanism feasibility.
+Confirm ECS readiness for deployment.
+Key Takeaways:
+Never store secrets in Git repositories.
+Use Key Vault with proper access control for certificates.
+Automate secure certificate transfer instead of manual processes.
+Involve security teams early in the process to prevent similar issues.
