@@ -1,3 +1,7 @@
+Subject: Transition Support – Dependency Assessment & Reverse Shadow Update
+
+Hi [Team],
+
 As part of the transition support, we wanted to highlight the key dependencies on [Hitachi Resource] and assess any potential risks post-March. Below is the current status and key considerations:
 
 Backlog Dependencies:
@@ -8,10 +12,14 @@ Environment Challenges:
 
 While the development environment is stable, the Dev Sandbox environment used for development is broken.
 The fix is feasible, but it might take additional time due to dependencies on Case Portal solutions and other integrated components.
+Reverse Shadow Update:
+
+Due to go-live activities, the reverse shadowing process has been postponed until after March 11.
+Even though we have gained a good understanding of most of the processes through reverse engineering and prior discussions, this is a key decision point.
+We may not be able to provide concrete evidence of the reverse shadow process, so the team needs to take a call on how to proceed with this aspect.
 Risk & Mitigation:
 
-We have already reverse-engineered most of the code and functionality, allowing us to gain a reasonable understanding.
+We have reverse-engineered most of the code and functionality, allowing us to gain a reasonable understanding.
 However, a decision needs to be made regarding how to handle the existing bugs, enhancements, and environment fixes post-transition.
-If required, we can manage without his direct involvement, but resolving some of the pending issues may take an extra day or two.
-Please let us know how we should proceed with these dependencies, especially regarding prioritization of backlog items and environment fixes.
-
+If required, we can manage without [Hitachi Resource]’s direct involvement, but resolving some of the pending issues may take an extra day or two.
+Please let us know how we should proceed with these dependencies, especially regarding prioritization of backlog items, environment fixes, and the reverse shadow process.
