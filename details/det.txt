@@ -1,7 +1,17 @@
-Summary of the Discussion on SSL Certificate and Private Key Handling in ADO Repo
-Context & Background
-An SSL certificate with a private key was found in an Azure DevOps (ADO) repository.
-This certificate was used in a dress rehearsal deployment in September.
-The issue originated because the private key password was missing, making it unusable.
-To bypass this, a workaround was applied by exporting the certificate via a VM and re-importing it with a new password.
-The certificate was then uploaded to ADO repo as a temporary measure for secure transfer between teams.
+As part of the transition support, we wanted to highlight the key dependencies on [Hitachi Resource] and assess any potential risks post-March. Below is the current status and key considerations:
+
+Backlog Dependencies:
+
+There are pending backlog items, including Day 2 bugs and existing enhancements, which have been parked for post-go-live.
+We are currently analyzing these items, but due to the go-live on March 11, we might not get sufficient time from [Hitachi Resource] to fully understand all the details.
+Environment Challenges:
+
+While the development environment is stable, the Dev Sandbox environment used for development is broken.
+The fix is feasible, but it might take additional time due to dependencies on Case Portal solutions and other integrated components.
+Risk & Mitigation:
+
+We have already reverse-engineered most of the code and functionality, allowing us to gain a reasonable understanding.
+However, a decision needs to be made regarding how to handle the existing bugs, enhancements, and environment fixes post-transition.
+If required, we can manage without his direct involvement, but resolving some of the pending issues may take an extra day or two.
+Please let us know how we should proceed with these dependencies, especially regarding prioritization of backlog items and environment fixes.
+
