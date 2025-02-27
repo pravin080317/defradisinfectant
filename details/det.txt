@@ -1,25 +1,129 @@
-Subject: Transition Support – Dependency Assessment & Reverse Shadow Update
+Power Pages SSL Certificate Management Runbook
+This runbook provides a structured process to manage SSL certificates for Power Pages securely and effectively.
 
-Hi [Team],
+1. SSL Certificate Request & Procurement
+🔹 Objective: Obtain a valid SSL certificate for Power Pages.
+🔹 Responsible Team: Cloud Team / Security Team
 
-As part of the transition support, we wanted to highlight the key dependencies on [Hitachi Resource] and assess any potential risks post-March. Below is the current status and key considerations:
+Steps:
+Determine Domain Name:
 
-Backlog Dependencies:
+Identify the custom domain (e.g., portal.example.com).
+Ensure the CNAME record is set up in DNS before SSL procurement.
+Request SSL Certificate:
 
-There are pending backlog items, including Day 2 bugs and existing enhancements, which have been parked for post-go-live.
-We are currently analyzing these items, but due to the go-live on March 11, we might not get sufficient time from [Hitachi Resource] to fully understand all the details.
-Environment Challenges:
+Use a trusted Certificate Authority (CA) (e.g., DigiCert, GlobalSign, Entrust, Let's Encrypt).
+Generate a Certificate Signing Request (CSR) and submit it to the CA.
+Obtain the issued certificate in PFX format with a private key.
+Store SSL Securely in Azure Key Vault (Recommended):
 
-While the development environment is stable, the Dev Sandbox environment used for development is broken.
-The fix is feasible, but it might take additional time due to dependencies on Case Portal solutions and other integrated components.
-Reverse Shadow Update:
+Upload the SSL certificate (.PFX) to Azure Key Vault.
+Assign appropriate access permissions using Role-Based Access Control (RBAC).
+2. Mapping Custom Domain to Power Pages
+🔹 Objective: Configure the custom domain before applying the SSL certificate.
+🔹 Responsible Team: Power Pages Admin / Cloud Team
 
-Due to go-live activities, the reverse shadowing process has been postponed until after March 11.
-Even though we have gained a good understanding of most of the processes through reverse engineering and prior discussions, this is a key decision point.
-We may not be able to provide concrete evidence of the reverse shadow process, so the team needs to take a call on how to proceed with this aspect.
-Risk & Mitigation:
+Steps:
+Access Power Platform Admin Center:
 
-We have reverse-engineered most of the code and functionality, allowing us to gain a reasonable understanding.
-However, a decision needs to be made regarding how to handle the existing bugs, enhancements, and environment fixes post-transition.
-If required, we can manage without [Hitachi Resource]’s direct involvement, but resolving some of the pending issues may take an extra day or two.
-Please let us know how we should proceed with these dependencies, especially regarding prioritization of backlog items, environment fixes, and the reverse shadow process.
+Navigate to Power Pages → Custom Domains.
+Click Add Custom Domain.
+Update DNS Configuration:
+
+Obtain the CNAME record provided by Microsoft.
+Update your DNS provider with this CNAME record.
+Verify DNS Propagation:
+
+Use tools like nslookup, dig, or WhatsMyDNS to confirm propagation.
+Confirm Custom Domain Mapping:
+
+Return to Power Platform Admin Center and ensure the domain is verified.
+3. Upload & Apply SSL Certificate to Power Pages
+🔹 Objective: Secure Power Pages with the obtained SSL certificate.
+🔹 Responsible Team: Power Pages Admin / Cloud Team
+
+Steps:
+Prepare the SSL Certificate:
+
+Ensure the certificate is in PFX format.
+Keep the password for the PFX file securely stored.
+Upload SSL to Power Pages:
+
+Go to Power Platform Admin Center → Power Pages.
+Navigate to SSL Certificates → Upload SSL Certificate.
+Select the .PFX file and enter the password.
+Assign SSL to Custom Domain:
+
+Go to Custom Domains → Select your domain.
+Choose the uploaded SSL certificate and apply it.
+4. SSL Certificate Expiry Monitoring & Renewal
+🔹 Objective: Ensure the SSL certificate is renewed before expiry to prevent downtime.
+🔹 Responsible Team: Security Team / Cloud Team
+
+Steps:
+Monitor Expiry Date:
+
+Track SSL certificate expiry using:
+Power Platform Admin Center (Check SSL section)
+Azure Key Vault (If SSL is stored there)
+Third-party monitoring tools (SSL Labs, DigiCert CertCentral)
+Renew SSL Certificate:
+
+30-45 days before expiry, initiate renewal with the CA.
+Follow the SSL procurement steps to get a new certificate.
+Replace Expired SSL Certificate:
+
+Upload the renewed PFX certificate to Power Pages SSL settings.
+Reassign it to the custom domain.
+Verify HTTPS connection after applying.
+5. Post-Implementation Security Checks & Cleanup
+🔹 Objective: Ensure security best practices and remove outdated configurations.
+🔹 Responsible Team: Security Team / Power Pages Admin
+
+Steps:
+Validate SSL Installation:
+
+Test the HTTPS connection using:
+Browser Console (Check SSL validity)
+SSL Labs SSL Checker
+Remove Old SSL Certificates:
+
+Delete expired certificates from:
+Power Platform Admin Center
+Azure Key Vault (If stored there)
+Ensure Secure Transfer of SSL Certificates:
+
+Certificates should never be stored in Git repositories.
+Use Azure Key Vault or an encrypted file transfer method.
+Audit & Log SSL Changes:
+
+Document SSL installation, renewal, and expiration dates.
+Maintain an SSL Management Runbook for future reference.
+6. Incident Handling: SSL Certificate Issues
+🔹 Objective: Address potential SSL-related issues affecting Power Pages.
+🔹 Responsible Team: Cloud Team / Security Team
+
+Common Issues & Solutions
+Issue	Cause	Solution
+SSL Certificate Not Valid	DNS not fully propagated	Wait for DNS propagation (up to 24 hours), check with nslookup or dig.
+Certificate Not Secure	Incorrect SSL binding	Ensure SSL is assigned to the correct domain in Power Pages.
+SSL Expired	Certificate not renewed	Renew certificate before expiry and update it in Power Pages.
+Mixed Content Errors	HTTP elements still loading	Ensure all resources (images, scripts, APIs) use HTTPS.
+SSL Not Loading	Incorrect .PFX format	Verify correct PFX format & password before upload.
+7. Governance & Best Practices
+✅ Never store SSL certificates in Git repositories.
+✅ Use Azure Key Vault to store and manage SSL certificates.
+✅ Enable role-based access control (RBAC) for SSL certificates.
+✅ Automate SSL monitoring using Azure Monitor or third-party tools.
+✅ Set up renewal alerts at least 30 days before expiry.
+✅ Conduct regular security audits to check for SSL vulnerabilities.
+
+Summary of the Power Pages SSL Certificate Runbook
+Step	Description
+1. Request & Obtain SSL	Get SSL from a trusted CA in .PFX format.
+2. Configure Custom Domain	Add domain in Power Pages & verify DNS settings.
+3. Upload & Assign SSL	Upload .PFX to Power Pages and bind to domain.
+4. Monitor & Renew SSL	Track expiry, renew SSL, and replace it before expiration.
+5. Security & Cleanup	Remove old SSLs, audit access, and ensure secure transfer.
+6. Troubleshooting	Address SSL issues like incorrect bindings or mixed content.
+7. Governance & Compliance	Use Azure Key Vault, restrict access, and enable monitoring.
