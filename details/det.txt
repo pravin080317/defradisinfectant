@@ -1,49 +1,52 @@
-Structured Checklist for Security Group Cleanup & Portal Role Adjustments
-1️⃣ Identify Security Group Dependencies
-🔲 Navigate to Power Platform Admin Center → Environments → Settings → Teams
-🔲 Check if the VOA_BST_DEV_SG is still listed as an active Microsoft Entra ID Security Group.
-🔲 Verify if the following environments still rely on the security group:
+Power Pages Reset Runbook – PPE Environment
+Overview
+Why is a Reset Needed?
+In certain scenarios, Power Platform environments may require a reset to align with higher environments, resolve reference data issues, or recover from major inconsistencies. Since Case Management Solutions (Case Solutions) share the same environment as Power Pages (Portal Solutions), a reset is often triggered due to issues impacting Case Solutions, even though Power Pages is less dependent on reference data.
 
-voabstportaltest.crm11.dynamics.com
-voabstportaldev.crm11.dynamics.com
-voabstnpdev.crm11.dynamics.com
-voabstcfsdev.crm11.dynamics.com 🔲 Take note of the security group type (Azure AD Security Group vs. SRS Role).
-2️⃣ Identify Affected Users & Roles
-🔲 Go to Power Platform Admin Center → Environments → Settings → Teams.
-🔲 Check how many users are assigned to VOA_BST_DEV_SG.
-🔲 List users currently mapped to this group and their assigned Dataverse Security Roles.
-🔲 Determine if removing the group will revoke their access.
+A reset is typically done one environment at a time to avoid disruptions and ensure a structured migration path.
 
-3️⃣ Validate Alternative Access Management
-🔲 Check if a new security group is replacing VOA_BST_DEV_SG.
-🔲 Confirm if users will be manually assigned instead.
-🔲 Verify if Azure AD Teams (SRS Roles) are taking over access control.
-🔲 If SRS Roles are used:
+Activities Performed During a Reset
+When an environment reset occurs, the following key activities take place:
 
-Check how they are mapped to Dataverse Security Roles.
-Verify if internal users have proper role-based access.
-Ensure Dataverse permissions match previous access levels.
-4️⃣ Verify Portal Access for External Users
-🔲 Go to Power Pages Admin Center → Portal Management App → Web Roles.
-🔲 Ensure that Portal Users (external) still have the correct Table Permissions.
-🔲 If security groups were handling access before:
+🔹 Case Solutions (Primary Reset Focus)
+Reference Data Sync: Case Solutions heavily rely on Dataverse reference data, which is refreshed or restored as part of the reset.
+Application Reconfiguration: Case Solutions require specific configurations and deployments to restore functionality.
+🔹 Power Pages (Included in Reset Due to Shared Environment)
+Even though Power Pages does not depend heavily on reference data, it requires post-reset activities to ensure continued functionality.
 
-Verify that Web Roles are still mapped correctly.
-Ensure no unintended loss of access for external users.
-Adjust Table Permissions if necessary.
-5️⃣ Review and Confirm Required Changes
-🔲 If VOA_BST_DEV_SG is still active but scheduled for removal:
+Post-Reset Activities for Power Pages
+1️⃣ ECS Team Tasks (Infrastructure & Security)
+Delete Old App Registration
 
-Plan for migrating affected users to a new access model.
-Ensure internal & external user access remains uninterrupted. 🔲 If the group has already been removed, confirm:
-Users can still log in to Power Pages & Dataverse.
-No errors in accessing tables, records, or permissions. 🔲 Document findings and update the JIRA ticket with:
-Which environments were checked.
-How access will be managed after removal.
-Any required fixes or role adjustments.
-🔹 Final Confirmation Checklist
-✅ Security group (VOA_BST_DEV_SG) removal impact is analyzed.
-✅ Affected environments identified and checked.
-✅ Alternative access control validated (SRS Roles, manual assignments).
-✅ Power Pages portal roles & table permissions are updated if required.
-✅ JIRA ticket is updated with findings & recommendations.
+Remove any old Azure AD App Registrations associated with Power Pages to avoid conflicts.
+Portal Site Activation
+
+Ensure that Power Pages site is activated in the environment.
+SSL Setup & Site Configuration
+
+Validate SSL certificate location and credentials.
+Ensure the portal is securely accessible via HTTPS.
+2️⃣ Portal Team Tasks (Configuration & Deployment)
+Check Website Bindings
+
+Ensure the correct domain is bound to the Power Pages site.
+Verify primary and custom domains are set up properly.
+Check Blocked File Extensions in Power Pages Settings
+
+In the Power Platform Admin Center, ensure that blocked file types (e.g., .js, .css) are correctly configured.
+Remove any unintended restrictions that might block custom scripts.
+Run Power Pages Pipeline
+
+Deploy the latest Power Pages configurations to sync with the Dataverse backend.
+Ensure the latest site markers, content snippets, and web roles are deployed.
+Update Portal User Management Table
+
+Validate the Portal User Management Table to ensure:
+Correct users have access.
+Any new users are added.
+Any inactive or unnecessary users are removed.
+Final Steps
+✅ Validate Portal Sync with Dataverse – Ensure that Power Pages is correctly retrieving data from Dataverse.
+✅ Test Internal & External User Access – Ensure that users can log in and navigate the portal without issues.
+✅ Verify SSL & Performance – Confirm that the SSL certificate is working and portal performance is stable.
+✅ Update JIRA Tickets & Handover – Log findings and ensure the support team is informed.
