@@ -1,52 +1,40 @@
-Power Pages Reset Runbook – PPE Environment
-Overview
-Why is a Reset Needed?
-In certain scenarios, Power Platform environments may require a reset to align with higher environments, resolve reference data issues, or recover from major inconsistencies. Since Case Management Solutions (Case Solutions) share the same environment as Power Pages (Portal Solutions), a reset is often triggered due to issues impacting Case Solutions, even though Power Pages is less dependent on reference data.
+Step 2: Power Pages Site Installation and Activation
+Why is this step necessary?
+After an environment reset, the Power Pages site (portal) needs to be reinstalled and activated to restore access for external users. Since Power Pages is based on the Customer Service template of Dynamics 365, a fresh installation ensures proper linkage with Dataverse and backend configurations.
 
-A reset is typically done one environment at a time to avoid disruptions and ensure a structured migration path.
+Additionally, when a new Power Pages site is created, an App Registration is automatically generated in Microsoft Entra ID. This app registration will later need to be configured as part of the next step (TEN Document Update), but for now, the focus is on site activation.
 
-Activities Performed During a Reset
-When an environment reset occurs, the following key activities take place:
+Steps for Power Pages Site Installation and Activation
+1️⃣ Navigate to Power Platform Admin Center
 
-🔹 Case Solutions (Primary Reset Focus)
-Reference Data Sync: Case Solutions heavily rely on Dataverse reference data, which is refreshed or restored as part of the reset.
-Application Reconfiguration: Case Solutions require specific configurations and deployments to restore functionality.
-🔹 Power Pages (Included in Reset Due to Shared Environment)
-Even though Power Pages does not depend heavily on reference data, it requires post-reset activities to ensure continued functionality.
+Sign in to Power Platform Admin Center 👉 https://admin.powerplatform.microsoft.com
+Go to Environments → Select the target environment
+Click on Power Pages → Manage Sites
+2️⃣ Install the Power Pages Site
 
-Post-Reset Activities for Power Pages
-1️⃣ ECS Team Tasks (Infrastructure & Security)
-Delete Old App Registration
+Click on + New to create a new Power Pages site
+Select Customer Self-Service Template (Customer Service Portal)
+Configure the required Site Name, URL, and Language
+Click Create
+3️⃣ Verify Automatic App Registration in Entra ID
 
-Remove any old Azure AD App Registrations associated with Power Pages to avoid conflicts.
-Portal Site Activation
+Once the site creation is completed, an Azure Entra ID App Registration is automatically generated.
+Navigate to Microsoft Entra ID → App Registrations
+Search for the newly created App Registration
+Confirm that it is mapped to the newly installed Power Pages site
+4️⃣ Activate the Site
 
-Ensure that Power Pages site is activated in the environment.
-SSL Setup & Site Configuration
+Navigate back to Power Platform Admin Center → Power Pages
+Locate the newly installed site under Manage Sites
+Ensure the Status is Active
+If not, click Manage → Activate
+5️⃣ Validate Basic Portal Access
 
-Validate SSL certificate location and credentials.
-Ensure the portal is securely accessible via HTTPS.
-2️⃣ Portal Team Tasks (Configuration & Deployment)
-Check Website Bindings
-
-Ensure the correct domain is bound to the Power Pages site.
-Verify primary and custom domains are set up properly.
-Check Blocked File Extensions in Power Pages Settings
-
-In the Power Platform Admin Center, ensure that blocked file types (e.g., .js, .css) are correctly configured.
-Remove any unintended restrictions that might block custom scripts.
-Run Power Pages Pipeline
-
-Deploy the latest Power Pages configurations to sync with the Dataverse backend.
-Ensure the latest site markers, content snippets, and web roles are deployed.
-Update Portal User Management Table
-
-Validate the Portal User Management Table to ensure:
-Correct users have access.
-Any new users are added.
-Any inactive or unnecessary users are removed.
-Final Steps
-✅ Validate Portal Sync with Dataverse – Ensure that Power Pages is correctly retrieving data from Dataverse.
-✅ Test Internal & External User Access – Ensure that users can log in and navigate the portal without issues.
-✅ Verify SSL & Performance – Confirm that the SSL certificate is working and portal performance is stable.
-✅ Update JIRA Tickets & Handover – Log findings and ensure the support team is informed.
+Open the portal URL and ensure the login page loads
+Check if Dataverse synchronization is functioning
+Confirm that the Customer Service features are enabled
+Post-Installation Checklist
+✅ The Power Pages site is installed and listed under Power Pages Sites
+✅ The App Registration is automatically created in Microsoft Entra ID
+✅ The Portal URL is accessible and loads correctly
+✅ The Dataverse sync is successful
