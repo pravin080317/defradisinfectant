@@ -1,80 +1,132 @@
-Power Pages Post-Reset Remediation Process
+Converting Power Pages Site from Trial to Production & Assigning SSL
 Overview
-Following a Power Pages reset, the Azure App Registration must be correctly configured to ensure seamless authentication and access management. This section outlines the remediation steps required to update and configure the Power Pages App Registration in Azure Entra ID (formerly Azure AD).
+When a Power Pages site is initially created, it runs in Trial Mode. To move it to a Production environment, certain steps must be completed, including upgrading the license, assigning a custom domain, and securing the site with an SSL certificate.
 
-Pre-Requisites for ECS Engineers
-Before beginning the remediation process, the ECS engineer should ensure the following:
+This section outlines the required steps to convert a Power Pages site from a trial to a production-ready state and ensure it is properly secured with SSL and custom domain configuration.
 
-✅ Access Requirements
-
-Must have access to the Azure Entra ID portal: https://portal.azure.com
-Must be logged in as a Global Administrator in the Azure AD Management Console.
-✅ Scope of Updates The following actions must be performed for each App Registration linked to the Power Pages environment.
-
-Step 1: Update the App Registration Name
-Actions
-Log into the Azure Portal → Navigate to Enterprise Applications.
-Locate and open the App Registration for the portal.
-Ensure the Enterprise Application filter is cleared to make it visible.
-Go to the Properties blade.
-Update the App Registration Name in the Name field.
-Click Save to confirm the update.
-Step 2: Assign the Azure AD Security Group
-Actions
-Navigate to Azure Entra ID → Enterprise Applications.
-Locate and select the App Registration instance.
-You may need to change the Application Type filter to All Applications.
-Go to the Users and Groups blade.
-Click Add user/group.
-Click None Selected, then search for the Azure AD Security Group (as per the predefined mapping).
-Select the group, then click Select.
-Click Assign to apply the group to the application.
-Step 3: Set Assignment & Visibility Settings
-Actions
-Navigate to the Properties blade.
-Update the following settings:
-Assignment required? → Set to Yes (if required).
-Visible to users? → Set to Yes (if applicable).
-Click Save to confirm the settings.
-Step 4: Remove Legacy Azure Active Directory Graph API Permissions
-Older Power Pages deployments might contain outdated Azure Active Directory Graph API references. These need to be removed to ensure compliance with Microsoft’s latest authentication framework.
+Step 1: Upgrade the Power Pages Site from Trial to Production
+🔹 Objective: Ensure the site moves out of trial mode for long-term use.
+🔹 Responsible Team: Power Pages Admin / Cloud Team
 
 Actions
-Navigate to Azure Entra ID → App Registrations.
-Select All Applications, then search for the App Registration.
-Open the App Registration.
-Under Manage, go to API Permissions.
-Locate the Azure Active Directory Graph API.
-Click the "..." menu at the end of the entry.
-Select Revoke all admin consents and confirm.
-Click the "..." menu again and select Remove all permissions.
-Confirm the removal.
-Ensure that only User.Read (Microsoft Graph API) is retained.
-Step 5: Update the Redirect URI
-After a reset, the Redirect URI must be updated to match the newly deployed Power Pages site.
+Log into Power Platform Admin Center
+
+Navigate to Power Platform Admin Center.
+Click Resources in the left navigation pane.
+Select Power Pages sites.
+Locate the site and verify if it's in Trial Mode.
+Convert to Production
+
+Click Upgrade to Production.
+Review licensing and usage.
+Confirm the upgrade and wait for provisioning to complete.
+Verify Production Status
+
+Refresh the Power Pages sites list.
+Confirm the site no longer shows Trial Mode.
+Proceed with custom domain and SSL configuration.
+Step 2: Assign a Custom Domain
+🔹 Objective: Configure a custom domain instead of the default Microsoft-provided URL.
+🔹 Responsible Team: Power Pages Admin / Cloud Team
 
 Actions
-Navigate to Azure Entra ID → App Registrations.
-Select All Applications, then search for the App Registration.
-Open the App Registration.
-In the Web / Redirect URI section, update the Redirect URI as per the relevant Power Pages configuration.
-Click Save to confirm the update.
-Step 6: Grant Admin Consent for Microsoft Graph API
-Once the API permissions are updated, Admin Consent must be granted to enable secure authentication.
+Log into Power Platform Admin Center
+
+Navigate to Power Platform Admin Center.
+Click Resources → Power Pages Sites.
+Select the Power Pages site.
+Add a Custom Domain
+
+Click Connect Custom Domain.
+Enter the desired domain name (e.g., portal.example.com).
+Follow the wizard and copy the CNAME record provided by Microsoft.
+Update DNS Records
+
+Access the domain registrar (e.g., Azure DNS, GoDaddy, Cloudflare).
+Add a CNAME record pointing the custom domain to the Microsoft-provided URL.
+Wait for DNS propagation (can take up to 24 hours).
+Verify Domain Mapping
+
+Return to Power Platform Admin Center.
+Click Validate Domain.
+Ensure status shows Verified before proceeding.
+Step 3: Upload & Assign SSL Certificate
+🔹 Objective: Secure the custom domain with an SSL certificate.
+🔹 Responsible Team: Power Pages Admin / Cloud Team
 
 Actions
-Navigate to Azure Entra ID → App Registrations.
-Open the App Registration.
-Go to the API Permissions blade.
-Click Add a permission.
-Click Grant admin consent.
-Confirm the consent request.
-Final Checklist – Post Remediation Validation
-✅ App Registration name updated correctly
-✅ Azure AD Security Groups assigned correctly
-✅ Assignment & Visibility settings configured
-✅ Legacy Azure AD Graph API permissions removed
-✅ Correct Redirect URI configured
-✅ Admin Consent granted for Microsoft Graph API
-✅ Users able to authenticate via Power Pages
+Obtain an SSL Certificate
 
+Purchase or generate an SSL certificate from a trusted Certificate Authority (CA):
+DigiCert, GlobalSign, Let's Encrypt, Entrust.
+Export the certificate in .PFX format with a private key.
+Store the SSL certificate securely (preferably in Azure Key Vault).
+Upload SSL to Power Pages
+
+Navigate to Power Platform Admin Center.
+Click Resources → Power Pages Sites.
+Select the Power Pages site.
+Click Upload SSL Certificate.
+Select the .PFX certificate and enter the password.
+Bind SSL to Custom Domain
+
+Click Assign SSL Certificate.
+Select the uploaded SSL certificate.
+Click Bind to apply it to the custom domain.
+Verify HTTPS is Active
+
+Open the portal using the custom domain.
+Ensure the site loads with HTTPS.
+Use SSL Labs SSL Checker to confirm security.
+Step 4: Configure Site Authentication
+🔹 Objective: Ensure Azure AD is the only active authentication method.
+🔹 Responsible Team: Power Pages Admin
+
+Actions
+Log into Power Pages Admin Center
+
+Navigate to Power Pages Studio.
+Select the correct environment.
+Click Edit on the Active Site.
+Disable Local Authentication
+
+Click Setup → View Security.
+Under Identity Providers, locate Local Sign-in.
+Click the three dots → Select Disable.
+Confirm by clicking Disable in the modal pop-up.
+Disable Other Unused Identity Providers
+
+Under Identity Providers, ensure that only Azure AD is Enabled.
+If any other provider is Enabled, click the three dots and select Disable.
+Verify Authentication Settings
+
+Confirm that Azure AD is the only enabled provider.
+Test user login using Azure AD credentials.
+Final Checklist – Post Implementation Validation
+✅ Power Pages site is upgraded to Production
+✅ Custom domain is mapped and verified
+✅ SSL certificate is uploaded and bound
+✅ Website loads securely over HTTPS
+✅ Authentication is set to Azure AD only
+
+Troubleshooting & Common Issues
+Issue	Cause	Solution
+Custom domain not verified	CNAME record not propagated	Wait up to 24 hours, check with nslookup or dig
+SSL certificate upload fails	Incorrect PFX format	Ensure .PFX includes a private key
+Site loads without HTTPS	SSL binding incomplete	Reassign SSL in Power Pages Admin
+Users unable to log in	Authentication settings incorrect	Ensure only Azure AD is enabled
+Site still in trial mode	Upgrade process incomplete	Refresh and confirm upgrade in Power Platform Admin Center
+Governance & Best Practices
+✅ Always use trusted SSL certificates from recognized CAs.
+✅ Store SSL certificates in Azure Key Vault for security.
+✅ Set up automated SSL renewal alerts (30 days before expiry).
+✅ Disable all unnecessary authentication methods (only Azure AD should be active).
+✅ Regularly review Power Pages custom domain & SSL configurations.
+
+Summary
+Step	Description
+Upgrade to Production	Convert the Power Pages site from Trial to Production.
+Custom Domain Mapping	Assign a custom domain & update DNS settings.
+Assign SSL Certificate	Upload & bind the SSL certificate to the domain.
+Configure Authentication	Ensure only Azure AD is enabled for login.
+Validation & Testing	Verify HTTPS, authentication, and domain mapping.
