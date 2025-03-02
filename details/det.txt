@@ -1,31 +1,29 @@
-Step 1: Delete Old App Registration - Post Reset Activity
+Deleting the Existing Power Pages Site
 Why is this step necessary?
-After a reset, old app registrations from the previous environment instance may still exist. These outdated app registrations can cause authentication issues, conflicts with the new environment setup, and unauthorized access problems. Removing them ensures that only the newly provisioned app registrations are in use.
+As part of the environment reset, the existing Power Pages site must be deleted before a new installation. This ensures that any outdated configurations, old references, and dependencies from the previous portal instance do not interfere with the fresh setup. Since Power Pages is tightly integrated with Dataverse, deleting the old site also helps avoid conflicts with Dataverse tables, authentication settings, and Azure Entra ID app registrations.
 
-Steps to Delete Old App Registration
-1️⃣ Identify the Old App Registration
+Steps to Delete the Existing Power Pages Site
+1️⃣ Navigate to Power Platform Admin Center
 
-Sign in to the Microsoft Entra ID (formerly Azure AD) Portal:
-👉 https://entra.microsoft.com
-Navigate to Azure Active Directory → App Registrations
-Search for any old app registrations related to PPE Power Pages Portal
-Verify the application name and Client ID
-2️⃣ Backup Existing Configuration (Optional but Recommended)
+Sign in to Power Platform Admin Center 👉 https://admin.powerplatform.microsoft.com
+Go to Environments → Select the target environment
+Click on Power Pages → Manage Sites
+2️⃣ Locate the Power Pages Site
 
-Before deleting, note down the Client ID, Tenant ID, and Redirect URIs for reference.
-Store this in a secure location in case rollback is needed.
-3️⃣ Remove the Old App Registration
+Identify the existing Power Pages site that needs to be removed.
+Take note of the site name, URL, and associated Dataverse tables (if needed for reference).
+3️⃣ Delete the Power Pages Site
 
-Click on the identified app registration
-Navigate to Properties → Delete
-Confirm deletion
-Ensure the app is completely removed from the Enterprise Applications section as well.
-4️⃣ Verify No Active Dependencies
+Select the site from the list.
+Click on Manage → Delete.
+Confirm deletion when prompted.
+Wait for the deletion process to complete (this may take a few minutes).
+4️⃣ Verify the Deletion
 
-Check Power Pages Authentication Settings in Power Platform Admin Center
-Ensure no references exist to the deleted app
-If authentication breaks, reconfigure with the new app registration.
-Post-Deletion Validation
-✅ Confirm that authentication is working correctly in PPE Power Pages Portal
-✅ Verify new app registration is active and mapped to Power Pages authentication settings
-✅ Ensure no old credentials are stored in Azure Key Vault or Dataverse
+Refresh the Power Pages Sites list and ensure the site is no longer present.
+Navigate to Dataverse Tables and confirm that any related tables (e.g., Portal Configuration Tables) are cleaned up.
+Check Microsoft Entra ID → App Registrations and verify if the associated App Registration has been removed (if not, it will need to be manually deleted).
+Post-Deletion Checklist
+✅ The Power Pages site is no longer listed in Power Pages Sites
+✅ The Dataverse tables linked to the portal are cleared (if applicable)
+✅ The App Registration in Microsoft Entra ID is verified for deletion
