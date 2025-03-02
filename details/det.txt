@@ -1,40 +1,31 @@
-Step 2: Power Pages Site Installation and Activation
+Step 1: Delete Old App Registration - Post Reset Activity
 Why is this step necessary?
-After an environment reset, the Power Pages site (portal) needs to be reinstalled and activated to restore access for external users. Since Power Pages is based on the Customer Service template of Dynamics 365, a fresh installation ensures proper linkage with Dataverse and backend configurations.
+After a reset, old app registrations from the previous environment instance may still exist. These outdated app registrations can cause authentication issues, conflicts with the new environment setup, and unauthorized access problems. Removing them ensures that only the newly provisioned app registrations are in use.
 
-Additionally, when a new Power Pages site is created, an App Registration is automatically generated in Microsoft Entra ID. This app registration will later need to be configured as part of the next step (TEN Document Update), but for now, the focus is on site activation.
+Steps to Delete Old App Registration
+1️⃣ Identify the Old App Registration
 
-Steps for Power Pages Site Installation and Activation
-1️⃣ Navigate to Power Platform Admin Center
+Sign in to the Microsoft Entra ID (formerly Azure AD) Portal:
+👉 https://entra.microsoft.com
+Navigate to Azure Active Directory → App Registrations
+Search for any old app registrations related to PPE Power Pages Portal
+Verify the application name and Client ID
+2️⃣ Backup Existing Configuration (Optional but Recommended)
 
-Sign in to Power Platform Admin Center 👉 https://admin.powerplatform.microsoft.com
-Go to Environments → Select the target environment
-Click on Power Pages → Manage Sites
-2️⃣ Install the Power Pages Site
+Before deleting, note down the Client ID, Tenant ID, and Redirect URIs for reference.
+Store this in a secure location in case rollback is needed.
+3️⃣ Remove the Old App Registration
 
-Click on + New to create a new Power Pages site
-Select Customer Self-Service Template (Customer Service Portal)
-Configure the required Site Name, URL, and Language
-Click Create
-3️⃣ Verify Automatic App Registration in Entra ID
+Click on the identified app registration
+Navigate to Properties → Delete
+Confirm deletion
+Ensure the app is completely removed from the Enterprise Applications section as well.
+4️⃣ Verify No Active Dependencies
 
-Once the site creation is completed, an Azure Entra ID App Registration is automatically generated.
-Navigate to Microsoft Entra ID → App Registrations
-Search for the newly created App Registration
-Confirm that it is mapped to the newly installed Power Pages site
-4️⃣ Activate the Site
-
-Navigate back to Power Platform Admin Center → Power Pages
-Locate the newly installed site under Manage Sites
-Ensure the Status is Active
-If not, click Manage → Activate
-5️⃣ Validate Basic Portal Access
-
-Open the portal URL and ensure the login page loads
-Check if Dataverse synchronization is functioning
-Confirm that the Customer Service features are enabled
-Post-Installation Checklist
-✅ The Power Pages site is installed and listed under Power Pages Sites
-✅ The App Registration is automatically created in Microsoft Entra ID
-✅ The Portal URL is accessible and loads correctly
-✅ The Dataverse sync is successful
+Check Power Pages Authentication Settings in Power Platform Admin Center
+Ensure no references exist to the deleted app
+If authentication breaks, reconfigure with the new app registration.
+Post-Deletion Validation
+✅ Confirm that authentication is working correctly in PPE Power Pages Portal
+✅ Verify new app registration is active and mapped to Power Pages authentication settings
+✅ Ensure no old credentials are stored in Azure Key Vault or Dataverse
