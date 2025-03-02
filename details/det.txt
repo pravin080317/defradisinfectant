@@ -1,29 +1,80 @@
-Deleting the Existing Power Pages Site
-Why is this step necessary?
-As part of the environment reset, the existing Power Pages site must be deleted before a new installation. This ensures that any outdated configurations, old references, and dependencies from the previous portal instance do not interfere with the fresh setup. Since Power Pages is tightly integrated with Dataverse, deleting the old site also helps avoid conflicts with Dataverse tables, authentication settings, and Azure Entra ID app registrations.
+Power Pages Post-Reset Remediation Process
+Overview
+Following a Power Pages reset, the Azure App Registration must be correctly configured to ensure seamless authentication and access management. This section outlines the remediation steps required to update and configure the Power Pages App Registration in Azure Entra ID (formerly Azure AD).
 
-Steps to Delete the Existing Power Pages Site
-1️⃣ Navigate to Power Platform Admin Center
+Pre-Requisites for ECS Engineers
+Before beginning the remediation process, the ECS engineer should ensure the following:
 
-Sign in to Power Platform Admin Center 👉 https://admin.powerplatform.microsoft.com
-Go to Environments → Select the target environment
-Click on Power Pages → Manage Sites
-2️⃣ Locate the Power Pages Site
+✅ Access Requirements
 
-Identify the existing Power Pages site that needs to be removed.
-Take note of the site name, URL, and associated Dataverse tables (if needed for reference).
-3️⃣ Delete the Power Pages Site
+Must have access to the Azure Entra ID portal: https://portal.azure.com
+Must be logged in as a Global Administrator in the Azure AD Management Console.
+✅ Scope of Updates The following actions must be performed for each App Registration linked to the Power Pages environment.
 
-Select the site from the list.
-Click on Manage → Delete.
-Confirm deletion when prompted.
-Wait for the deletion process to complete (this may take a few minutes).
-4️⃣ Verify the Deletion
+Step 1: Update the App Registration Name
+Actions
+Log into the Azure Portal → Navigate to Enterprise Applications.
+Locate and open the App Registration for the portal.
+Ensure the Enterprise Application filter is cleared to make it visible.
+Go to the Properties blade.
+Update the App Registration Name in the Name field.
+Click Save to confirm the update.
+Step 2: Assign the Azure AD Security Group
+Actions
+Navigate to Azure Entra ID → Enterprise Applications.
+Locate and select the App Registration instance.
+You may need to change the Application Type filter to All Applications.
+Go to the Users and Groups blade.
+Click Add user/group.
+Click None Selected, then search for the Azure AD Security Group (as per the predefined mapping).
+Select the group, then click Select.
+Click Assign to apply the group to the application.
+Step 3: Set Assignment & Visibility Settings
+Actions
+Navigate to the Properties blade.
+Update the following settings:
+Assignment required? → Set to Yes (if required).
+Visible to users? → Set to Yes (if applicable).
+Click Save to confirm the settings.
+Step 4: Remove Legacy Azure Active Directory Graph API Permissions
+Older Power Pages deployments might contain outdated Azure Active Directory Graph API references. These need to be removed to ensure compliance with Microsoft’s latest authentication framework.
 
-Refresh the Power Pages Sites list and ensure the site is no longer present.
-Navigate to Dataverse Tables and confirm that any related tables (e.g., Portal Configuration Tables) are cleaned up.
-Check Microsoft Entra ID → App Registrations and verify if the associated App Registration has been removed (if not, it will need to be manually deleted).
-Post-Deletion Checklist
-✅ The Power Pages site is no longer listed in Power Pages Sites
-✅ The Dataverse tables linked to the portal are cleared (if applicable)
-✅ The App Registration in Microsoft Entra ID is verified for deletion
+Actions
+Navigate to Azure Entra ID → App Registrations.
+Select All Applications, then search for the App Registration.
+Open the App Registration.
+Under Manage, go to API Permissions.
+Locate the Azure Active Directory Graph API.
+Click the "..." menu at the end of the entry.
+Select Revoke all admin consents and confirm.
+Click the "..." menu again and select Remove all permissions.
+Confirm the removal.
+Ensure that only User.Read (Microsoft Graph API) is retained.
+Step 5: Update the Redirect URI
+After a reset, the Redirect URI must be updated to match the newly deployed Power Pages site.
+
+Actions
+Navigate to Azure Entra ID → App Registrations.
+Select All Applications, then search for the App Registration.
+Open the App Registration.
+In the Web / Redirect URI section, update the Redirect URI as per the relevant Power Pages configuration.
+Click Save to confirm the update.
+Step 6: Grant Admin Consent for Microsoft Graph API
+Once the API permissions are updated, Admin Consent must be granted to enable secure authentication.
+
+Actions
+Navigate to Azure Entra ID → App Registrations.
+Open the App Registration.
+Go to the API Permissions blade.
+Click Add a permission.
+Click Grant admin consent.
+Confirm the consent request.
+Final Checklist – Post Remediation Validation
+✅ App Registration name updated correctly
+✅ Azure AD Security Groups assigned correctly
+✅ Assignment & Visibility settings configured
+✅ Legacy Azure AD Graph API permissions removed
+✅ Correct Redirect URI configured
+✅ Admin Consent granted for Microsoft Graph API
+✅ Users able to authenticate via Power Pages
+
