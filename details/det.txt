@@ -1,20 +1,35 @@
-1️⃣ Editing Download Schedules & Help Section
-Currently, there is no separate knowledge base maintained for the LA Portal.
-The Power Pages web page template contains detailed descriptions of each screen, explaining how and what needs to be done.
-If changes are needed, a portal pipeline deployment is required.
-If an SRS-specific role is required for future updates, we need to define its scope and responsibilities.
-2️⃣ Dashboards for Authorities
-There are no dashboards in Dynamics 365 for LA Portal.
-Power BI is used for Performance Analyst activities.
-Internal users will access the Power BI dashboard directly.
-The Performance Analyst (PA) will send summary reports to internal users as needed.
-Any future dashboard requirements should be reviewed based on user needs.
-3️⃣ Portal Monitoring & Assigned Role
-Monitoring is handled via the Power Platform Admin Center.
-More details can be found in the Jira ticket BST-110608.
-There are ongoing discussions around using the VOA Portal Admin role for support users to oversee the portal.
-4️⃣ Read-Only Role for Performance Analyst (Page 46/47 Access Method)
-The Performance Analyst has been assigned the "VOA BST Programme Read Only User" security role in SIT for validation.
-If this role successfully fulfills the Day 1 requirement, the VOA Read-Only SRS role will be provided in PROD.
-This is being actively discussed with Liam, as referenced in [BST-118773] User Tracking PA LA Portal - VOA JIRA.
-Any refinements needed in the role design or permissions will be evaluated based on feedback from testing.
+As discussed, since the SRS roles are not visible in FAT, we will be using existing roles in FAT to mimic the SRS persona testing. Below is our proposed approach:
+
+Roles Selected for Testing in FAT
+We have identified the following existing security roles that we will use to mimic the SRS roles in FAT:
+
+FAT Security Role	Access Level	Portal-Related Tables
+VOA - System Administrator	Full access across Dataverse	✅ 2 Portal-related tables
+VOA - BST Consultant Access	Limited edit access	✅ 1 Portal-related table
+Service Reader	Read-only access	✅ All tables (but no write access)
+Even though these roles do not cover all portal-related tables, they will help us validate whether users can access and perform essential tasks.
+
+Steps for Testing in FAT
+1️⃣ Assign FAT Security Roles to Users
+
+Navigate to Power Platform Admin Center → Select FAT Environment.
+Go to Users + Permissions > Security Roles.
+Assign the following roles to test users:
+VOA - System Administrator → Admin-level access
+VOA - BST Consultant Access → Limited portal edit access
+Service Reader → Read-only access
+2️⃣ User Login & Access Validation
+
+Test users will log in to the FAT Portal and Dataverse backend.
+Validate if they can:
+Access the portal and backend tables.
+Perform basic operations based on their assigned role.
+Check if any errors or missing permissions appear.
+3️⃣ Perform Portal-Specific Actions
+
+Attempt to view/edit portal records based on assigned roles.
+Check if restricted roles (e.g., Service Reader) can only view and not modify records.
+Test user access to different portal features (e.g., form submissions, data retrieval).
+4️⃣ Document Findings & Next Steps
+
+If successful, we will proceed with SIT testing using SRS-based delegation.
