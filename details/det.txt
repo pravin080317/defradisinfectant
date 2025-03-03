@@ -1,94 +1,20 @@
-Meeting Notes Summary
-Date: [Insert Date]
-Attendees: Praveen, Liam, Andrew, Mark, Dan, Matt, Call, Helen Murphy, Sam Heiberg, Rodriguez
-
-Discussion Points & Decisions
-1. SRS Roles & Security Testing in Different Environments
-Issue Identified:
-
-The new SRS security roles currently do not have permissions assigned.
-Attempting to log in using these roles results in an error exception.
-Dev environment cannot be used for security testing due to restrictions.
-In FAT, the SRS roles are not visible, as FAT uses a role switch-up configuration.
-Proposed Solution:
-
-Mimic SRS roles in FAT by directly assigning equivalent security roles to users.
-Perform preliminary testing in FAT before SIT.
-In FAT, permissions will not be delegated by teams like in SRS, but can still be tested for validity.
-Action Items:
-
-✅ Mimic the SRS roles in FAT by assigning security roles directly.
-✅ Conduct preliminary security testing for SRS roles in FAT before SIT.
-📌 (Follow-up) Reach out to Mark & Liam to discuss testing approach and feasibility.
-2. Access to Production for Support Teams (Post Go-Live)
-Issue Identified:
-
-Currently, no roles are assigned for Dev or Prod support teams.
-There is no defined process for granting security access in Prod after Go-Live.
-App Insights integration is broken in Prod, preventing logs from being accessed.
-Proposed Solution:
-
-Short-Term:
-Request read-only access to Prod for support users.
-Discuss with Helen Murphy before requesting System Admin access.
-Long-Term:
-Implement System Configurator or custom roles instead of full admin access.
-Fix App Insights to enable monitoring without requiring direct Prod access.
-Action Items:
-
-✅ Discuss Prod access process with Helen Murphy before requesting roles.
-✅ Request read-only access for support users in Prod.
-✅ Investigate App Insights issue & ensure logging works as expected.
-📌 Follow-up with Microsoft on App Insights failure resolution.
-3. Performance Analyst Access & Reporting
-Issue Identified:
-
-Performance Analyst role validation in SIT is completed.
-Need to confirm dashboard access for users like Emma.
-API data retrieval setup needs validation for Prod implementation.
-Proposed Solution:
-
-Performance Analyst Dashboard:
-Emma should be able to access the Power BI dashboard directly.
-Summary reports will also be provided.
-Next Steps for API Data Retrieval:
-Validate that data retrieval via API works correctly in SIT.
-If validated, replicate the same setup in Prod.
-Action Items:
-
-✅ Confirm Emma's access to the Power BI dashboard in SIT.
-✅ Validate API-based data retrieval for reporting.
-📌 Schedule a follow-up with Mark & Liam to confirm the final roles for Prod.
-4. Sandbox Environments & Access for Dev Team
-Issue Identified:
-
-The Dev team cannot access certain sandbox environments.
-Some sandboxes are broken, and need to be checked for feasibility of fixing.
-These sandboxes are not associated with SRS roles.
-Proposed Solution:
-
-Grant Dev team access to sandbox environments via access groups.
-Investigate broken sandboxes to determine if they can be restored.
-Request COE or ECS support for access provisioning.
-Action Items:
-
-✅ Request access to sandbox environments for Dev team.
-✅ Investigate broken sandboxes for feasibility of restoration.
-📌 Follow up with COE/ECS teams for access requests.
-Summary of Action Items
-Task	Responsible	Status
-Mimic SRS roles in FAT and test security permissions	Praveen / Security Team	✅
-Discuss & finalize Prod access process with Helen Murphy	Praveen / Helen Murphy	✅
-Request read-only access to Prod for support users	Praveen	✅
-Investigate and fix App Insights issue in Prod	Microsoft / DevOps	📌
-Confirm Emma’s access to Power BI dashboard in SIT	Performance Analyst Team	✅
-Validate API-based data retrieval for reporting	Performance Analyst Team	✅
-Schedule follow-up with Mark & Liam on final security roles for Prod	Praveen	📌
-Request access to sandbox environments for Dev team	Dev Team	✅
-Investigate broken sandboxes for feasibility of fixing	Dev Team / ECS	📌
-Follow up with COE/ECS teams for sandbox access requests	Praveen	📌
-Next Steps
-Follow-up call with Mark & Liam to confirm security role assignments.
-Finalize access requirements for Prod monitoring & support.
-Verify sandbox availability & discuss restoration with ECS.
-Resolve App Insights issue to reduce dependency on direct Prod access.
+1️⃣ Editing Download Schedules & Help Section
+Currently, there is no separate knowledge base maintained for the LA Portal.
+The Power Pages web page template contains detailed descriptions of each screen, explaining how and what needs to be done.
+If changes are needed, a portal pipeline deployment is required.
+If an SRS-specific role is required for future updates, we need to define its scope and responsibilities.
+2️⃣ Dashboards for Authorities
+There are no dashboards in Dynamics 365 for LA Portal.
+Power BI is used for Performance Analyst activities.
+Internal users will access the Power BI dashboard directly.
+The Performance Analyst (PA) will send summary reports to internal users as needed.
+Any future dashboard requirements should be reviewed based on user needs.
+3️⃣ Portal Monitoring & Assigned Role
+Monitoring is handled via the Power Platform Admin Center.
+More details can be found in the Jira ticket BST-110608.
+There are ongoing discussions around using the VOA Portal Admin role for support users to oversee the portal.
+4️⃣ Read-Only Role for Performance Analyst (Page 46/47 Access Method)
+The Performance Analyst has been assigned the "VOA BST Programme Read Only User" security role in SIT for validation.
+If this role successfully fulfills the Day 1 requirement, the VOA Read-Only SRS role will be provided in PROD.
+This is being actively discussed with Liam, as referenced in [BST-118773] User Tracking PA LA Portal - VOA JIRA.
+Any refinements needed in the role design or permissions will be evaluated based on feedback from testing.
