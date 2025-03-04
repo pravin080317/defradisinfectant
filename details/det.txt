@@ -1,35 +1,78 @@
-As discussed, since the SRS roles are not visible in FAT, we will be using existing roles in FAT to mimic the SRS persona testing. Below is our proposed approach:
+Enable Maintenance Mode for Power Pages
 
-Roles Selected for Testing in FAT
-We have identified the following existing security roles that we will use to mimic the SRS roles in FAT:
+Description:
+The task involves enabling Maintenance Mode for Power Pages, as outlined in the Microsoft documentation: Enable Maintenance Mode. Maintenance Mode allows administrators to temporarily take down the site for maintenance and display a maintenance page to users.
 
-FAT Security Role	Access Level	Portal-Related Tables
-VOA - System Administrator	Full access across Dataverse	✅ 2 Portal-related tables
-VOA - BST Consultant Access	Limited edit access	✅ 1 Portal-related table
-Service Reader	Read-only access	✅ All tables (but no write access)
-Even though these roles do not cover all portal-related tables, they will help us validate whether users can access and perform essential tasks.
+There are two options for the maintenance page:
 
-Steps for Testing in FAT
-1️⃣ Assign FAT Security Roles to Users
+Default Page: A pre-built maintenance page provided by Microsoft.
 
-Navigate to Power Platform Admin Center → Select FAT Environment.
-Go to Users + Permissions > Security Roles.
-Assign the following roles to test users:
-VOA - System Administrator → Admin-level access
-VOA - BST Consultant Access → Limited portal edit access
-Service Reader → Read-only access
-2️⃣ User Login & Access Validation
+Custom Page: A custom-designed maintenance page tailored to specific branding or messaging requirements.
 
-Test users will log in to the FAT Portal and Dataverse backend.
-Validate if they can:
-Access the portal and backend tables.
-Perform basic operations based on their assigned role.
-Check if any errors or missing permissions appear.
-3️⃣ Perform Portal-Specific Actions
+Steps to be Performed:
 
-Attempt to view/edit portal records based on assigned roles.
-Check if restricted roles (e.g., Service Reader) can only view and not modify records.
-Test user access to different portal features (e.g., form submissions, data retrieval).
-4️⃣ Document Findings & Next Steps
+Access Power Pages Admin Center:
 
-If successful, we will proceed with SIT testing using SRS-based delegation.
+Navigate to the Power Pages Admin Center for the target site.
+
+Enable Maintenance Mode:
+
+Go to the Maintenance Mode settings.
+
+Toggle the switch to enable Maintenance Mode.
+
+Choose Maintenance Page Option:
+
+Option 1: Default Page
+
+Select the default maintenance page provided by Microsoft.
+
+No additional configuration is required.
+
+Option 2: Custom Page
+
+Upload or design a custom maintenance page.
+
+Ensure the custom page meets branding and messaging requirements.
+
+Configure Maintenance Mode Settings:
+
+Set the duration for Maintenance Mode (if applicable).
+
+Add a custom message or contact information for users (optional).
+
+Test Maintenance Mode:
+
+Verify that the maintenance page is displayed correctly.
+
+Ensure the site is inaccessible to users during maintenance.
+
+Disable Maintenance Mode (Post-Maintenance):
+
+Once maintenance is complete, disable Maintenance Mode to restore site access.
+
+Action Items:
+
+For Development Team:
+
+Review the documentation and confirm the preferred option (default page or custom page).
+
+If a custom page is chosen, design and upload the page to the Power Pages Admin Center.
+
+For Testing Team:
+
+Test the Maintenance Mode functionality to ensure the correct page is displayed.
+
+Verify that the site is inaccessible during Maintenance Mode and accessible after it is disabled.
+
+For Stakeholders:
+
+Provide approval for the maintenance page option (default or custom).
+
+Review and approve any custom messaging or branding for the maintenance page.
+
+Additional Notes:
+
+Ensure all stakeholders are informed about the maintenance schedule and its impact on users.
+
+If a custom page is used, ensure it is optimized for all devices and browsers.
