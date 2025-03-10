@@ -1,110 +1,51 @@
-### Meeting Notes: IP Restrictions for Lower Environments
+User Story: Ensuring Consistency Between Portal API and Plugin Behavior in Dataverse
+Title:
+Prevent Data Inconsistencies in Dataverse by Disabling Portal API When Plugin is Disabled
 
-**Date:** [Insert Date]  
-**Time:** [Insert Time]  
-**Attendees:** [List of Attendees]  
-**Subject:** IP Restrictions for Lower Environments
+Description:
+As a system administrator,
+I want to ensure that when a plugin responsible for processing file uploads is disabled,
+The corresponding Portal API should also be disabled
+So that no files are created in Dataverse that could lead to security risks and compliance issues.
 
----
+Background:
+The Portal API allows file uploads, creating a note in Dataverse.
+A plugin is responsible for processing these files, ensuring security compliance.
+Currently, when the plugin is disabled, the Portal API continues to create files without any processing.
+This results in unprocessed files remaining in Dataverse, violating security policies.
+In UAT, this has been identified as a low-risk but non-compliant scenario, which must be prevented in production.
+Acceptance Criteria:
+✅ If the plugin is disabled, the Portal API should also be disabled to prevent file creation.
+✅ No files should enter Dataverse unless fully processed by the plugin.
+✅ If the plugin fails but still runs, it should follow its designed failure handling mechanism (e.g., blanking out file contents).
+✅ This implementation should be reviewed for future Dataverse updates and security compliance.
 
-#### **Background:**
-- Initially, environments were set up without any authentication, making them open to access.
-- To mitigate risks, IP restrictions were implemented to limit access to only internal users.
-- Over time, B2B authentication was introduced across all environments, including production.
-- Production environments no longer have IP restrictions as they need to be publicly accessible.
-- Lower environments (non-production) previously had IP restrictions, but these were forgotten during a reset and remediation process.
-- The question now is whether IP restrictions are still necessary for lower environments, given that B2B authentication is in place.
+Technical Considerations:
+Option 1: Implement a control mechanism where disabling the plugin automatically disables the Portal API.
+Option 2: Restrict file creation at the Portal API level, ensuring uploads are only allowed if the plugin is active.
+Option 3: Add monitoring and alerts for cases where files are created without being processed by the plugin.
+Next Steps:
+Align with security and compliance teams to ensure proposed changes meet HMRC’s data handling policies.
+Update the transition runbook to include this behavior.
+Confirm implementation approach with Cloud and Dev teams.
+Validate in lower environments (UAT/SIT) before promoting to production.
 
----
 
-#### **Key Points Discussed:**
-1. **Current State:**
-   - All environments now have B2B authentication.
-   - Production environments are publicly accessible without IP restrictions.
-   - Lower environments previously had IP restrictions, but these were not reapplied after a reset.
+Runbook Update: Portal API and Plugin Synchronization in Dataverse
+Issue Identified:
+During the testing phase in UAT, it was observed that file uploads via the Portal API continue to create records in Dataverse, even when the processing plugin is disabled. This creates an inconsistency in the system, as files that are expected to be processed and secured remain in the database without proper handling. The primary concern is that while the plugin is responsible for sanitizing and updating file-related data, its deactivation does not prevent file creation, leading to potential security and compliance risks.
 
-2. **Security Considerations:**
-   - HMRC places a high priority on security, and IP restrictions were initially implemented as part of the security measures.
-   - With B2B authentication now in place, the need for IP restrictions is debatable.
-   - However, removing IP restrictions might raise questions during audits or reviews, as they were part of the original security setup.
+The expected behavior is that if the plugin is disabled, the Portal API should also be disabled, ensuring that files are not stored without undergoing proper processing. However, in the current implementation, disabling the plugin does not stop file creation, leaving the data in an incomplete or unprocessed state. This issue is particularly important for production environments, where unprocessed files must not be retained due to security policies.
 
-3. **Operational Considerations:**
-   - Adding IP restrictions introduces additional complexity:
-     - Identifying and maintaining the list of IP addresses to block.
-     - Potential troubleshooting challenges, such as determining whether access issues are due to IP restrictions, firewalls, or other factors.
-   - Lower environments are not publicly accessible like production, so the risk of unauthorized access is lower.
+Impact & Risk Considerations:
+Data Compliance: Files that enter Dataverse without processing might violate security policies, requiring manual intervention for cleanup.
+Security Concerns: Since the plugin ensures the removal or sanitization of sensitive data, bypassing this process could result in unauthorized or incorrect data storage.
+System Consistency: The upload process should be an all-or-nothing operation. If the plugin fails or is disabled, the upload should not proceed.
+Next Steps & Resolution Plan:
+A ticket will be created to analyze this issue further and determine a resolution. The investigation will focus on:
 
-4. **Risk Assessment:**
-   - **Risk of Removing IP Restrictions:**
-     - Potential security gaps, though mitigated by B2B authentication.
-     - Possible scrutiny during audits or compliance checks.
-   - **Risk of Keeping IP Restrictions:**
-     - Increased operational overhead.
-     - Potential delays in troubleshooting and access issues.
-
----
-
-#### **Decisions to Take:**
-1. **Do we need to reapply IP restrictions for lower environments?**
-   - **Option 1:** Keep IP restrictions for lower environments to align with original security documentation and reduce potential risks.
-   - **Option 2:** Remove IP restrictions for lower environments, relying on B2B authentication as the primary security measure.
-
-2. **If we decide to keep IP restrictions:**
-   - Work with the network team to reapply the restrictions.
-   - Ensure the list of IP addresses to block is up-to-date and manageable.
-   - Document the decision and rationale for future reference.
-
-3. **If we decide to remove IP restrictions:**
-   - Ensure that B2B authentication is robust and sufficient to secure lower environments.
-   - Update security documentation to reflect the change and justify the decision based on the current security measures.
-
----
-
-#### **Action Items:**
-1. **Security Team:**
-   - Provide a recommendation on whether IP restrictions are still necessary for lower environments, considering the current security setup.
-   - Assess the risks of removing IP restrictions and provide a risk mitigation plan if necessary.
-
-2. **Network Team:**
-   - If IP restrictions are to be reapplied, work on implementing them based on the existing sample or template.
-   - Ensure that the IP restriction list is accurate and does not disrupt access for authorized users.
-
-3. **Project Team:**
-   - Document the final decision and rationale for future reference.
-   - Communicate the decision to all relevant stakeholders.
-
----
-
-#### **Next Steps:**
-- Schedule a follow-up meeting to finalize the decision.
-- Ensure all action items are assigned and timelines are set.
-- Review the decision with higher management if necessary.
-
----
-
-**Prepared by:** [Your Name]  
-**Reviewed by:** [Security Team Lead]  
-**Date:** [Insert Date]  
-
----
-
-### **Discussion Points for the Call:**
-1. **Security Team's Recommendation:**
-   - What is the security team's stance on the necessity of IP restrictions for lower environments?
-   - Are there any specific risks or compliance requirements that necessitate keeping IP restrictions?
-
-2. **Operational Impact:**
-   - How will reapplying IP restrictions impact day-to-day operations, especially in terms of troubleshooting and access management?
-   - Are there any potential conflicts with existing firewalls or network configurations?
-
-3. **Documentation and Compliance:**
-   - How should the decision be documented to ensure compliance with HMRC's security policies?
-   - What changes need to be made to the existing security documentation?
-
-4. **Timeline and Implementation:**
-   - If IP restrictions are to be reapplied, what is the estimated timeline for implementation?
-   - Who will be responsible for maintaining the IP restriction list moving forward?
-
----
-
-**End of Notes**
+Identifying a mechanism to disable the Portal API when the plugin is disabled.
+Evaluating whether a frontend validation can prevent file uploads when the plugin is not active.
+Reviewing the current data retention policy to ensure unprocessed files do not persist in the system.
+Testing the failure handling mechanisms of the plugin to ensure that, even in failure states, data security is maintained.
+Once a solution is determined, it will be tested in lower environments (SIT/UAT) before being applied to production. This will ensure that file uploads remain secure, compliant, and fully processed before they are stored in Dataverse.
