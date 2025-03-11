@@ -1,51 +1,29 @@
-User Story: Ensuring Consistency Between Portal API and Plugin Behavior in Dataverse
-Title:
-Prevent Data Inconsistencies in Dataverse by Disabling Portal API When Plugin is Disabled
+Create three new security roles and map them to corresponding SRS roles. Additionally, an existing Model-Driven App will be used to allow users to access tables in a centralized location, requiring a new Add-on Security Role to grant users access to the app.
 
 Description:
-As a system administrator,
-I want to ensure that when a plugin responsible for processing file uploads is disabled,
-The corresponding Portal API should also be disabled
-So that no files are created in Dataverse that could lead to security risks and compliance issues.
+To ensure proper access control for LA Portal internal users, we need to:
 
-Background:
-The Portal API allows file uploads, creating a note in Dataverse.
-A plugin is responsible for processing these files, ensuring security compliance.
-Currently, when the plugin is disabled, the Portal API continues to create files without any processing.
-This results in unprocessed files remaining in Dataverse, violating security policies.
-In UAT, this has been identified as a low-risk but non-compliant scenario, which must be prevented in production.
+Create three new security roles and map them to existing SRS roles:
+
+VOA Portal Admin → VOA Portal Administrator (Dataverse Security Role)
+VOA Portal Page Admin → VOA Portal Page Administrator (Dataverse Security Role)
+VOA Portal Viewer → VOA Portal Internal Viewer (Dataverse Security Role)
+Leverage an existing Model-Driven App to provide users with a single access point for relevant Dataverse tables.
+
+Create a new Add-On Security Role:
+
+Role Name: ADDON: LA Portal Workspace Application
+Purpose: Grants access to the Model-Driven App for LA Portal users.
+This ensures users can access the necessary tables within a unified interface instead of scattered permissions across individual tables.
+Integrate into the Case Management Pipeline:
+
+The new security roles, add-on role, and Model-Driven App must be included in the case pipeline to ensure proper deployment and access control.
+This update is dependent on the case pipeline, ensuring it is delivered in the next available release.
+
 Acceptance Criteria:
-✅ If the plugin is disabled, the Portal API should also be disabled to prevent file creation.
-✅ No files should enter Dataverse unless fully processed by the plugin.
-✅ If the plugin fails but still runs, it should follow its designed failure handling mechanism (e.g., blanking out file contents).
-✅ This implementation should be reviewed for future Dataverse updates and security compliance.
+✅ Three new security roles are created and mapped to the respective SRS roles.
+✅ The existing Model-Driven App is confirmed as the central access point for users to interact with tables.
+✅ A new Add-On Role (LA Portal Workspace Application) is created and assigned to relevant users.
+✅ Security roles and access are tested in DEV before being included in the case pipeline for deployment to higher environments.
+✅ Documentation is updated in the Runbook with mappings and permissions.
 
-Technical Considerations:
-Option 1: Implement a control mechanism where disabling the plugin automatically disables the Portal API.
-Option 2: Restrict file creation at the Portal API level, ensuring uploads are only allowed if the plugin is active.
-Option 3: Add monitoring and alerts for cases where files are created without being processed by the plugin.
-Next Steps:
-Align with security and compliance teams to ensure proposed changes meet HMRC’s data handling policies.
-Update the transition runbook to include this behavior.
-Confirm implementation approach with Cloud and Dev teams.
-Validate in lower environments (UAT/SIT) before promoting to production.
-
-
-Runbook Update: Portal API and Plugin Synchronization in Dataverse
-Issue Identified:
-During the testing phase in UAT, it was observed that file uploads via the Portal API continue to create records in Dataverse, even when the processing plugin is disabled. This creates an inconsistency in the system, as files that are expected to be processed and secured remain in the database without proper handling. The primary concern is that while the plugin is responsible for sanitizing and updating file-related data, its deactivation does not prevent file creation, leading to potential security and compliance risks.
-
-The expected behavior is that if the plugin is disabled, the Portal API should also be disabled, ensuring that files are not stored without undergoing proper processing. However, in the current implementation, disabling the plugin does not stop file creation, leaving the data in an incomplete or unprocessed state. This issue is particularly important for production environments, where unprocessed files must not be retained due to security policies.
-
-Impact & Risk Considerations:
-Data Compliance: Files that enter Dataverse without processing might violate security policies, requiring manual intervention for cleanup.
-Security Concerns: Since the plugin ensures the removal or sanitization of sensitive data, bypassing this process could result in unauthorized or incorrect data storage.
-System Consistency: The upload process should be an all-or-nothing operation. If the plugin fails or is disabled, the upload should not proceed.
-Next Steps & Resolution Plan:
-A ticket will be created to analyze this issue further and determine a resolution. The investigation will focus on:
-
-Identifying a mechanism to disable the Portal API when the plugin is disabled.
-Evaluating whether a frontend validation can prevent file uploads when the plugin is not active.
-Reviewing the current data retention policy to ensure unprocessed files do not persist in the system.
-Testing the failure handling mechanisms of the plugin to ensure that, even in failure states, data security is maintained.
-Once a solution is determined, it will be tested in lower environments (SIT/UAT) before being applied to production. This will ensure that file uploads remain secure, compliant, and fully processed before they are stored in Dataverse.
