@@ -1,29 +1,193 @@
-Create three new security roles and map them to corresponding SRS roles. Additionally, an existing Model-Driven App will be used to allow users to access tables in a centralized location, requiring a new Add-on Security Role to grant users access to the app.
-
+Bug Analysis: LA Portal - Bulk Upload UPRN Validation Issue
+Issue Summary
+When a bulk upload file is submitted through the LA Portal, the system performs validations on the data.
+One of the validations checks if UPRN (Unique Property Reference Number) is alphanumeric.
+The validation incorrectly rejects blank values, even though UPRN is an optional field.
+Users can manually override the validation error in the portal by selecting "Not Required," but this is not feasible for large uploads (e.g., 65 errors out of 142 records).
+This leads to an issue where valid files are unnecessarily flagged for errors, causing delays and user frustration.
+Potential Solution Approaches
+Solution 1: Modify the Reference Data Table in Portal
 Description:
-To ensure proper access control for LA Portal internal users, we need to:
+The Portal Exceptions Reasons Table contains validation rules.
+It has a column "Required" that determines whether a field is mandatory.
+Currently, UPRN validation is set as "Required" when it should be "Not Required."
+Fix:
+Modify the two UPRN-related validation messages in the Portal Exceptions Reasons Table and change their status to "Not Required."
+This will allow the system to treat blank UPRN as valid and prevent unnecessary validation errors.
+Impact & Risks:
+This is a localized fix that only affects the portal validation.
+No impact on other validation rules or processes.
+Can be quickly applied in production as a hotfix via a manual update to the reference table.
+Solution 2: Update Validation Logic in Front Door Service
+Description:
+Instead of modifying reference data, update the validation logic in Front Door (Azure Function).
+Modify the validation rule to allow blank UPRNs instead of flagging them as errors.
+Fix:
+Implement a code change in the Front Door validation service.
+Deploy the fix in DEV > SIT > PROD through the usual release process.
+Impact & Risks:
+Requires development effort and thorough testing before deployment.
+Might introduce delays in implementation due to release dependencies.
+Ensures that validation logic is correctly handled across all environments.
+Interim Workaround
+Since Solution 2 requires a proper development cycle, the team agreed to implement Solution 1 as a temporary fix.
+This allows blank UPRNs to be submitted without blocking users.
+The Front Door validation fix (Solution 2) will be considered as part of a future release (1.1 or later).
+Process to Apply Fix
+Step 1: Incident & RFC Creation
+Raise a ServiceNow incident for the hotfix update in production.
+Create a corresponding JIRA ticket to track the reference table modification.
+RFC (Request for Change) to be raised and approved for applying the manual fix in PROD.
+Step 2: Manual Reference Data Update in PROD
+Apply a manual update to the Portal Exceptions Reasons Table in the PROD environment.
+Set UPRN validation errors to "Not Required" in the table.
+Step 3: Update Master Reference Table
+Ensure that the updated reference data is included in the Master Reference Data Table.
+This will prevent future deployments from overwriting the fix.
+Step 4: Permanent Fix in Front Door
+Plan the Front Door validation update in a future release (1.1 or later).
+Update validation logic to correctly handle optional UPRN fields.
+Deploy through standard DevOps pipeline.
+Impact Analysis
+✅ Short-term fix (Solution 1) ensures minimal disruption for users while allowing uploads to continue.
+✅ Long-term fix (Solution 2) ensures the correct implementation of validation rules across environments.
+✅ Minimal risk since the reference table update is limited to the portal and does not affect external integrations.
+⚠ Risk: If the fix is not included in Master Reference Data, future releases might overwrite the change, requiring rework.
 
-Create three new security roles and map them to existing SRS roles:
+Next Steps
+Raise ServiceNow incident & RFC for the reference table update.
+Apply manual update to Portal Exceptions Reasons Table in PROD.
+Confirm successful validation bypass for blank UPRN fields.
+Plan Front Door validation update as a long-term solution in a future release.
+Ensure Master Reference Data Table is updated to persist the fix.
+Conclusion
+This approach ensures that users are not blocked by unnecessary validation while keeping the system compliant with business rules. The hotfix allows immediate resolution, while the Front Door fix ensures proper implementation in the long term. 🚀
 
-VOA Portal Admin → VOA Portal Administrator (Dataverse Security Role)
-VOA Portal Page Admin → VOA Portal Page Administrator (Dataverse Security Role)
-VOA Portal Viewer → VOA Portal Internal Viewer (Dataverse Security Role)
-Leverage an existing Model-Driven App to provide users with a single access point for relevant Dataverse tables.
+You said:
+what is the process they discussed for the deployumenyt
+ChatGPT said:
+Deployment Process Discussed
+During the discussion, the following key steps were outlined for the deployment process:
 
-Create a new Add-On Security Role:
+1️⃣ ServiceNow Incident & RFC Creation
+A ServiceNow incident will be raised to initiate the change request for production deployment.
+A JIRA ticket will be linked to track the update.
+RFC (Request for Change) needs to be created and approved before making any changes in PROD.
+2️⃣ Hotfix Deployment in Production (Temporary Fix)
+Since the issue affects users in production, a hotfix approach will be used.
+The Portal Exceptions Reasons Table will be updated manually in the PROD environment to allow blank UPRN values.
+Impact Analysis: This is a low-risk change since it only affects validation logic and does not alter the core application.
+3️⃣ Update the Master Reference Data
+The reference data update in PROD must be reflected in the Master Reference Data Table to ensure that future releases do not overwrite the fix.
+This will be part of a post-deployment validation step to prevent rework.
+4️⃣ Permanent Fix via Code Deployment
+A permanent solution will be implemented in the Front Door validation service.
+The development team will update the Azure Function validation logic to correctly handle UPRN as an optional field.
+The fix will be deployed through the standard DevOps pipeline.
+5️⃣ Deployment & Testing in Environments
+The permanent fix will be tested across environments before moving to PROD:
+DEV → Development & unit testing
+SIT → System Integration Testing
+PPE (Pre-Production) → End-to-end testing
+PROD → Final deployment post-approval
+6️⃣ Ensuring Future Builds Do Not Revert the Fix
+Since a hotfix is being applied manually, there is a risk that future releases might overwrite it.
+The deployment team will include the reference data update in the next release cycle.
+If no immediate release is planned, the reference table update will be included as a post-deployment step after release 1.1.
+7️⃣ Validation & Monitoring Post-Deployment
+Post-deployment, the team will:
+Verify that the hotfix is correctly applied in PROD.
+Ensure that the permanent fix works as expected in lower environments before moving it to production.
+Monitor the validation process logs in Azure to confirm that blank UPRN values are handled correctly.
+Key Considerations & Risks
+✅ Minimal risk for hotfix: Only updates reference data, does not affect core application logic.
+✅ Prevents user impact: Immediate resolution ensures users are not blocked from submitting reports.
+⚠ Risk of Overwriting: If not included in the Master Reference Table, future releases may undo the fix.
+⚠ Approval Process Dependency: The RFC approval timeline may impact deployment speed.
 
-Role Name: ADDON: LA Portal Workspace Application
-Purpose: Grants access to the Model-Driven App for LA Portal users.
-This ensures users can access the necessary tables within a unified interface instead of scattered permissions across individual tables.
-Integrate into the Case Management Pipeline:
+Summary of Deployment Steps
+1️⃣ Raise a ServiceNow Incident & RFC for production hotfix.
+2️⃣ Apply manual update in PROD (Portal Exceptions Reasons Table).
+3️⃣ Ensure Master Reference Table is updated to persist the change.
+4️⃣ Develop and test permanent fix in Front Door service.
+5️⃣ Deploy permanent fix across DEV → SIT → PPE → PROD.
+6️⃣ Validate that the fix is included in future releases to avoid reversions.
+7️⃣ Monitor post-deployment to ensure validation errors no longer block users.
 
-The new security roles, add-on role, and Model-Driven App must be included in the case pipeline to ensure proper deployment and access control.
-This update is dependent on the case pipeline, ensuring it is delivered in the next available release.
+This approach ensures immediate resolution while planning for a long-term fix in an upcoming release. 🚀
 
-Acceptance Criteria:
-✅ Three new security roles are created and mapped to the respective SRS roles.
-✅ The existing Model-Driven App is confirmed as the central access point for users to interact with tables.
-✅ A new Add-On Role (LA Portal Workspace Application) is created and assigned to relevant users.
-✅ Security roles and access are tested in DEV before being included in the case pipeline for deployment to higher environments.
-✅ Documentation is updated in the Runbook with mappings and permissions.
+You said:
+create a jira ticket for this
+ChatGPT said:
+Here’s a JIRA ticket template for the discussed deployment process:
 
+JIRA Ticket: Fix for UPRN Validation Issue in LA Portal Bulk Upload
+Issue Type: Bug
+Priority: High
+Status: Open
+Component: LA Portal – Bulk Submission
+Environment: Production (Hotfix) & Lower Environments (Permanent Fix)
+Assignee: [Assign to the appropriate developer/team]
+Labels: Hotfix, Validation, Reference Data, Front Door Service
+
+Summary
+The BA Report Bulk Upload validation is incorrectly rejecting blank UPRN fields as an error, even though UPRN is an optional field.
+A hotfix is required to immediately update the Portal Exception Reasons Table in PROD to allow blank UPRN values.
+A permanent fix will be implemented via Front Door validation logic in an upcoming release.
+
+Description
+Problem Statement
+When a user uploads a bulk submission file, if the UPRN field is left blank, it triggers a validation error.
+This is incorrect since UPRN is an optional field.
+The error forces users to manually correct every entry, making the process tedious.
+Workaround: Users must manually edit each record in the portal, but this is not scalable.
+Root Cause
+The Portal Exception Reasons Table marks UPRN as a required field.
+The Front Door validation service enforces this rule incorrectly.
+When the validation error is triggered, users cannot bypass the error, even though it should be optional.
+Fix Approach
+Phase 1: Hotfix for Immediate Resolution
+Update the Portal Exception Reasons Table in Production to mark UPRN as not required.
+This will allow users to submit bulk files without requiring UPRN.
+A ServiceNow Incident & RFC will be raised for approval before applying the change.
+Expected Outcome: Users can submit bulk files even if UPRN is blank.
+Phase 2: Permanent Fix via Front Door Validation Logic
+Modify the Front Door Azure Function to correctly bypass validation for blank UPRN values.
+Ensure that other validations remain intact.
+Implement and test in DEV → SIT → PPE before deploying to PROD.
+Expected Outcome: The system will correctly validate UPRN as an optional field.
+Phase 3: Master Reference Table Update
+Ensure the reference data update is included in the next release cycle to prevent overwriting.
+If no immediate release is planned, include the update in the post-deployment validation checklist.
+Acceptance Criteria
+✅ Users can submit bulk files without UPRN values.
+✅ Validation error should only trigger if UPRN has invalid characters (not blank UPRN).
+✅ Front Door validation bypasses UPRN check if the field is blank.
+✅ The hotfix is successfully applied and does not impact other functionality.
+✅ The permanent fix is tested and deployed across all environments.
+✅ Future releases do not overwrite the hotfix.
+
+Dependencies
+ServiceNow RFC Approval for production hotfix.
+Dataverse Portal Exception Reasons Table Update.
+Front Door Validation Service Update.
+Testing in Lower Environments before PROD deployment.
+Tracking
+Task	Owner	Status
+Raise ServiceNow RFC for hotfix	[Cloud Team]	Pending
+Apply hotfix to Portal Exception Reasons Table	[Cloud Team]	Pending
+Develop Front Door validation fix	[Dev Team]	Pending
+Deploy fix in DEV	[Dev Team]	Pending
+Deploy fix in SIT	[QA Team]	Pending
+Deploy fix in PPE	[Release Team]	Pending
+Deploy fix in PROD	[Release Team]	Pending
+Verify Master Reference Table update	[DevOps]	Pending
+Comments
+Temporary hotfix is required to unblock users in production.
+Long-term fix will ensure future builds do not reintroduce the issue.
+Impact is minimal as the change only affects UPRN validation.
+Escalated to high priority due to impact on user experience.
+Attachments
+Screenshots of the validation error.
+Example bulk submission file with blank UPRN triggering the error.
+Reference table snapshot showing current "Required" setting for UPRN.
