@@ -1,78 +1,9 @@
-Steps to Implement the Maintenance Mode in Power Pages
-1. Create Site Settings
-Navigate to Power Pages Admin Center and create the following site settings:
-
-Name	Value
-MaintenanceSiteContent	9am on Monday 24 March 2025.
-MaintenanceSiteMode	True
-MaintenanceSiteContent: Stores the date and time when the site will be available again.
-MaintenanceSiteMode: Controls whether maintenance mode is active (True) or inactive (False).
-2. Create a Webpage for the Maintenance Mode
-Navigate to Power Pages Studio and create a new page:
-
-Name: Maintenance Page
-Website: Customer Self-Service
-Parent Page: Home
-Partial URL: maintenance-page
-Page Template: VOA/GDS Dashboard
-Publishing State: Published
-Page Content
-Add the following content to display the maintenance message dynamically:
-
-liquid
-Copy
-Edit
-<h1 class="govuk-heading-1">Sorry, the service is unavailable</h1>
-
-<p class="govuk-body">
-    You will be able to use the service from {{ settings.MaintenanceSiteContent }}.
-</p>
-
-<a href="javascript:window.history.back()" class="govuk-back-link">Back</a>
-Additionally, add a script to hide the Back button when MaintenanceSiteMode is True:
-
-liquid
-Copy
-Edit
-{% if settings.MaintenanceSiteMode == "True" %}
-    <style>
-        .govuk-back-link {
-            display: none !important;
-        }
-    </style>
-{% endif %}
-3. Create a Site Marker
-Navigate to Power Pages Admin Center → Site Markers and create a new site marker:
-
-Name: MaintenanceMode
-Website: Customer Self-Service
-Page: Maintenance Page
-This will allow dynamic redirection to the maintenance page.
-
-4. Update Webpages to Redirect Users When Maintenance is Active
-Edit the following pages and insert the following Liquid script at the top:
-
-Pages to Update:
-
-https://voabstportaldevcm.powerappsportals.com/
-https://voabstportaldevcm.powerappsportals.com/dashboard/
-https://voabstportaldevcm.powerappsportals.com/ct-fix-upload-errors/
-https://voabstportaldevcm.powerappsportals.com/ct-report-reason/
-https://voabstportaldevcm.powerappsportals.com/ct-submitted-reports/
-Script to Insert:
-
-liquid
-Copy
-Edit
-{% if settings.MaintenanceSiteMode == "True" %}
-    <script>window.location = "{{ sitemarkers['MaintenanceMode'].url }}";</script>
-{% endif %}
-This ensures that whenever MaintenanceSiteMode is True, users visiting these pages are redirected to the maintenance page.
-
-5. Test the Implementation
-Activate Maintenance Mode:
-Set MaintenanceSiteMode to True.
-Check if users are redirected to the Maintenance Page.
-Deactivate Maintenance Mode:
-Set MaintenanceSiteMode to False.
-Verify if users can access the portal as usual.
+private string NormalizeCellValue(string value)
+{
+    if (double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double numericValue))
+    {
+        // If the value looks like scientific notation (e.g., "2.00E+11"), convert it to a plain string (e.g., "200000000000")
+        return numericValue.ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+    }
+    return value;
+}
