@@ -1,9 +1,5 @@
-private string NormalizeCellValue(string value)
-{
-    if (double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double numericValue))
+    // Now validate: check if the normalized value is numeric only (no alphabets or special chars)
+    if (!System.Text.RegularExpressions.Regex.IsMatch(value, @"^\d+$"))
     {
-        // If the value looks like scientific notation (e.g., "2.00E+11"), convert it to a plain string (e.g., "200000000000")
-        return numericValue.ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+        throw new Exception($"UPRN '{value}' contains invalid characters. UPRN must be numeric only.");
     }
-    return value;
-}
