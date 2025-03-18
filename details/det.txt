@@ -1,5 +1,57 @@
-    // Now validate: check if the normalized value is numeric only (no alphabets or special chars)
-    if (!System.Text.RegularExpressions.Regex.IsMatch(value, @"^\d+$"))
-    {
-        throw new Exception($"UPRN '{value}' contains invalid characters. UPRN must be numeric only.");
-    }
+Implementation Plan:
+Pre-Implementation Steps
+
+Confirm business approval and stakeholder agreement for enabling maintenance mode.
+Raise a ticket with Rajendran, Praveen, and Aditya (CDIO Cognizant CDPO VOA).
+Schedule a screen-sharing session with Aditya or another authorized admin who has Production environment access.
+Production Update Steps (to be executed on the day of maintenance)
+
+Log in to Power Pages Admin Center for the Production environment.
+Navigate to Site Settings for the Production portal.
+Update Site Settings
+
+Locate the site setting: MaintenanceSiteMode
+Change the value from False to True.
+Locate the site setting: MaintenanceSiteContent
+Update the value to include the relevant service resumption date and time (e.g., 9am on Monday 24 March 2025).
+Purge Cache
+
+After updating both settings, purge the site cache from the Power Pages Admin Center to ensure the changes are applied immediately.
+Verify Redirection
+
+Access key pages of the portal (e.g., /dashboard, /ct-submitted-reports) to confirm that users are redirected to the Maintenance Page.
+Test Plan:
+Environment:
+
+Perform dry-run testing on a Dev or UAT environment prior to production implementation.
+Steps:
+
+Set MaintenanceSiteMode to True and provide a valid value for MaintenanceSiteContent.
+Purge cache in the Admin Center.
+Validate that:
+All non-admin users are redirected to the Maintenance Page.
+The correct maintenance date/time content is displayed dynamically from MaintenanceSiteContent.
+The back link is hidden on the Maintenance Page as per the custom logic.
+Admin users with specific roles (e.g., "CT Users") still retain access if required (test based on your role handling logic).
+Set MaintenanceSiteMode back to False and purge cache again.
+Confirm that normal portal access is restored.
+Worst Case Scenario:
+The maintenance redirection logic fails to trigger (due to cache issues or site marker misconfiguration), leading to users still accessing normal portal pages.
+Business-critical users are locked out due to misconfigured role-based exceptions (if any are implemented).
+Cache purge does not take effect immediately or is missed, leading to inconsistent user experience.
+Backout Plan:
+Immediate Actions:
+
+Revert the MaintenanceSiteMode setting back to False.
+Retain the original value of MaintenanceSiteContent or update as necessary.
+Purge the cache again via Power Pages Admin Center to propagate changes.
+Validation:
+
+Re-verify that users can now access all portal pages without being redirected to the Maintenance Page.
+Communication:
+
+Notify relevant stakeholders that the rollback has been completed.
+Additional Notes:
+The change is instantaneous post-cache purge.
+Recommended to perform this action 15 minutes before maintenance window (e.g., 8:45 AM if the window starts at 9:00 AM).
+Ensure Aditya or another authorized admin is available during the window to perform the changes in production.
