@@ -1,50 +1,246 @@
-Topic: Portal Validation & Legacy System Differences
-Web Roles & Portal User Setup:
+Analysis of the PreAnnotationCreate Plugin for SDES Upload
 
-There was a mention of issues related to web roles in the LA Portal.
-The process for setting up portal users was discussed.
-BRF (Billing Reference Field) Validation Issue:
+Overview
 
-In legacy systems, it's possible to create records without a BRF.
-In the LA Portal (Single Report journey), BRF is mandatory.
-Current issue: BRF is uneditable in the portal, leading to validation errors but no option to correct the field.
-The reason for BRF being uneditable is due to the initial design assumptions (address validation happens in Front Door, and modifying BRF could bring mismatches).
-Proposal:
-Allow BRF to be editable when a validation error occurs (e.g., blank BRF).
-Emma's approval is needed before making this change.
-Interim solution:
-Reference data will mark this BRF validation as “not required” temporarily, so blank BRF submissions will be auto-submitted instead of being flagged in "Fix Errors."
-BA Reference and Report Number Differences:
+The PreAnnotationCreate plugin resides in the namespace VOAP.Portal.FileUpload.Plugins.Entrypoints.annotation and is triggered when an annotation record (note) is created in Microsoft Dataverse.
 
-BA Report:
-Alphanumeric, 25-character limit, currently truncated at 100 characters before saving.
-BA Reference:
-Should also be truncated if over 25 characters (currently stuck in "Fix Errors" if >100).
-BA Reference number validation differs between legacy and portal (legacy might reject alphanumeric while portal accepts it).
-This is a design conflict that needs business clarification.
-UPRN Handling:
+Purpose of this Plugin
 
-UPRN is optional in the portal journey but has some validations.
-Proposal:
-Treat UPRN validation similarly to BRF and BA Reference.
-Ensure validation and truncation logic is consistent across fields.
-Portal Exception Reasons Table:
+The core purpose of this plugin is to:
 
-This is a portal-specific reference data table that controls validation display logic on the portal.
-Contains flags like "Required" or "Not Required" for each validation rule.
-Changing this table can suppress validations on the portal frontend.
-The table is sourced from the Master Reference Data.
-Process for Reference Data Updates:
+Intercept annotation creation events when a file is attached/uploaded in the portal.
 
-A JIRA ticket should be raised for the reference data change.
-Once approved, the records will be updated in the Master Reference by designated teams (e.g., Anand).
-This data then flows down to all environments (DEV, UAT, SIT, etc.).
-Changes will also need to be manually added to PROD via a hotfix until the automated pipeline catches up in the next release.
-A hotfix RFC will be raised for production (ServiceNow & Jira linked).
-Release Considerations:
+Upload the file content to SDES (Secure Document Exchange Service) using the SDES API.
 
-Any temporary changes applied in PROD via hotfix must be incorporated into the Master Ref to prevent them from being overwritten by subsequent releases (e.g., 1.1).
-If needed, this hotfix can be handled as a post-deployment step in lower environments.
-Notes:
-The conversation touches on improving data quality by enforcing proper validations and providing users the ability to fix key fields like BRF and BA Reference numbers.
-There’s a mix of immediate hotfix requirements and longer-term systemic fixes.
+Update metadata and status in the linked Dataverse table (voap_portalfilemanagement).
+
+Sanitize (blank) the annotation file content to reduce Dataverse storage consumption.
+
+Trigger Conditions
+
+Entity: annotation
+
+Message: Create
+
+Execution Stage: PreOperation
+
+Mode: Synchronous
+
+Primary Entity: annotation
+
+Execution Context: Calling User
+
+Configuration (as registered in the step)
+
+Secure Configuration:
+
+{
+  "ClientId": "<client_id>",
+  "ClientSecret": "<client_secret>",
+  "AuthUrl": "https://test-api.service.hmrc.gov.uk/oauth/token",
+  "SRN": "012345678901",
+  "InformationType": "informationType901",
+  "SDESServiceUrl": "https://test-api.service.hmrc.gov.uk/"
+}
+
+This configuration is injected into the plugin step and utilized by the SDESServiceController.
+
+Step-by-Step Breakdown
+
+Step 1: Annotation Creation (Portal Upload)
+
+User uploads a file via Power Pages (bulk upload portal).
+
+Portal-side JS validates file type and size.
+
+An annotation (note) record is created in Dataverse containing:
+
+File name
+
+Mimetype
+
+Document body (file content in Base64)
+
+Link to voap_portalfilemanagement via regarding field.
+
+Step 2: Plugin Execution
+
+PreAnnotationCreate.Execute(IServiceProvider serviceProvider) runs on annotation creation.
+
+Inside Execute Method:
+
+Validation Checks:
+
+Ensures message is Create and stage is PreOperation.
+
+Confirms the annotation is linked to voap_portalfilemanagement.
+
+Verifies that IsDocument = true.
+
+File Extraction:
+
+Retrieves file name, extension, mimetype, and document content.
+
+Initiates Upload Process:
+
+Calls FileUploadHelper.AttemptFileUpload() passing file metadata.
+
+Step 3: AttemptFileUpload Method
+
+Responsible for the full SDES upload process.
+
+Inside AttemptFileUpload():
+
+1. Contact and Account Resolution:
+
+Retrieves the logged-in contact's name and related billing authority account.
+
+Fetches account BAC code.
+
+2. SDES API Interaction:
+
+Calls NotifyFileForUpload() to provision an SDES upload URL.
+
+Performs an actual upload via SDESServiceController.UploadFile().
+
+3. Dataverse Updates (Portal File Management):
+
+Updates:
+
+voap_filenameoriginal (original file name)
+
+voap_loggedincontact
+
+voap_associatedaccount
+
+voap_baccode
+
+voap_relatedbillingauthority
+
+voap_filesize
+
+4. Status Reason Update:
+
+Uses SetFileManagementStatus():
+
+Success - Upload to SDES or
+
+Failed - Upload to SDES
+
+5. Sanitize Annotation:
+
+Clears the annotation’s documentbody.
+
+Updates filename to azure.txt.
+
+Changes mimetype to text/plain.
+
+Step 4: NotifyFileForUpload Method
+
+Calls SDES /notify-file API to obtain a pre-signed upload URL.
+
+Adds metadata: LinkedRecord (GUID of voap_portalfilemanagement).
+
+Step 5: SetFileManagementStatus Method
+
+Updates Dataverse status reason (option set value).
+
+Adds descriptive information in voap_description.
+
+Dataverse Tables Involved
+
+1. voap_portalfilemanagement
+
+This is the main table holding metadata and upload status.
+
+Fields updated:
+
+voap_filename
+
+voap_filenameoriginal
+
+voap_loggedincontact
+
+voap_associatedaccount
+
+voap_baccode
+
+voap_relatedbillingauthority
+
+voap_filesize
+
+voap_statusreason
+
+voap_description
+
+2. annotation
+
+Temporary storage of the uploaded file before the plugin strips the content.
+
+Fields involved:
+
+documentbody
+
+filename
+
+mimetype
+
+notetext
+
+3. Relationship
+
+One-to-Many from Portal File Management to annotation
+
+Lookup Field: voap_portalfilemanagement_Annotations
+
+External API Involved
+
+SDES Notify API: /notify-file
+
+SDES Upload Endpoint: /third-party-upload-api/{generated-upload-url}
+
+Authentication: /oauth/token using OAuth2
+
+Full Process Flow
+
+User uploads file in Power Pages → Creates voap_portalfilemanagement + annotation record.
+
+PreAnnotationCreate Plugin fires on annotation create event.
+
+File gets uploaded to SDES service.
+
+Annotation content is cleared.
+
+voap_portalfilemanagement status and metadata updated.
+
+File moves forward for further processing (via Service Bus or Front Door functions).
+
+
+
+Methods Involved in the Plugin
+
+1. Execute(IServiceProvider serviceProvider)
+
+Entry point method for the plugin.
+
+Performs all validation and triggers file upload logic.
+
+2. AttemptFileUpload(EntityReference fileManagementRef, byte[] fileData, string filename, string ogname, string type, IOrganizationService service, IPluginExecutionContext2 context2, ITracingService trace, SDESServiceController serviceController)
+
+Main business logic for uploading to SDES and updating Dataverse records.
+
+3. NotifyFileForUpload(string fileName, string authToken, SDESServiceController controller, ITracingService tracing, Guid referencingTable)
+
+Calls SDES API to provision upload URL and returns upload info.
+
+4. UpdateFileName(EntityReference managementTableRef, string fileName, double filesizeInKb, IOrganizationService service)
+
+Updates file name and size in the voap_portalfilemanagement record.
+
+5. SetFileManagementStatus(EntityReference fileManagementRef, FileManagementConstants.StatusReasonCodes code, string message, IOrganizationService service)
+
+Updates file upload status and logs outcome in Dataverse.
+
+6. UploadFile(url, fileData, filename, tracing)
+
+SDES API client-side method to upload actual file data.
