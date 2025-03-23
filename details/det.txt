@@ -1,87 +1,393 @@
-Story 1: Design Validation Matrix for Bulk Submission Flow
+Current Process (As-Is)
+File Upload Process via Plugin:
+
+A plugin uploads a file to SDES using an HTTP POST request.
+
+Based on the HTTP response code (e.g., 200, 203, 500), the plugin updates the file status (e.g., success/fail) in Dataverse (Portal File Management table).
+
+Current Issue Identified:
+
+Sometimes SDES incorrectly returns a 200 (success) even when the file has issues (e.g., virus detected or scrubbing center issue).
+
+Specific case mentioned: HTTP 422 error is translated by SDES as 200 success to the plugin.
+
+SDES talks to a scrubbing center and due to internal firewall or communication issues, some failed cases return success.
+
+Identified Risk & Limitation
+The plugin can't fully trust SDES HTTP response status alone for file success/failure.
+
+This impacts the reliability of status reflected back to customers in the portal.
+
+Proposed Mitigation
+Additional Notification API Call (for post-upload verification):
+
+HMRC provides a Notification API that can be queried after file upload to check the final processing status of the file (post scrubbing).
+
+This provides the actual, accurate status (e.g., success or quarantined).
+
+Difference between two file types:
+
+Normal file uploads: Can query for updated status using Notification API (active approach).
+
+Quarantined files: Requires a webhook URL (HTTP endpoint) to receive status updates from HMRC (passive approach).
+
+Next Steps Identified
+For standard uploads:
+
+Integrate the Notification API after receiving the initial SDES response to confirm final file status.
+
+For quarantined files:
+
+Create an Azure Function (HTTP trigger) that will act as a webhook.
+
+HMRC will call this webhook with quarantine notifications.
+
+Once received, update the file status in Dataverse appropriately (e.g., "Quarantined").
+
+Other Observations
+Power Automate is not acceptable to HMRC for webhook, hence Azure Function is required.
+
+Schema from HMRC will include file metadata like file name and status.
+
+Files will need to be deleted (soft/hard delete) both from:
+
+Dataverse (Portal File Management + related entities).
+
+Blob storage or SDES storage (for bulk files or evidence).
+
+Additional Notes:
+Bulk uploads: After ingestion, files are processed into front door header & rows in Dataverse.
+
+Files might also be moved into a "do not use" container post-processing but are not automatically deleted from storage.
+
+Portal deletion today just marks them as "Delete" (soft delete) but retains physical files.
+
+Business will decide retention period (e.g., 30 days) before running cleanup jobs to:
+
+Physically delete files from blob storage.
+
+Delete portal records (via system jobs or batch Azure Function jobs).
+
+Summary
+Current Gaps Identified:
+
+Plugin cannot solely rely on HTTP 200/203 responses.
+
+There is no mechanism yet to handle quarantine notifications automatically.
+
+Actionable next steps:
+
+Implement Notification API checks for post-upload status.
+
+Create Azure Function webhook for receiving quarantine alerts from HMRC.
+
+
+
+Code currently used for SDES (as per your shared plugin):
+The plugin PreAnnotationCreate in the VOAP.Portal.FileUpload.Plugins.Entrypoints.annotation namespace is handling the SDES file upload.
+
+Key code points:
+SDES Upload Invocation:
+
+csharp
+Copy
+Edit
+// Inside AttemptFileUpload method
+var uploadInformation = NotifyFileForUpload(filename, bearerToken, serviceController, tracing, fileManagementRef.Id);
+
+serviceController.UploadFile(uploadInformation.url, fileData, uploadInformation.file, tracing);
+Bearer token retrieval:
+
+csharp
+Copy
+Edit
+string bearerToken = serviceController.Authorise(tracing);
+Get upload URL:
+
+csharp
+Copy
+Edit
+controller.NotifyFile(authToken, fileName, Metadata, tracing);
+Upload Status Handling:
+
+csharp
+Copy
+Edit
+// success
+SetFileManagementStatus(fileManagementRef, FileManagementConstants.StatusReasonCodes.Uploaded, $"Success {infoContent}", service);
+
+// failure
+SetFileManagementStatus(fileManagementRef, FileManagementConstants.StatusReasonCodes.Failed, $"Error occurred: {infoContent} Message: {e.Message}", service);
+⚠️ Current Limitation:
+Plugin relies on the HTTP status codes from serviceController.UploadFile(), i.e., 200/203/500 etc., immediately after upload, which is misleading due to SDS scrubbing center issue.
+
+✅ Proposed Fix via Azure Function
+Solution Overview:
+Keep the existing plugin to perform the initial upload.
+
+Introduce an Azure Function to periodically query the SDES Notification API to confirm the final file status (for uploaded files).
+
+Additionally, create a webhook Azure Function to accept SDS notifications for quarantined files.
+
+Step 1: Polling Azure Function (for status check)
+This Azure Function will:
+Take the file reference or ID from Dataverse.
+
+Call the SDES Notification API using file metadata.
+
+Parse the response (check for final status: "Completed", "Quarantined", "Failed", etc.).
+
+Update the Portal File Management Dataverse table status based on the result.
+
+Azure Function Sample (Polling API)
+csharp
+Copy
+Edit
+public static class CheckSdesStatusFunction
+{
+    [FunctionName("CheckSdesStatusFunction")]
+    public static async Task Run([TimerTrigger("0 */15 * * * *")] TimerInfo myTimer, ILogger log)
+    {
+        var filesToCheck = GetPendingFilesFromDataverse(); // Query dataverse for records marked as Uploaded
+
+        foreach (var file in filesToCheck)
+        {
+            var status = await GetSdesFileStatusAsync(file.SdesFileId);
+            
+            if (status == "Completed")
+            {
+                UpdateFileManagementStatus(file.Id, "Success");
+            }
+            else if (status == "Quarantined")
+            {
+                UpdateFileManagementStatus(file.Id, "Quarantined");
+            }
+            else if (status == "Failed")
+            {
+                UpdateFileManagementStatus(file.Id, "Failed");
+            }
+        }
+    }
+
+    private static async Task<string> GetSdesFileStatusAsync(string fileId)
+    {
+        // HTTP GET to SDES Notification API with fileId
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "<token>");
+        var response = await client.GetAsync($"https://api.sdes.hmrc.gov.uk/notifications?fileId={fileId}");
+
+        var content = await response.Content.ReadAsStringAsync();
+        var json = JObject.Parse(content);
+        return json["status"].ToString(); // e.g., "Completed", "Quarantined"
+    }
+}
+Step 2: Azure Function Webhook (for Quarantine Notification)
+Webhook function will:
+Accept a POST payload from SDS (when SDS pushes quarantine notification).
+
+Parse the payload (fileId, status).
+
+Update the corresponding record in Portal File Management table.
+
+Azure Function Sample (Webhook for SDS Notification)
+csharp
+Copy
+Edit
+[FunctionName("SdesNotificationWebhook")]
+public static async Task<IActionResult> Run(
+    [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
+    ILogger log)
+{
+    string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+    dynamic data = JsonConvert.DeserializeObject(requestBody);
+
+    string fileId = data?.fileId;
+    string status = data?.status;
+
+    if (!string.IsNullOrEmpty(fileId) && !string.IsNullOrEmpty(status))
+    {
+        UpdateFileManagementStatus(fileId, status);
+        return new OkObjectResult($"Status updated for fileId: {fileId}");
+    }
+    return new BadRequestObjectResult("Invalid payload");
+}
+Step 3: Dataverse Integration
+UpdateFileManagementStatus will use Dataverse SDK / Dataverse API to update the record (e.g., voap_portalfilemanagement entity).
+
+Example status mappings:
+
+"Completed" → "Success"
+
+"Quarantined" → "Quarantined"
+
+"Failed" → "Failed Upload to SDS"
+
+Benefits:
+Provides real-time accurate status via webhook for quarantine cases.
+
+Provides proactive polling for normal uploads via Notification API.
+
+Prevents false positives where SDES incorrectly returns 200 on initial upload.
+
+Optional:
+Integrate with Azure Application Insights to log webhook hits and polling attempts.
+
+Consider retry mechanisms for transient failures while calling SDS Notification API.
+
+
+
+
+
+Epic: Improve SDS File Upload and Status Reconciliation Process
+Story 1: Implement Polling Azure Function to Reconcile SDS Upload Status
+Description: Develop an Azure Function that will poll the SDS Notification API at regular intervals (e.g., every 15 minutes) to check the final status of uploaded files. The function should:
+
+Retrieve records marked as "Uploaded" from Portal File Management Dataverse table.
+
+Call SDS Notification API using the file ID or metadata.
+
+Update Dataverse with actual status: Success, Quarantined, or Failed.
+
+Acceptance Criteria:
+
+Polls every 15 minutes via Azure Timer Trigger.
+
+Updates correct file status in Dataverse.
+
+Logs all polling activities to Application Insights.
+
+Story 2: Implement SDS Webhook for Quarantine Notifications
+Description: Create an HTTP-triggered Azure Function to receive real-time quarantine notifications from SDS. This will enable instant status updates when SDS marks a file as quarantined.
+
+Acceptance Criteria:
+
+Webhook endpoint created to accept POST payloads from SDS.
+
+Parses fileId and status from SDS payload.
+
+Updates Portal File Management Dataverse table to reflect "Quarantined" status.
+
+Supports schema validation of incoming payload.
+
+Story 3: Register Azure Function Webhook with SDS for Quarantine Files
+Description: Register the newly created Azure Function webhook with HMRC SDS team to ensure SDS sends quarantine notifications to the new endpoint.
+
+Acceptance Criteria:
+
+Work with SDS team to configure webhook endpoint in SDS environment.
+
+Validate notification is triggered successfully with test data.
+
+Confirm SDS and scrubbing center integration to handle firewall or network issues.
+
+Story 4: Dataverse Integration - Update File Status Programmatically
+Description: Create or update a shared library/helper to update voap_portalfilemanagement records from both Azure Functions (polling and webhook).
+
+Acceptance Criteria:
+
+Support status values like: Success, Quarantined, Failed.
+
+Support log/trace information when status is updated.
+
+Allow reusable implementation between multiple Azure Functions.
+
+Story 5: Handle Business Logic for Portal - Quarantine/Failed Files
+Description: Define how quarantined or failed files should be displayed and handled on the user portal:
+
+Quarantine scenario (e.g., UX message, re-upload prompt).
+
+Handle records flagged by new Azure Functions.
+
+Acceptance Criteria:
+
+UX wording agreed with product owner (e.g., Emma).
+
+Portal reflects new statuses and handles user actions appropriately (e.g., no access to re-upload button for quarantined).
+
+User is informed about the next steps (e.g., re-upload recommendation).
+
+Story 6: Technical Spike - Review SDS API documentation
+Description: Perform a detailed review of the SDS Developer Hub documentation to understand:
+
+Notification API schema.
+
+Quarantine API webhook format.
+
+Differences between Normal files vs. Quarantined flow.
+
+Acceptance Criteria:
+
+Document API endpoints & schemas in Confluence.
+
+Identify risks, limitations, or technical constraints.
+
+Story 7: Setup Azure Resources (Function App, App Insights)
+Description: Provision required Azure resources for running new polling and webhook functions:
+
+Function App (Consumption or Premium Plan).
+
+App Insights for monitoring.
+
+Secure storage for SDS API keys (Azure Key Vault).
+
+Acceptance Criteria:
+
+Azure Function App deployed.
+
+Azure Application Insights linked.
+
+Service Principal created with least privilege access.
+
+
+
+
+Risk Log Entry
+Risk ID: SDS-422-Compliance
+Title: SDS Scrubbing Center returns misleading 200 status for actual 422 (unprocessable entity) errors
 Description:
-Create a detailed validation matrix for bulk submission journeys to align portal validations with business expectations. This includes rules for BRF, BA Report, UPRN, and address matching errors.
+The SDS Scrubbing Center returns HTTP 200 statuses for files that are actually rejected internally with a 422 error (e.g., due to virus scan failures or other issues). This leads to false-positive success flags in the Portal File Management records.
 
-Story 2: Develop Unified Portal Validation Wrapper
-Description:
-Enhance the existing validation wrapper to centralize and enforce all LA Portal-specific validation rules (approx. 20-25 rules) for bulk and single report journeys. This will decouple legacy validations from portal logic.
+Impact:
 
-Story 3: Implement Custom Validation Logic for BRF, BA Report, and UPRN
-Description:
-Develop portal-specific validation logic for:
+End-users may see successful uploads for files that have actually failed downstream.
 
-BRF (mandatory or optional based on journey type)
+Incorrect business decisions may be made based on inaccurate file status.
 
-BA Report (length, alphanumeric check, truncation logic)
+Likelihood: High
+Severity: High
+Mitigation:
 
-UPRN (optional validation and error suppression logic)
+Implement the Polling Azure Function to query the SDS Notification API post-upload to get the correct final status.
 
-This will be configurable via the Portal Exceptions Table.
+Implement SDS Webhook for instant quarantined status updates.
 
-Story 4: Configure Portal Exceptions Table for Dynamic Validation Control
-Description:
-Enhance and configure the Portal Exceptions Reference Data Table to allow business users to toggle validation severity (e.g., Required vs Not Required) for different error types.
+Owner: [Assign to Tech Lead or Engineering Manager]
+Status: Open
 
-Story 5: Engage with Business Stakeholders to Finalize Validation Rules
-Description:
-Collaborate with Emma and other business stakeholders to finalize the validation rules matrix and gather approval before implementation.
+Architecture Note
+SDS Upload Flow - Proposed Enhancements
+Current Issue:
 
+Plugin triggers SDS upload via HTTP POST.
 
+Status is set to Success/Failed immediately based on HTTP response (200, 203, 500).
 
+SDS Scrubbing Center can still reject files silently (422 hidden behind 200).
 
+Proposed Solution:
 
-conversation focuses on improving and streamlining the validation framework for LA Portal submissions, particularly addressing discrepancies between the legacy system validations and the new LA Portal validations.
+Real-time update flow:
 
-Key Takeaways:
-1. Current Situation:
-The existing validation logic is a mix of legacy validations and portal-specific validations, causing inconsistency.
+Webhook Function for SDS to notify the system on quarantined files.
 
-Legacy systems have their own set of validations that were originally designed based on system limitations or outdated business logic.
+SDS will POST status updates directly to this Azure Function endpoint.
 
-Some validations from legacy are now redundant or misaligned with what the business currently expects for the LA Portal.
+Polling Mechanism:
 
-2. Identified Issues:
-Fields like BA Reference (BRF), BA Report, and UPRN have conflicting validation rules between the portal and legacy system.
+Polling Function will run every X mins to pull actual file statuses from SDS Notification API.
 
-For example:
+Ensures accuracy for files that SDS falsely marks as successful at POST time.
 
-BRF is mandatory in the single web file journey but not necessarily enforced in bulk submissions.
+Dataverse Integration:
 
-UPRN has separate validations, but it’s an optional field on the portal.
-
-Some records go to "Fix Errors" even when business wants them to proceed to "Submitted Reports" if certain fields are blank but not critical (e.g., UPRN).
-
-3. Proposed Improvement:
-Build a new validation wrapper exclusively for LA Portal:
-
-Decouple from legacy validations.
-
-Maintain a clean rule set that’s specific to the portal’s business flow.
-
-Provide flexibility to configure validations at the portal level (e.g., via reference tables like the Portal Exceptions Table).
-
-Centralize all portal validations (around 20-25 validation rules) and extend existing portal rules for:
-
-BRF validations (mandatory or not).
-
-BA Report validations (length, alphanumeric checks).
-
-UPRN validations.
-
-Address matching validations (to reduce "manual review" status).
-
-4. Benefits:
-Business control: Emma and the business team can decide which validations are critical (e.g., is BRF truly mandatory for bulk uploads?).
-
-Cleaner process: Reduces portal vs. legacy mismatch.
-
-Better data quality: Aligns the validation closer to business expectations while keeping the flexibility.
-
-More automation: Less manual intervention and fewer "Complete with address matching errors".
-
-5. Next Steps:
-Define a validation matrix (like what’s done in the single web file journey) for bulk submissions.
-
-Extend the new validation wrapper Michael is working on to incorporate all rules into a unified logic.
-
-Align with Emma and stakeholders to confirm validation rules.
+The Azure Functions will update the voap_portalfilemanagement table, allowing the portal to reflect real status (Success/Failed/Quarantined).
