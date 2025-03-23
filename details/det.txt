@@ -1,246 +1,48 @@
-Analysis of the PreAnnotationCreate Plugin for SDES Upload
+Registration Details (from your screenshot):
+Field	Value
+Message	Create
+Primary Entity	annotation
+Event Pipeline Stage	PreOperation (before DB commit)
+Execution Mode	Synchronous
+Event Handler (Class)	VOAP.Portal.FileUpload.Plugins.Entrypoints.annotation.PreAnnotationCreate
+Secure Configuration	SDES Auth details (ClientId, Secret, URL, etc.)
 
-Overview
 
-The PreAnnotationCreate plugin resides in the namespace VOAP.Portal.FileUpload.Plugins.Entrypoints.annotation and is triggered when an annotation record (note) is created in Microsoft Dataverse.
+When is the Plugin Fired?
+The plugin PreAnnotationCreate is triggered on the Create message for the annotation (note) table at the PreOperation stage.
 
-Purpose of this Plugin
+This means:
 
-The core purpose of this plugin is to:
+As soon as a user uploads a file via the portal, and the portal creates an annotation record (which holds the file as a note/document in Dataverse),
 
-Intercept annotation creation events when a file is attached/uploaded in the portal.
+The plugin will run before the annotation is actually saved to the database (PreOperation).
 
-Upload the file content to SDES (Secure Document Exchange Service) using the SDES API.
 
-Update metadata and status in the linked Dataverse table (voap_portalfilemanagement).
+1:N (One-to-Many) relationship setup between:
 
-Sanitize (blank) the annotation file content to reduce Dataverse storage consumption.
+Primary (One) Table: Portal File Management (voap_portalfilemanagement)
 
-Trigger Conditions
+Related (Many) Table: Note (annotation)
 
-Entity: annotation
+Details from the image:
+The lookup column on the annotation (note) table is:
 
-Message: Create
+Schema name: voap_portalfilemanagement_Annotations
 
-Execution Stage: PreOperation
+This allows multiple notes (annotations) to be linked to a single Portal File Management record.
 
-Mode: Synchronous
+What this means for the plugin:
+The plugin uses the RegardingObjectId (lookup) on the annotation record to link back to the Portal File Management table.
 
-Primary Entity: annotation
+This relationship is how the annotation "knows" which file upload batch it belongs to (whether bulk upload or evidence upload).
 
-Execution Context: Calling User
+The PreAnnotationCreate plugin you shared earlier leverages this relationship to:
 
-Configuration (as registered in the step)
+Fetch the related Portal File Management record.
 
-Secure Configuration:
+Update or change status on that record (e.g., "Uploaded", "Failed", etc.).
 
-{
-  "ClientId": "<client_id>",
-  "ClientSecret": "<client_secret>",
-  "AuthUrl": "https://test-api.service.hmrc.gov.uk/oauth/token",
-  "SRN": "012345678901",
-  "InformationType": "informationType901",
-  "SDESServiceUrl": "https://test-api.service.hmrc.gov.uk/"
-}
+Summary of the relationship logic:
+1 Portal File Management record ➡️ many annotations (file attachments, including CSV/XLS uploads and evidence documents).
 
-This configuration is injected into the plugin step and utilized by the SDESServiceController.
-
-Step-by-Step Breakdown
-
-Step 1: Annotation Creation (Portal Upload)
-
-User uploads a file via Power Pages (bulk upload portal).
-
-Portal-side JS validates file type and size.
-
-An annotation (note) record is created in Dataverse containing:
-
-File name
-
-Mimetype
-
-Document body (file content in Base64)
-
-Link to voap_portalfilemanagement via regarding field.
-
-Step 2: Plugin Execution
-
-PreAnnotationCreate.Execute(IServiceProvider serviceProvider) runs on annotation creation.
-
-Inside Execute Method:
-
-Validation Checks:
-
-Ensures message is Create and stage is PreOperation.
-
-Confirms the annotation is linked to voap_portalfilemanagement.
-
-Verifies that IsDocument = true.
-
-File Extraction:
-
-Retrieves file name, extension, mimetype, and document content.
-
-Initiates Upload Process:
-
-Calls FileUploadHelper.AttemptFileUpload() passing file metadata.
-
-Step 3: AttemptFileUpload Method
-
-Responsible for the full SDES upload process.
-
-Inside AttemptFileUpload():
-
-1. Contact and Account Resolution:
-
-Retrieves the logged-in contact's name and related billing authority account.
-
-Fetches account BAC code.
-
-2. SDES API Interaction:
-
-Calls NotifyFileForUpload() to provision an SDES upload URL.
-
-Performs an actual upload via SDESServiceController.UploadFile().
-
-3. Dataverse Updates (Portal File Management):
-
-Updates:
-
-voap_filenameoriginal (original file name)
-
-voap_loggedincontact
-
-voap_associatedaccount
-
-voap_baccode
-
-voap_relatedbillingauthority
-
-voap_filesize
-
-4. Status Reason Update:
-
-Uses SetFileManagementStatus():
-
-Success - Upload to SDES or
-
-Failed - Upload to SDES
-
-5. Sanitize Annotation:
-
-Clears the annotation’s documentbody.
-
-Updates filename to azure.txt.
-
-Changes mimetype to text/plain.
-
-Step 4: NotifyFileForUpload Method
-
-Calls SDES /notify-file API to obtain a pre-signed upload URL.
-
-Adds metadata: LinkedRecord (GUID of voap_portalfilemanagement).
-
-Step 5: SetFileManagementStatus Method
-
-Updates Dataverse status reason (option set value).
-
-Adds descriptive information in voap_description.
-
-Dataverse Tables Involved
-
-1. voap_portalfilemanagement
-
-This is the main table holding metadata and upload status.
-
-Fields updated:
-
-voap_filename
-
-voap_filenameoriginal
-
-voap_loggedincontact
-
-voap_associatedaccount
-
-voap_baccode
-
-voap_relatedbillingauthority
-
-voap_filesize
-
-voap_statusreason
-
-voap_description
-
-2. annotation
-
-Temporary storage of the uploaded file before the plugin strips the content.
-
-Fields involved:
-
-documentbody
-
-filename
-
-mimetype
-
-notetext
-
-3. Relationship
-
-One-to-Many from Portal File Management to annotation
-
-Lookup Field: voap_portalfilemanagement_Annotations
-
-External API Involved
-
-SDES Notify API: /notify-file
-
-SDES Upload Endpoint: /third-party-upload-api/{generated-upload-url}
-
-Authentication: /oauth/token using OAuth2
-
-Full Process Flow
-
-User uploads file in Power Pages → Creates voap_portalfilemanagement + annotation record.
-
-PreAnnotationCreate Plugin fires on annotation create event.
-
-File gets uploaded to SDES service.
-
-Annotation content is cleared.
-
-voap_portalfilemanagement status and metadata updated.
-
-File moves forward for further processing (via Service Bus or Front Door functions).
-
-
-
-Methods Involved in the Plugin
-
-1. Execute(IServiceProvider serviceProvider)
-
-Entry point method for the plugin.
-
-Performs all validation and triggers file upload logic.
-
-2. AttemptFileUpload(EntityReference fileManagementRef, byte[] fileData, string filename, string ogname, string type, IOrganizationService service, IPluginExecutionContext2 context2, ITracingService trace, SDESServiceController serviceController)
-
-Main business logic for uploading to SDES and updating Dataverse records.
-
-3. NotifyFileForUpload(string fileName, string authToken, SDESServiceController controller, ITracingService tracing, Guid referencingTable)
-
-Calls SDES API to provision upload URL and returns upload info.
-
-4. UpdateFileName(EntityReference managementTableRef, string fileName, double filesizeInKb, IOrganizationService service)
-
-Updates file name and size in the voap_portalfilemanagement record.
-
-5. SetFileManagementStatus(EntityReference fileManagementRef, FileManagementConstants.StatusReasonCodes code, string message, IOrganizationService service)
-
-Updates file upload status and logs outcome in Dataverse.
-
-6. UploadFile(url, fileData, filename, tracing)
-
-SDES API client-side method to upload actual file data.
+The annotations are used to store the file temporarily, then the file is processed and sanitized by the plugin before the annotation is committed to Dataverse.
