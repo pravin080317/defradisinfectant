@@ -1,48 +1,387 @@
-Registration Details (from your screenshot):
-Field	Value
-Message	Create
-Primary Entity	annotation
-Event Pipeline Stage	PreOperation (before DB commit)
-Execution Mode	Synchronous
-Event Handler (Class)	VOAP.Portal.FileUpload.Plugins.Entrypoints.annotation.PreAnnotationCreate
-Secure Configuration	SDES Auth details (ClientId, Secret, URL, etc.)
+Purpose of the Plugin
+The LPIAddressLookupRetrieveMultiple plugin is designed to intercept retrieve multiple requests on a virtual table called LPI Address Lookup.
+
+It performs a postcode search using an internal custom API call (voa_AddressLabelSearch).
+
+The results are converted to a list of address records and returned as an EntityCollection (mimicking Dataverse retrieval).
+
+When is it triggered?
+Message: RetrieveMultiple
+
+Entity/Table: voap_lpiaddresslookup (Virtual Entity)
+
+Pipeline: Executes as part of the RetrieveMultiple query on the virtual table.
+
+Flow Summary
+User action (e.g., postcode search) triggers a call from the portal JavaScript to /lpi-address-lookup/?postcode=..., which hits this plugin indirectly via Dataverse Virtual Entity provider.
+
+Plugin extracts the postcode parameter from the fetch/query expression.
+
+Calls custom API "voa_AddressLabelSearch" with the postcode as the SearchQuery.
+
+Makes an internal service request to:
+
+ruby
+Copy
+Edit
+https://voagw.npd.hmrc.gov.uk/dev/internal/bst/gazetteer/ordnanceSurvey/geocode/findAddressCandidates
+Deserializes JSON response containing address candidates.
+
+Maps and creates records dynamically in-memory as Entity objects with address attributes.
+
+The data is returned to the caller (e.g., portal) as a list of selectable addresses.
+
+Dataverse Configuration
+Virtual Table Name: LPI Address Lookup
+
+Logical Name: voap_lpiaddresslookup
+
+Data Source: Custom "LPI Address Lookup CRM" provider (likely linked to the plugin).
+
+Ownership: Organization-owned.
+
+Key methods involved
+ExecuteCdsPlugin – Main method.
+
+GetQueryParamsFromRetrieveMultiple() – Extracts the postcode filter from the incoming query.
+
+ConvertToBst() – Converts the JSON API response to internal BSTAddress models and then Entity records.
+
+API/Service used
+Custom Dataverse API: voa_AddressLabelSearch (inside a separate plugin).
+
+External Call (within voa_AddressLabelSearch): HMRC internal address gazetteer endpoint.
+
+Key attributes mapped
+Returned fields include:
+
+voap_lpisubbuildingname
+
+voap_lpibuildingname
+
+voap_lpibuildingnumber
+
+voap_lpistreet
+
+voap_lpitown
+
+voap_lpipostcode
+
+voap_lpiuprn
+
+voap_lpiparentuprn
+
+voap_lpiusrn
+
+voap_lpiaddressstring
+
+voap_lpifullstring
+
+Portal Frontend Flow
+The JavaScript provided shows how the portal handles postcode searches, performs validation, calls the /lpi-address-lookup endpoint, and populates dropdowns based on the response returned by this plugin.
+
+Error handling and UX: Displays validation errors if postcode format is wrong or if no address is found.
+
+Trace Logs Insight
+The logs confirm:
+
+OAuth authentication for the internal API.
+
+API request to Ordnance Survey via HMRC gateway.
+
+Address transformation and response mapping to the virtual entity result.
+
+Summary
+This plugin serves as a bridge between a virtual entity and an external API service.
+
+Used as a dynamic lookup for address records based on postcode searches from the portal.
 
 
-When is the Plugin Fired?
-The plugin PreAnnotationCreate is triggered on the Create message for the annotation (note) table at the PreOperation stage.
 
-This means:
+Where is the API Call made?
+The actual external API call happens inside a separate Custom API/Plugin called voa_AddressLabelSearch, not directly inside LPIAddressLookupRetrieveMultiple plugin.
 
-As soon as a user uploads a file via the portal, and the portal creates an annotation record (which holds the file as a note/document in Dataverse),
+Here’s how it flows:
+Step 1: RetrieveMultiple triggers the plugin
+When you do a FetchXML or QueryExpression on the virtual entity voap_lpiaddresslookup from the portal or Dataverse, it triggers:
 
-The plugin will run before the annotation is actually saved to the database (PreOperation).
+csharp
+Copy
+Edit
+protected override void ExecuteCdsPlugin (ILocalPluginContext localPluginContext)
+Step 2: Call to Custom Dataverse API
+Inside ExecuteCdsPlugin(), we see this block:
+
+csharp
+Copy
+Edit
+var request = new OrganizationRequest("voa_AddressLabelSearch");
+request["SearchQuery"] = queryParametersList.LPIPostcode;
+
+var response = service.Execute(request);
+This line service.Execute(request) is making a call to a Custom API inside Dataverse called voa_AddressLabelSearch.
+
+Step 3: The voa_AddressLabelSearch Plugin
+Inside this custom API/plugin (voa_AddressLabelSearch), the external HTTP request is made:
+
+plaintext
+Copy
+Edit
+https://voagw.npd.hmrc.gov.uk/dev/internal/bst/gazetteer/ordnanceSurvey/geocode/findAddressCandidates
+As seen in your trace:
+
+ruby
+Copy
+Edit
+Making request to
+https://voagw.npd.hmrc.gov.uk/dev/internal/bst/gazetteer/ordnanceSurvey/geocode/findAddressCandidates?...
+Summary of API Call Location
+LPIAddressLookupRetrieveMultiple plugin makes an internal request to "voa_AddressLabelSearch" API via service.Execute().
+
+Inside the voa_AddressLabelSearch plugin, the actual HTTP request to HMRC Gateway happens using an HttpClient or similar library.
+
+Your Trace Log confirms this:
+css
+Copy
+Edit
+[+732ms)] - Entered VOA Plugins.Plugins.CustomAPI.voa_AddressLabelSearch.Execute()
+...
+[+219ms)] - Sending OAuth v2.0 token request
+...
+[+277ms)] - Making request to https://voagw.npd.hmrc.gov.uk/dev/internal/bst/gazetteer/ordnanceSurvey/geocode/findAddressCandidates...
+In short:
+LPIAddressLookupRetrieveMultiple plugin triggers →
+
+Dataverse Custom API →
+
+Custom API triggers HTTP call to HMRC gateway API.
 
 
-1:N (One-to-Many) relationship setup between:
 
-Primary (One) Table: Portal File Management (voap_portalfilemanagement)
+Let’s break down how this virtual entity works, how data flows, and how it’s used.
 
-Related (Many) Table: Note (annotation)
+1. What is this Virtual Entity?
+The virtual entity here is:
 
-Details from the image:
-The lookup column on the annotation (note) table is:
+yaml
+Copy
+Edit
+Name: LPI Address Lookup
+Logical name: voap_lpiaddresslookup
+Type: Virtual
+Data Source: LPI Address Lookup CRM
+This is a Dataverse Virtual Table, meaning:
 
-Schema name: voap_portalfilemanagement_Annotations
+It doesn't store actual data in Dataverse SQL tables.
 
-This allows multiple notes (annotations) to be linked to a single Portal File Management record.
+It retrieves data on-the-fly when queried (via FetchXML or QueryExpression).
 
-What this means for the plugin:
-The plugin uses the RegardingObjectId (lookup) on the annotation record to link back to the Portal File Management table.
+It relies on a custom data provider/plugin to populate the records dynamically.
 
-This relationship is how the annotation "knows" which file upload batch it belongs to (whether bulk upload or evidence upload).
+2. The Data Provider Mechanism
+This virtual entity is linked to a custom plugin (LPIAddressLookupRetrieveMultiple).
 
-The PreAnnotationCreate plugin you shared earlier leverages this relationship to:
+The plugin intercepts the RetrieveMultiple operation on this virtual entity.
 
-Fetch the related Portal File Management record.
+csharp
+Copy
+Edit
+protected override void ExecuteCdsPlugin (ILocalPluginContext localPluginContext)
+Trigger Point:
+This is fired whenever Dataverse or the Portal performs a RetrieveMultiple on voap_lpiaddresslookup (e.g., using /lpi-address-lookup/?postcode=xxx as seen in your JavaScript).
 
-Update or change status on that record (e.g., "Uploaded", "Failed", etc.).
+3. Flow of how the Virtual Entity retrieves data
+Portal calls virtual entity OData API
+Example:
+/lpi-address-lookup/?postcode=IG2 6FL
 
-Summary of the relationship logic:
-1 Portal File Management record ➡️ many annotations (file attachments, including CSV/XLS uploads and evidence documents).
+Dataverse triggers RetrieveMultiple event
+-> Your plugin (LPIAddressLookupRetrieveMultiple) runs.
 
-The annotations are used to store the file temporarily, then the file is processed and sanitized by the plugin before the annotation is committed to Dataverse.
+The plugin fetches data externally
+
+Calls internal custom API: voa_AddressLabelSearch
+
+This custom API fetches LPI Address details from an HMRC gateway API
+
+Plugin transforms external API data into Dataverse EntityCollection
+
+csharp
+Copy
+Edit
+foreach (BSTAddress bstaddress in addressRecords)
+{
+   Entity addressLookup = new Entity(context.PrimaryEntityName);
+   addressLookup["voap_lpipostcode"] = bstaddress.Postcode;
+   addressLookup["voap_lpiuprn"] = bstaddress.UPRN;
+   ...
+   AddressList.Entities.Add(addressLookup);
+}
+Returns the "virtual" records dynamically
+These records are never saved to Dataverse but are returned live in response to the RetrieveMultiple query.
+
+4. How is the data used?
+The JS function you shared (postcodeSearchWithPluginFetch()) calls this virtual entity to dynamically load address results into dropdowns:
+
+js
+Copy
+Edit
+$.getJSON("/lpi-address-lookup/?postcode=" + postcode)
+The address results (e.g., sub-building, street, postcode, town, etc.) are:
+
+Displayed to users via dropdowns.
+
+Mapped into appropriate fields like:
+
+voap_lpipostcode
+
+voap_lpiuprn
+
+voap_lpiaddressstring
+
+Eventually pushed into another table (like PortalFileManagement or case record) on form submit.
+
+5. Why Virtual Entity here?
+Avoids persisting large address datasets into Dataverse permanently.
+
+Retrieves live LPI address data from an external source (HMRC API).
+
+Keeps your Dataverse lean, but provides rich external data when needed.
+
+6. Summary
+Component	Purpose
+Virtual Entity (voap_lpiaddresslookup)	No real table; acts as a live data provider for the portal.
+Plugin LPIAddressLookupRetrieveMultiple	Intercepts RetrieveMultiple, calls internal Dataverse API.
+Custom API voa_AddressLabelSearch	Makes external HTTP API call to HMRC Ordnance Survey service for address data.
+JS on Portal	Triggers /lpi-address-lookup/ API and presents dynamic results to users.
+
+
+
+What you are looking at:
+You are in the Plugin Registration Tool (XrmToolBox or Dynamics Plugin Registration inside Power Platform Admin Center).
+
+It shows the registered plugins and their steps for your Dynamics/Dataverse solution.
+
+Breakdown of the screen:
+Assembly Level
+VOAP.Portal.Plugins
+
+This is your compiled assembly (DLL) containing all your plugins.
+
+Plugins in this Assembly
+VOAP.Portal.FileUpload.Plugins.Entrypoints.annotation.PreAnnotationCreate
+
+Handles annotation record creation (likely for file uploads as we discussed earlier).
+
+VOAP.Portal.Plugins.LPIAddressLookup.LPIAddressLookupCreate
+
+Trigger for Create on LPI Address Lookup Virtual Entity.
+
+VOAP.Portal.Plugins.LPIAddressLookup.LPIAddressLookupDelete
+
+Trigger for Delete on Virtual Entity.
+
+VOAP.Portal.Plugins.LPIAddressLookup.LPIAddressLookupRetrieve
+
+Trigger for Retrieve (fetching a single record) from the Virtual Entity.
+
+VOAP.Portal.Plugins.LPIAddressLookup.LPIAddressLookupRetrieveMultiple
+
+This is the most important one here.
+
+Used by Dataverse/Portal to fetch multiple records (RetrieveMultiple) when you search by postcode.
+
+This is where the external API (voa_AddressLabelSearch API) is called to return a list of address records.
+
+VOAP.Portal.Plugins.LPIAddressLookup.LPIAddressLookupUpdate
+
+Handles the Update request on the Virtual Entity (rarely used since Virtual Entities are usually read-only).
+
+Steps
+Every plugin registered here shows a "(Step) External plug-in implementation", which is:
+
+The trigger point within the Dataverse event pipeline:
+
+Pre-operation, Post-operation, or for virtual entity: custom RetrieveMultiple/Retrieve triggers.
+
+Associated with each CRUD operation on this virtual entity.
+
+What is happening here
+The LPI Address Lookup is treated as a virtual entity.
+
+Every action (Create, Retrieve, RetrieveMultiple, Update, Delete) does not hit Dataverse storage but triggers the corresponding plugin handler.
+
+Most critical for your flow is LPIAddressLookupRetrieveMultiple step because this feeds address results to your portal frontend when a postcode search happens.
+
+Why do you have Create/Delete/Update plugins here?
+In a typical virtual entity:
+
+Retrieve and RetrieveMultiple handlers are mandatory.
+
+Create/Delete/Update handlers could exist if your virtual entity supports actions beyond just "read".
+
+In your case, it looks like Delete/Update/Create are registered but might be stubbed or minimally implemented as your external API is likely read-only (i.e., you are only fetching addresses, not creating them).
+
+
+
+How it ties together with the Virtual Entity Data Source
+1. Virtual Entity Configuration (from your previous image)
+Entity Name: voap_lpiaddresslookup
+
+Type: Virtual
+
+Data Source: LPI Address Lookup CRM
+
+The Virtual Entity is configured to get data via a custom data provider (plugin) instead of Dataverse storage.
+
+Flow Overview
+Portal frontend triggers a postcode search (via JavaScript)
+
+Calls /lpi-address-lookup/?postcode=IG2+6FL endpoint (which is the out-of-the-box virtual entity OData endpoint).
+
+Dataverse triggers RetrieveMultiple
+
+The call to /lpi-address-lookup is mapped to the virtual entity voap_lpiaddresslookup which internally triggers:
+
+The LPIAddressLookupRetrieveMultiple plugin.
+
+Inside LPIAddressLookupRetrieveMultiple
+
+The plugin reads query parameters (postcode value).
+
+Calls an external API (e.g., https://voagw.npd.hmrc.gov.uk/dev/internal/bst/gazetteer/ordnanceSurvey/geocode/findAddressCandidates) with the postcode.
+
+API Response returned
+
+The response is converted into a list of BSTAddress (your DTO).
+
+Each DTO is mapped to a Dataverse Entity object for LPIAddressLookup with attributes such as:
+
+SubBuildingName, BuildingName, Town, Postcode, UPRN, Northing, Easting, etc.
+
+The EntityCollection is returned
+
+Dataverse/Portal receives this like a normal query to an entity, although the data never exists inside Dataverse storage.
+
+Frontend displays results
+
+Your JS logic renders this list into dropdowns like "Select address" on the frontend.
+
+Dataverse Virtual Entity -> Plugin Mapping
+Dataverse Action	Triggered Plugin Class	Purpose
+RetrieveMultiple (query list)	LPIAddressLookupRetrieveMultiple	Main plugin - fetches multiple addresses
+Retrieve (single record)	LPIAddressLookupRetrieve	Rarely used unless retrieving 1 row
+Create	LPIAddressLookupCreate	Virtual stub - probably does nothing here
+Delete	LPIAddressLookupDelete	Virtual stub - likely empty
+Update	LPIAddressLookupUpdate	Virtual stub
+Data Source
+Your Virtual Entity is using "LPI Address Lookup CRM" as its data source.
+
+Behind the scenes, Dataverse knows that any CRUD operation against this virtual entity should invoke the registered plugins.
+
+What does this mean?
+Dataverse itself does not store these addresses.
+
+Every time a postcode search happens, it dynamically goes via:
+
+Virtual Entity -> Plugin (RetrieveMultiple) -> API Call -> Plugin -> Returns Entities -> Dataverse -> Portal frontend.
