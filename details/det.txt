@@ -1,156 +1,107 @@
-Summary of the Discussion:
-1. Current PG SQL Query Design (Schedules Download Page)
-Currently, the APM (API) URL used to pull schedules applies two filter criteria: fileType and VA code.
+conversation is focused on optimizing how SSU ID (Statutory Spatial Unit ID) is used in your current bulk submission and case creation process, particularly improving efficiency by reducing redundant address lookups. Here’s a breakdown of what’s happening:
 
-Initially, you were getting all schedules from metadata without filtering, and then filtering by VA code on the client side.
+Current Workflow
+Bulk Submission Upload (via Excel):
 
-Now filtering is done upstream in the API query itself (via fileType and VA code), which reduces the payload and improves performance.
+When Michael uploads an Excel file in bulk submission, it contains addresses and other metadata.
 
-2. Schedule Display Requirement
-The original design fetched multiple formats (CSV, XML, HTML, etc.) as separate entries, leading to duplicated rows.
+During processing, an address match process is triggered which attempts to map the address to an SSU ID using certain parameters.
 
-The new design expects a deduplicated list of schedules (file name without extensions), and then separate download buttons for different formats (CSV, XML, HTML) after selection.
+Address Matching Algorithm Order:
 
-This logic is currently implemented on the portal/plugin layer.
+The matching process checks the following in order:
 
-3. New Requirement: Filter by "Last 6 Weeks"
-To filter schedules further based on a "last 6 weeks" rule:
+BACode and VARF (Billing Authority and Reference)
 
-Option A: Add an additional query parameter in the existing APM URL/API.
+UPRN (Unique Property Reference Number)
 
-Option B: Filter the records post-fetch in the portal/plugin logic (less efficient).
+Address string and postcode
 
-You recommend Option A (filter upstream in the API or PG SQL view).
+Once matched:
 
-4. "Last Downloaded" Column Request
-Stakeholders want to track and display the "last downloaded" timestamp.
+If a match is found, an SSU ID is retrieved.
 
-Challenges:
+However, currently, the SSU ID is not written back to the "Portal Interface Table" or detail records.
 
-Virtual entity (Dataverse view on PG SQL) is read-only; you cannot directly update PG SQL metadata.
+Only other address and file-related data are written to the Dataverse tables.
 
-Requires maintaining a new table (staging) in Dataverse to track downloads by users.
+Problem Identified
+The SSU ID is available after address matching but is not being stored.
 
-Complexity increases if the requirement is user-specific (showing per-user download history).
+Instead, the backend systems (case management/integration layer) are doing the address matching again to derive SSU ID when a submission is created.
 
-Unclear business value for this effort as the actual downloaded files are static schedules.
+This results in redundant processing since the front-end (Michael’s process) already has the SSU ID.
 
-5. Download Logging Alternatives:
-Option 1: Log download actions to a custom Dataverse table with details (user, schedule ID, timestamp).
+Proposed Improvement
+✅ Store the SSU ID immediately in the Dataverse "Portal Interface Table" or wherever the related portal data is being kept after Michael's process retrieves it.
 
-Option 2: Explore if PG metadata view can be extended with a last_downloaded field (less likely if PG SQL is locked down).
+Benefits
+Reduces unnecessary address match lookups by the integration layer.
 
-Option 3: Do nothing, and instead provide better UX/design, including clear buttons and guidance to avoid confusion about download actions.
+Streamlines the case creation/submission process downstream.
 
-Key Recommendations:
-Request Metadata API owners to handle filtering (6 weeks) upstream.
+Improves data quality by directly associating cases with a verified SSU ID.
 
-Reject the "Last Downloaded" column unless a clear and justified business value is provided, as it introduces significant overhead.
+Future Architectural Consideration
+There’s a mention of an ongoing architectural change to centralize the address information into a single “Address Table” to be reused across multiple systems/entities (like Portal Request, Request Line Items, etc.).
 
-If audit trail is mandatory, propose Option 1 with Dataverse staging table for download logs.
+Today’s scenario:
 
+Addresses are scattered and duplicated across different records.
 
+Future state:
 
+All systems/entities will reference a centralized Address Table, making address deduplication and maintenance much easier.
 
+Key Takeaways
+The front door (frontend process) should persist the SSU ID right after the address match.
 
-Spike: Evaluate "6 Weeks" Filtering for Schedules Download Page
+The integration layer won't need to redo the SSU lookup, reducing API calls and processing overhead.
 
-Objective
+The current reliance on various address strings and codes will reduce since the SSU ID is the “gold standard” for identifying the property.
 
-Investigate and recommend a solution to implement a filter on the schedules download page to show only records from the last 6 weeks.
 
-Background
 
-Currently, the schedules are retrieved via an APM API call that filters based on:
 
-File Type
+Jira Epic
+Title: Optimize Address Matching by Capturing SSU ID in Portal Interface
 
-VA Code
+User Story 1:
+Title: Persist SSU ID in Dataverse After Bulk Submission Address Match
 
-The requirement is to add an additional filter based on the published date, limiting the results to schedules from the past 6 weeks.
+Description:
+As a portal developer, I want to store the SSU ID retrieved during the front-door bulk submission process directly into the Portal Interface Table (Dataverse), so that downstream integration (case management) does not need to repeat the SSU ID lookup.
 
-Current Design
+Acceptance Criteria:
 
-API (APM URL) fetches data directly from a PG SQL view.
+Upon successful address match in bulk submission, capture the SSU ID.
 
-Filtering for File Type and VA Code happens at the API level.
+Persist the SSU ID in the related Dataverse table (e.g., "Portal File Management" or "Request Line Item").
 
-The frontend/plugin simply displays what is returned by the API.
+Ensure existing address fields are also maintained alongside SSU ID.
 
-Options to Explore
+Sub-task 1.1:
+Title: Identify SSU ID retrieval points in the front-door process
+Description:
+Analyze the existing logic (e.g., bulk Excel upload + address match plugin) and identify the exact point where SSU ID is available for persistence.
 
-Option 1: Filter Upstream (Preferred)
+Sub-task 1.2:
+Title: Extend Dataverse schema to include SSU ID
+Description:
+Confirm if the relevant Dataverse table has a column for SSU ID. If not, create a new column with appropriate schema and data type.
 
-Add "last 6 weeks" filter in PG SQL view or API query logic.
+Sub-task 1.3:
+Title: Update plugin/service to persist SSU ID in Dataverse
+Description:
+Enhance the plugin or service where the address match is completed to store the SSU ID directly into Dataverse (via IOrganizationService or Web API).
 
-Minimal changes needed in the portal/plugin.
+Sub-task 1.4:
+Title: Validate integration behavior with downstream case management
+Description:
+Coordinate with the case management team to validate that submissions populated with SSU ID skip redundant address matching processes.
 
-Keeps payload light and optimized.
+User Story 2:
+Title: Document and communicate design change for SSU ID usage
 
-Option 2: Filter in Plugin Layer
-
-Apply date filter (published date >= today - 6 weeks) inside the portal/plugin.
-
-Less efficient as entire dataset will still be fetched from API.
-
-Tasks for the Spike
-
-Confirm if PG SQL metadata view has published_date or created_date field.
-
-Check if the APM API accepts additional query parameters.
-
-If so, propose adding the "6 weeks" logic directly to API/PG SQL.
-
-If not, assess plugin-level filtering impact on performance.
-
-Deliverables
-
-Summary of findings (API capability + PG SQL view capabilities).
-
-Recommended solution for implementation.
-
-Estimation of effort for the chosen solution.
-
-Pro/Con Document: "Last Downloaded" Column Request
-
-Requirement Summary
-
-Stakeholders have requested to display a "Last Downloaded" timestamp for schedules.
-
-Current Challenge
-
-The schedules data is retrieved from a read-only virtual entity (PG SQL metadata), which prevents direct write-back to the source.
-
-Proposed Approach
-
-Introduce a Dataverse staging table to record download actions (user, timestamp, schedule ID).
-
-When a user downloads a schedule, a record is written to the Dataverse table.
-
-This table is then queried alongside the schedules list to show the "last downloaded" info.
-
-Pros
-
-Allows tracking of download actions per user or per schedule.
-
-Business auditability for key actions.
-
-Can be reused for other auditing needs.
-
-Cons
-
-Increases system complexity.
-
-Requires maintaining synchronization between schedules and staging table.
-
-Adds additional API call/load on the download action.
-
-Minimal tangible business value (UX concerns could be solved via UI clarity).
-
-Does not solve the edge case of downloads happening via shared credentials.
-
-Recommendation
-
-Defer implementation unless business can provide a compelling value proposition.
-
-Alternatively, improve UX design (e.g., clearer download buttons, tooltips) to address user confusion.
+Description:
+As a developer, I want to document this SSU ID persistence logic and inform the wider team (e.g., case management, integration, and business analysts), ensuring the change is reflected in technical design documents.
