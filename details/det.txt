@@ -1,98 +1,132 @@
-Summary of Discussion: B2B Process for LA Portal
-1. Current Guest User Onboarding (B2B Flow):
-Users (e.g., Cognizant users) are added to the HMRC tenant as Azure AD guest users.
+Core Topic:
+The discussion is about how to present scheduling data (that currently exists as a static PDF document) on the LA Portal. Two approaches are discussed:
 
-Once created, guest users are provided access to LA Portal via Access Packages.
+1st Approach: Static Table Implementation
+Objective: Convert the PDF schedule into a Dataverse table and display it as an HTML page in the portal.
 
-A default email notification is triggered during guest user creation (HMRC plans to suppress or customize this email as it's not GDS-compliant or desirable for end-users at this stage).
+Steps:
 
-2. Access Package & MyAccess Portal
-Users typically use Microsoft's myaccess.microsoft.com to view available access packages, but HMRC has hidden these packages from general view.
+Manually extract schedule data from the PDF document.
 
-Access packages can now only be assigned via direct URL, as per HMRC configuration.
+Create a new custom table (entity) in Dataverse with attributes like:
 
-Once access is approved (by someone like Stuart or Emma), users get application-level access (e.g., LA Portal).
+Schedule Name
 
-3. Portal User Setup vs Manual B2B
-The legacy "Canvas App" method still exists for creating guest users but is bypassed for bulk user uploads.
+Start Date
 
-For private beta, a bulk upload mechanism is followed:
+End Date
 
-Bulk creation of guest users
+Description / Notes
 
-Bulk assignment of access packages
+Recurrence / Type (if applicable)
 
-Bypassing the manual Canvas App flow
+Populate this table with static data.
 
-4. Custom Portal Page for Approval (Day 2 Plan)
-HMRC plans to introduce a custom-built admin page on the portal where internal users (e.g., Emma & Stuart) can manage user onboarding:
+Build an HTML/Power Pages UI to display this table dynamically to users.
 
-Fill in contact details
+Pros:
 
-Select roles, accounts, councils
+Easy to implement.
 
-Trigger guest user creation and access package assignment via automation (avoiding myaccess.microsoft.com altogether).
+Fully under the portal team’s control.
 
-5. Authentication Sync (Dataverse Contacts & Azure AD)
-When a guest user logs in, the system automatically creates the external identity and web authentication records (in Dataverse) if they don’t already exist.
+Quick win for MVP/static version.
 
-The system will map external users based on email matching, controlled via a site setting (Azure AD authentication: allow email mapping = yes).
+Cons:
 
-6. Security Stamp Fix
-Issue previously identified where contact records didn’t have a "security stamp" causing external identity linking failures.
+Requires manual updates when the schedule changes.
 
-Workaround: use "Change Password" on the contact record to auto-generate a security stamp (though this is being phased out with new automation).
+No automation, no real-time status or logic-driven updates.
 
-7. Next Steps Identified
-Suppress the default onboarding email.
+2nd Approach: Dynamic Schedule Engine Integration
+Objective: Integrate with a dynamic "Schedule Engine" designed by the Case Management team, which automatically calculates and updates schedules based on pre-defined business logic.
 
-Formalize the "custom portal user onboarding" process with automated guest user creation and access package assignment.
+Features of Schedule Engine:
 
-Ensure system syncs authentication records seamlessly using Graph API when needed.
+Auto-generates next run schedules based on criteria like "run every 15 days."
+
+Captures:
+
+When was the last schedule run?
+
+When is the next due date?
+
+What schedule type/parameters were used?
+
+Data lives in Dataverse tables maintained by another team (Case Management).
+
+Frontend Work:
+
+Build Power Pages/HTML UI to read from the dynamic schedule tables.
+
+Display dynamic and real-time schedule information to users.
+
+Potentially format or process data for user-friendly display (e.g., transforming backend timestamps or codes to readable values).
+
+Pros:
+
+Real-time data, no manual intervention.
+
+Improves UX with current and accurate scheduling details.
+
+Scalable and future-proof (no reliance on static documents).
+
+Cons:
+
+Dependency on the Case Management team to finalize and stabilize the Schedule Engine and data model.
+
+More complex integration effort.
+
+Decision Factors:
+If Schedule Engine is delayed/not production-ready, fallback to the static table option for MVP.
+
+If Schedule Engine is available soon, skip static implementation and directly integrate with the dynamic system.
+
+Additional Notes:
+Both solutions are UI/UX focused but differ in backend logic and maintainability.
+
+The second option is more like a real-time dashboard approach.
 
 
 
 
-JIRA SPIKE
+
 Title:
-Spike: Analysis and Design for Automated Guest User Onboarding for LA Portal (B2B Model)
+Spike: Analysis and Design for LA Portal Schedule Display (Static Table vs. Dynamic Schedule Engine)
 
 Description:
-This spike is to investigate, design, and recommend a solution for automating the onboarding process of external guest users (B2B users) into the HMRC Azure AD tenant and granting them secure access to the LA Portal.
+The purpose of this spike is to investigate and design the best approach to display scheduling information on the LA Portal. There are two options under consideration:
 
-The scope includes analyzing how to automate guest user creation, assigning access packages, suppressing default Azure AD onboarding emails, and automating contact and role assignment within Dataverse through a custom admin interface.
+Static Table Implementation:
+
+Extract the current PDF document containing the yearly schedule information.
+
+Create a custom Dataverse table to store this information.
+
+Build an HTML/Power Pages page to display the static schedule data on the portal.
+
+Dynamic Schedule Engine Integration:
+
+Analyze the existing “Schedule Engine” being developed by the Case Management team.
+
+Understand its data model, logic, and automation.
+
+Plan to integrate the portal UI with this engine to display real-time schedule information, including last run, next run, and other meta-data.
+
+Scope of this Spike:
+Understand current and target state for the scheduling information.
+
+Collaborate with Case Management team to gather information on the Schedule Engine readiness.
+
+Define the technical design and effort estimation for both solutions.
+
+Recommend one solution based on business priority, technical feasibility, and timeline.
 
 Acceptance Criteria:
+Documented comparison between static and dynamic solutions.
 
-Understand the current manual process (Canvas App + MyAccess portal + manual approvals).
+Draft UI mock-up or flow for the chosen approach.
 
-Explore automation options via Microsoft Graph API for:
+List of dependencies (e.g., other teams, data models).
 
-Guest user creation in Azure AD (HMRC tenant).
-
-Access package assignment.
-
-Integration with the portal user setup table and Dataverse contact records.
-
-Evaluate how to suppress Azure AD invitation emails and replace with custom onboarding emails.
-
-Define architecture & flow for onboarding via Power Pages / Power Apps admin interface.
-
-Recommend an approach for handling single and multiple council/account associations.
-
-Document dependencies (Azure AD, Dataverse, Power Automate, Azure Function, Graph API permissions, etc.).
-
-Produce a high-level design with steps for implementation, automation flow, and security considerations.
-
-Deliverables:
-
-Design document outlining end-to-end automation.
-
-List of required Azure resources (Graph API permissions, service principals, etc.).
-
-High-level flow diagram for the onboarding process.
-
-Recommendations on minimizing manual intervention and aligning with B2B onboarding best practices.
-
-Target Outcome:
-A clear design and implementation plan to automate the LA Portal guest user onboarding process aligned with HMRC's security model and user experience standards.
+Recommendation documented for stakeholder approval.
