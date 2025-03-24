@@ -1,393 +1,109 @@
-Current Process (As-Is)
-File Upload Process via Plugin:
+Multiple Council Access Feature Overview
+Purpose:
+To allow a portal user (typically third-party providers such as Capita) to access and manage records for multiple councils (Billing Authorities) via the LA Portal. This feature enables users to switch between councils they represent without requiring multiple user accounts.
 
-A plugin uploads a file to SDES using an HTTP POST request.
+Core Implementation Details:
+Many-to-Many Relationship between Contact and Account (Council):
 
-Based on the HTTP response code (e.g., 200, 203, 500), the plugin updates the file status (e.g., success/fail) in Dataverse (Portal File Management table).
+A custom many-to-many (N:N) relationship is established between the Contact entity and Account entity (representing Billing Authorities).
 
-Current Issue Identified:
+This allows a single user (Contact) to be related to multiple councils.
 
-Sometimes SDES incorrectly returns a 200 (success) even when the file has issues (e.g., virus detected or scrubbing center issue).
+The current active account is still handled via the standard Active Account lookup field on the contact record.
 
-Specific case mentioned: HTTP 422 error is translated by SDES as 200 success to the plugin.
+Represents Multiple Switch:
 
-SDES talks to a scrubbing center and due to internal firewall or communication issues, some failed cases return success.
+A custom boolean field VOA_p_representsmultiple (Yes/No) is added to the Contact table.
 
-Identified Risk & Limitation
-The plugin can't fully trust SDES HTTP response status alone for file success/failure.
+If set to Yes, the user will be presented with the option to switch between councils they are associated with.
 
-This impacts the reliability of status reflected back to customers in the portal.
+If set to No, the portal functions as it does today, limiting the user to their single assigned council.
 
-Proposed Mitigation
-Additional Notification API Call (for post-upload verification):
+Portal Changes:
 
-HMRC provides a Notification API that can be queried after file upload to check the final processing status of the file (post scrubbing).
+A custom GDS-styled web template was implemented called "VOA GDS Choose an Account", linked to a portal webpage (e.g., "Choose a Billing Authority").
 
-This provides the actual, accurate status (e.g., success or quarantined).
+The page retrieves all related councils using a FetchXML query based on the many-to-many relationship.
 
-Difference between two file types:
+The user is presented with a list of councils they have access to and can switch between them.
 
-Normal file uploads: Can query for updated status using Notification API (active approach).
+Active Account Switch Logic:
 
-Quarantined files: Requires a webhook URL (HTTP endpoint) to receive status updates from HMRC (passive approach).
+Upon selecting a council, the system updates the Active Account lookup in the Contact record (via a custom OData API call).
 
-Next Steps Identified
-For standard uploads:
+The active account switch dynamically filters the portal data and user experience, reflecting the selected council’s records.
 
-Integrate the Notification API after receiving the initial SDES response to confirm final file status.
+UI Changes in Portal Dashboard:
 
-For quarantined files:
+A “Change” button is added next to the Billing Authority on the portal dashboard.
 
-Create an Azure Function (HTTP trigger) that will act as a webhook.
+Clicking this triggers the user to the “Choose Billing Authority” screen where they can select a different council.
 
-HMRC will call this webhook with quarantine notifications.
+Portal User Setup Process (Current Limitation):
 
-Once received, update the file status in Dataverse appropriately (e.g., "Quarantined").
+Current user onboarding process (via Portal User Setup table) does not yet handle this multiple-account relationship.
 
-Other Observations
-Power Automate is not acceptable to HMRC for webhook, hence Azure Function is required.
+Further enhancement is needed to extend the setup process to:
 
-Schema from HMRC will include file metadata like file name and status.
+Allow selection of multiple councils during onboarding.
 
-Files will need to be deleted (soft/hard delete) both from:
+Automatically create the relationship records in Dataverse.
 
-Dataverse (Portal File Management + related entities).
+Next Steps Identified:
+Review user setup workflows to integrate multiple council relationship creation.
 
-Blob storage or SDES storage (for bulk files or evidence).
+Ensure portal table permissions (on Contact & Account entities) allow for this enhanced visibility.
 
-Additional Notes:
-Bulk uploads: After ingestion, files are processed into front door header & rows in Dataverse.
+Fine-tune the UX around switching councils and handle cache/session management post-switch.
 
-Files might also be moved into a "do not use" container post-processing but are not automatically deleted from storage.
 
-Portal deletion today just marks them as "Delete" (soft delete) but retains physical files.
 
-Business will decide retention period (e.g., 30 days) before running cleanup jobs to:
 
-Physically delete files from blob storage.
 
-Delete portal records (via system jobs or batch Azure Function jobs).
+ User Story: Implement Multiple Council Access Switching
+Title: Enable Portal Users to Switch Between Multiple Councils
 
-Summary
-Current Gaps Identified:
-
-Plugin cannot solely rely on HTTP 200/203 responses.
-
-There is no mechanism yet to handle quarantine notifications automatically.
-
-Actionable next steps:
-
-Implement Notification API checks for post-upload status.
-
-Create Azure Function webhook for receiving quarantine alerts from HMRC.
-
-
-
-Code currently used for SDES (as per your shared plugin):
-The plugin PreAnnotationCreate in the VOAP.Portal.FileUpload.Plugins.Entrypoints.annotation namespace is handling the SDES file upload.
-
-Key code points:
-SDES Upload Invocation:
-
-csharp
-Copy
-Edit
-// Inside AttemptFileUpload method
-var uploadInformation = NotifyFileForUpload(filename, bearerToken, serviceController, tracing, fileManagementRef.Id);
-
-serviceController.UploadFile(uploadInformation.url, fileData, uploadInformation.file, tracing);
-Bearer token retrieval:
-
-csharp
-Copy
-Edit
-string bearerToken = serviceController.Authorise(tracing);
-Get upload URL:
-
-csharp
-Copy
-Edit
-controller.NotifyFile(authToken, fileName, Metadata, tracing);
-Upload Status Handling:
-
-csharp
-Copy
-Edit
-// success
-SetFileManagementStatus(fileManagementRef, FileManagementConstants.StatusReasonCodes.Uploaded, $"Success {infoContent}", service);
-
-// failure
-SetFileManagementStatus(fileManagementRef, FileManagementConstants.StatusReasonCodes.Failed, $"Error occurred: {infoContent} Message: {e.Message}", service);
-⚠️ Current Limitation:
-Plugin relies on the HTTP status codes from serviceController.UploadFile(), i.e., 200/203/500 etc., immediately after upload, which is misleading due to SDS scrubbing center issue.
-
-✅ Proposed Fix via Azure Function
-Solution Overview:
-Keep the existing plugin to perform the initial upload.
-
-Introduce an Azure Function to periodically query the SDES Notification API to confirm the final file status (for uploaded files).
-
-Additionally, create a webhook Azure Function to accept SDS notifications for quarantined files.
-
-Step 1: Polling Azure Function (for status check)
-This Azure Function will:
-Take the file reference or ID from Dataverse.
-
-Call the SDES Notification API using file metadata.
-
-Parse the response (check for final status: "Completed", "Quarantined", "Failed", etc.).
-
-Update the Portal File Management Dataverse table status based on the result.
-
-Azure Function Sample (Polling API)
-csharp
-Copy
-Edit
-public static class CheckSdesStatusFunction
-{
-    [FunctionName("CheckSdesStatusFunction")]
-    public static async Task Run([TimerTrigger("0 */15 * * * *")] TimerInfo myTimer, ILogger log)
-    {
-        var filesToCheck = GetPendingFilesFromDataverse(); // Query dataverse for records marked as Uploaded
-
-        foreach (var file in filesToCheck)
-        {
-            var status = await GetSdesFileStatusAsync(file.SdesFileId);
-            
-            if (status == "Completed")
-            {
-                UpdateFileManagementStatus(file.Id, "Success");
-            }
-            else if (status == "Quarantined")
-            {
-                UpdateFileManagementStatus(file.Id, "Quarantined");
-            }
-            else if (status == "Failed")
-            {
-                UpdateFileManagementStatus(file.Id, "Failed");
-            }
-        }
-    }
-
-    private static async Task<string> GetSdesFileStatusAsync(string fileId)
-    {
-        // HTTP GET to SDES Notification API with fileId
-        using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "<token>");
-        var response = await client.GetAsync($"https://api.sdes.hmrc.gov.uk/notifications?fileId={fileId}");
-
-        var content = await response.Content.ReadAsStringAsync();
-        var json = JObject.Parse(content);
-        return json["status"].ToString(); // e.g., "Completed", "Quarantined"
-    }
-}
-Step 2: Azure Function Webhook (for Quarantine Notification)
-Webhook function will:
-Accept a POST payload from SDS (when SDS pushes quarantine notification).
-
-Parse the payload (fileId, status).
-
-Update the corresponding record in Portal File Management table.
-
-Azure Function Sample (Webhook for SDS Notification)
-csharp
-Copy
-Edit
-[FunctionName("SdesNotificationWebhook")]
-public static async Task<IActionResult> Run(
-    [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
-    ILogger log)
-{
-    string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-    dynamic data = JsonConvert.DeserializeObject(requestBody);
-
-    string fileId = data?.fileId;
-    string status = data?.status;
-
-    if (!string.IsNullOrEmpty(fileId) && !string.IsNullOrEmpty(status))
-    {
-        UpdateFileManagementStatus(fileId, status);
-        return new OkObjectResult($"Status updated for fileId: {fileId}");
-    }
-    return new BadRequestObjectResult("Invalid payload");
-}
-Step 3: Dataverse Integration
-UpdateFileManagementStatus will use Dataverse SDK / Dataverse API to update the record (e.g., voap_portalfilemanagement entity).
-
-Example status mappings:
-
-"Completed" → "Success"
-
-"Quarantined" → "Quarantined"
-
-"Failed" → "Failed Upload to SDS"
-
-Benefits:
-Provides real-time accurate status via webhook for quarantine cases.
-
-Provides proactive polling for normal uploads via Notification API.
-
-Prevents false positives where SDES incorrectly returns 200 on initial upload.
-
-Optional:
-Integrate with Azure Application Insights to log webhook hits and polling attempts.
-
-Consider retry mechanisms for transient failures while calling SDS Notification API.
-
-
-
-
-
-Epic: Improve SDS File Upload and Status Reconciliation Process
-Story 1: Implement Polling Azure Function to Reconcile SDS Upload Status
-Description: Develop an Azure Function that will poll the SDS Notification API at regular intervals (e.g., every 15 minutes) to check the final status of uploaded files. The function should:
-
-Retrieve records marked as "Uploaded" from Portal File Management Dataverse table.
-
-Call SDS Notification API using the file ID or metadata.
-
-Update Dataverse with actual status: Success, Quarantined, or Failed.
-
-Acceptance Criteria:
-
-Polls every 15 minutes via Azure Timer Trigger.
-
-Updates correct file status in Dataverse.
-
-Logs all polling activities to Application Insights.
-
-Story 2: Implement SDS Webhook for Quarantine Notifications
-Description: Create an HTTP-triggered Azure Function to receive real-time quarantine notifications from SDS. This will enable instant status updates when SDS marks a file as quarantined.
-
-Acceptance Criteria:
-
-Webhook endpoint created to accept POST payloads from SDS.
-
-Parses fileId and status from SDS payload.
-
-Updates Portal File Management Dataverse table to reflect "Quarantined" status.
-
-Supports schema validation of incoming payload.
-
-Story 3: Register Azure Function Webhook with SDS for Quarantine Files
-Description: Register the newly created Azure Function webhook with HMRC SDS team to ensure SDS sends quarantine notifications to the new endpoint.
-
-Acceptance Criteria:
-
-Work with SDS team to configure webhook endpoint in SDS environment.
-
-Validate notification is triggered successfully with test data.
-
-Confirm SDS and scrubbing center integration to handle firewall or network issues.
-
-Story 4: Dataverse Integration - Update File Status Programmatically
-Description: Create or update a shared library/helper to update voap_portalfilemanagement records from both Azure Functions (polling and webhook).
-
-Acceptance Criteria:
-
-Support status values like: Success, Quarantined, Failed.
-
-Support log/trace information when status is updated.
-
-Allow reusable implementation between multiple Azure Functions.
-
-Story 5: Handle Business Logic for Portal - Quarantine/Failed Files
-Description: Define how quarantined or failed files should be displayed and handled on the user portal:
-
-Quarantine scenario (e.g., UX message, re-upload prompt).
-
-Handle records flagged by new Azure Functions.
-
-Acceptance Criteria:
-
-UX wording agreed with product owner (e.g., Emma).
-
-Portal reflects new statuses and handles user actions appropriately (e.g., no access to re-upload button for quarantined).
-
-User is informed about the next steps (e.g., re-upload recommendation).
-
-Story 6: Technical Spike - Review SDS API documentation
-Description: Perform a detailed review of the SDS Developer Hub documentation to understand:
-
-Notification API schema.
-
-Quarantine API webhook format.
-
-Differences between Normal files vs. Quarantined flow.
-
-Acceptance Criteria:
-
-Document API endpoints & schemas in Confluence.
-
-Identify risks, limitations, or technical constraints.
-
-Story 7: Setup Azure Resources (Function App, App Insights)
-Description: Provision required Azure resources for running new polling and webhook functions:
-
-Function App (Consumption or Premium Plan).
-
-App Insights for monitoring.
-
-Secure storage for SDS API keys (Azure Key Vault).
-
-Acceptance Criteria:
-
-Azure Function App deployed.
-
-Azure Application Insights linked.
-
-Service Principal created with least privilege access.
-
-
-
-
-Risk Log Entry
-Risk ID: SDS-422-Compliance
-Title: SDS Scrubbing Center returns misleading 200 status for actual 422 (unprocessable entity) errors
 Description:
-The SDS Scrubbing Center returns HTTP 200 statuses for files that are actually rejected internally with a 422 error (e.g., due to virus scan failures or other issues). This leads to false-positive success flags in the Portal File Management records.
+As a portal user representing multiple councils (Billing Authorities), I want to be able to switch between the councils I manage, so that I can access and submit data on behalf of each council as needed.
 
-Impact:
+Implement many-to-many relationship between Contact and Account entities.
 
-End-users may see successful uploads for files that have actually failed downstream.
+Display available councils on a new "Choose Billing Authority" page when applicable.
 
-Incorrect business decisions may be made based on inaccurate file status.
+Update the Active Account field based on user selection via portal.
 
-Likelihood: High
-Severity: High
-Mitigation:
+Ensure proper UX with a "Change" button on the portal dashboard.
 
-Implement the Polling Azure Function to query the SDS Notification API post-upload to get the correct final status.
+2. Task: Enhance Portal User Setup Process for Multi-Council Users
+Title: Extend Portal User Setup to Handle Multi-Council Relationships
 
-Implement SDS Webhook for instant quarantined status updates.
+Description:
+Update the existing Portal User Setup process to include the option to assign multiple councils to a user.
 
-Owner: [Assign to Tech Lead or Engineering Manager]
-Status: Open
+Allow admins to select multiple related councils during user onboarding.
 
-Architecture Note
-SDS Upload Flow - Proposed Enhancements
-Current Issue:
+Automatically create contact-account relationships in Dataverse.
 
-Plugin triggers SDS upload via HTTP POST.
+Ensure this process aligns with existing contact creation workflows.
 
-Status is set to Success/Failed immediately based on HTTP response (200, 203, 500).
+3. Task: Review and Adjust Portal Permissions
+Title: Update Portal Table Permissions for Multi-Council Feature
 
-SDS Scrubbing Center can still reject files silently (422 hidden behind 200).
+Description:
+Adjust Dataverse security roles and portal table permissions to ensure users can access their multiple assigned councils correctly.
 
-Proposed Solution:
+Review permissions for Contact and Account tables.
 
-Real-time update flow:
+Ensure proper filtering of data based on active account context.
 
-Webhook Function for SDS to notify the system on quarantined files.
+4. Task: Refactor & Optimize Choose Billing Authority Page
+Title: Finalize UI/UX for "Choose Billing Authority" Page
 
-SDS will POST status updates directly to this Azure Function endpoint.
+Description:
+Improve the user interface and logic of the "Choose Billing Authority" page to provide a seamless switching experience for multi-council users.
 
-Polling Mechanism:
+Validate FetchXML queries for retrieving multiple accounts.
 
-Polling Function will run every X mins to pull actual file statuses from SDS Notification API.
+Refine front-end presentation based on GDS standards.
 
-Ensures accuracy for files that SDS falsely marks as successful at POST time.
-
-Dataverse Integration:
-
-The Azure Functions will update the voap_portalfilemanagement table, allowing the portal to reflect real status (Success/Failed/Quarantined).
+Handle user session/cache refresh post account switch.
