@@ -1,132 +1,156 @@
-Core Topic:
-The discussion is about how to present scheduling data (that currently exists as a static PDF document) on the LA Portal. Two approaches are discussed:
+Summary of the Discussion:
+1. Current PG SQL Query Design (Schedules Download Page)
+Currently, the APM (API) URL used to pull schedules applies two filter criteria: fileType and VA code.
 
-1st Approach: Static Table Implementation
-Objective: Convert the PDF schedule into a Dataverse table and display it as an HTML page in the portal.
+Initially, you were getting all schedules from metadata without filtering, and then filtering by VA code on the client side.
 
-Steps:
+Now filtering is done upstream in the API query itself (via fileType and VA code), which reduces the payload and improves performance.
 
-Manually extract schedule data from the PDF document.
+2. Schedule Display Requirement
+The original design fetched multiple formats (CSV, XML, HTML, etc.) as separate entries, leading to duplicated rows.
 
-Create a new custom table (entity) in Dataverse with attributes like:
+The new design expects a deduplicated list of schedules (file name without extensions), and then separate download buttons for different formats (CSV, XML, HTML) after selection.
 
-Schedule Name
+This logic is currently implemented on the portal/plugin layer.
 
-Start Date
+3. New Requirement: Filter by "Last 6 Weeks"
+To filter schedules further based on a "last 6 weeks" rule:
 
-End Date
+Option A: Add an additional query parameter in the existing APM URL/API.
 
-Description / Notes
+Option B: Filter the records post-fetch in the portal/plugin logic (less efficient).
 
-Recurrence / Type (if applicable)
+You recommend Option A (filter upstream in the API or PG SQL view).
 
-Populate this table with static data.
+4. "Last Downloaded" Column Request
+Stakeholders want to track and display the "last downloaded" timestamp.
 
-Build an HTML/Power Pages UI to display this table dynamically to users.
+Challenges:
 
-Pros:
+Virtual entity (Dataverse view on PG SQL) is read-only; you cannot directly update PG SQL metadata.
 
-Easy to implement.
+Requires maintaining a new table (staging) in Dataverse to track downloads by users.
 
-Fully under the portal team’s control.
+Complexity increases if the requirement is user-specific (showing per-user download history).
 
-Quick win for MVP/static version.
+Unclear business value for this effort as the actual downloaded files are static schedules.
 
-Cons:
+5. Download Logging Alternatives:
+Option 1: Log download actions to a custom Dataverse table with details (user, schedule ID, timestamp).
 
-Requires manual updates when the schedule changes.
+Option 2: Explore if PG metadata view can be extended with a last_downloaded field (less likely if PG SQL is locked down).
 
-No automation, no real-time status or logic-driven updates.
+Option 3: Do nothing, and instead provide better UX/design, including clear buttons and guidance to avoid confusion about download actions.
 
-2nd Approach: Dynamic Schedule Engine Integration
-Objective: Integrate with a dynamic "Schedule Engine" designed by the Case Management team, which automatically calculates and updates schedules based on pre-defined business logic.
+Key Recommendations:
+Request Metadata API owners to handle filtering (6 weeks) upstream.
 
-Features of Schedule Engine:
+Reject the "Last Downloaded" column unless a clear and justified business value is provided, as it introduces significant overhead.
 
-Auto-generates next run schedules based on criteria like "run every 15 days."
-
-Captures:
-
-When was the last schedule run?
-
-When is the next due date?
-
-What schedule type/parameters were used?
-
-Data lives in Dataverse tables maintained by another team (Case Management).
-
-Frontend Work:
-
-Build Power Pages/HTML UI to read from the dynamic schedule tables.
-
-Display dynamic and real-time schedule information to users.
-
-Potentially format or process data for user-friendly display (e.g., transforming backend timestamps or codes to readable values).
-
-Pros:
-
-Real-time data, no manual intervention.
-
-Improves UX with current and accurate scheduling details.
-
-Scalable and future-proof (no reliance on static documents).
-
-Cons:
-
-Dependency on the Case Management team to finalize and stabilize the Schedule Engine and data model.
-
-More complex integration effort.
-
-Decision Factors:
-If Schedule Engine is delayed/not production-ready, fallback to the static table option for MVP.
-
-If Schedule Engine is available soon, skip static implementation and directly integrate with the dynamic system.
-
-Additional Notes:
-Both solutions are UI/UX focused but differ in backend logic and maintainability.
-
-The second option is more like a real-time dashboard approach.
+If audit trail is mandatory, propose Option 1 with Dataverse staging table for download logs.
 
 
 
 
 
-Title:
-Spike: Analysis and Design for LA Portal Schedule Display (Static Table vs. Dynamic Schedule Engine)
+Spike: Evaluate "6 Weeks" Filtering for Schedules Download Page
 
-Description:
-The purpose of this spike is to investigate and design the best approach to display scheduling information on the LA Portal. There are two options under consideration:
+Objective
 
-Static Table Implementation:
+Investigate and recommend a solution to implement a filter on the schedules download page to show only records from the last 6 weeks.
 
-Extract the current PDF document containing the yearly schedule information.
+Background
 
-Create a custom Dataverse table to store this information.
+Currently, the schedules are retrieved via an APM API call that filters based on:
 
-Build an HTML/Power Pages page to display the static schedule data on the portal.
+File Type
 
-Dynamic Schedule Engine Integration:
+VA Code
 
-Analyze the existing “Schedule Engine” being developed by the Case Management team.
+The requirement is to add an additional filter based on the published date, limiting the results to schedules from the past 6 weeks.
 
-Understand its data model, logic, and automation.
+Current Design
 
-Plan to integrate the portal UI with this engine to display real-time schedule information, including last run, next run, and other meta-data.
+API (APM URL) fetches data directly from a PG SQL view.
 
-Scope of this Spike:
-Understand current and target state for the scheduling information.
+Filtering for File Type and VA Code happens at the API level.
 
-Collaborate with Case Management team to gather information on the Schedule Engine readiness.
+The frontend/plugin simply displays what is returned by the API.
 
-Define the technical design and effort estimation for both solutions.
+Options to Explore
 
-Recommend one solution based on business priority, technical feasibility, and timeline.
+Option 1: Filter Upstream (Preferred)
 
-Acceptance Criteria:
-Documented comparison between static and dynamic solutions.
+Add "last 6 weeks" filter in PG SQL view or API query logic.
 
-Draft UI mock-up or flow for the chosen approach.
+Minimal changes needed in the portal/plugin.
 
-List of dependencies (e.g., other teams, data models).
+Keeps payload light and optimized.
 
-Recommendation documented for stakeholder approval.
+Option 2: Filter in Plugin Layer
+
+Apply date filter (published date >= today - 6 weeks) inside the portal/plugin.
+
+Less efficient as entire dataset will still be fetched from API.
+
+Tasks for the Spike
+
+Confirm if PG SQL metadata view has published_date or created_date field.
+
+Check if the APM API accepts additional query parameters.
+
+If so, propose adding the "6 weeks" logic directly to API/PG SQL.
+
+If not, assess plugin-level filtering impact on performance.
+
+Deliverables
+
+Summary of findings (API capability + PG SQL view capabilities).
+
+Recommended solution for implementation.
+
+Estimation of effort for the chosen solution.
+
+Pro/Con Document: "Last Downloaded" Column Request
+
+Requirement Summary
+
+Stakeholders have requested to display a "Last Downloaded" timestamp for schedules.
+
+Current Challenge
+
+The schedules data is retrieved from a read-only virtual entity (PG SQL metadata), which prevents direct write-back to the source.
+
+Proposed Approach
+
+Introduce a Dataverse staging table to record download actions (user, timestamp, schedule ID).
+
+When a user downloads a schedule, a record is written to the Dataverse table.
+
+This table is then queried alongside the schedules list to show the "last downloaded" info.
+
+Pros
+
+Allows tracking of download actions per user or per schedule.
+
+Business auditability for key actions.
+
+Can be reused for other auditing needs.
+
+Cons
+
+Increases system complexity.
+
+Requires maintaining synchronization between schedules and staging table.
+
+Adds additional API call/load on the download action.
+
+Minimal tangible business value (UX concerns could be solved via UI clarity).
+
+Does not solve the edge case of downloads happening via shared credentials.
+
+Recommendation
+
+Defer implementation unless business can provide a compelling value proposition.
+
+Alternatively, improve UX design (e.g., clearer download buttons, tooltips) to address user confusion.
