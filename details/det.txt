@@ -1,50 +1,159 @@
-Jira Story
-Title: Design and Impact Analysis for Centralized Address Table Adoption in Portal
+Main Points:
+1. SSU ID (Statutory Spatial Unit ID)
+SSU ID is considered the gold standard for identifying property addresses.
 
-Description:
-The case management team is proposing to use a centralized Address Table across all related Dataverse entities to reduce address duplication and streamline integration logic. This story is to analyze the potential impacts of this change on the portal, including the current front-door and bulk submission workflows, and to design an approach for implementing this change in the portal.
+The front door process does an address match using various criteria:
+
+Priority 1: BA Code + BA Ref.
+
+Priority 2: UPRN.
+
+Priority 3: Address string + Postcode.
+
+Once a match is found, an SSU ID is retrieved.
+
+The current process:
+
+Michael’s service finds the SSU ID but does not persist it into the Portal Request Table.
+
+Instead, it’s passed forward later during submission creation.
+
+Ideal flow: The SSU ID should be directly saved in the Portal Request Table once found to avoid redundant lookups in downstream processes like submission creation or case management.
+
+2. Current Issues/Gaps Identified
+a) Address Mismatch Between Portal Request Table & Submission Table
+When BA Code and BA Ref are valid but the Excel provides an incorrect/free-text address:
+
+Address match process correctly finds the matching address (based on BA Code/Ref).
+
+But Portal Request Table still stores the free-text/wrong Excel address.
+
+The submission process later corrects this address using SSU match or integration logic.
+
+Impact: Users see the wrong address on the portal initially (Portal Request record) even though it gets fixed in submission later.
+
+b) Address Formatting Gap (Bulk Upload)
+Excel uploads can have poorly formatted free-text addresses.
+
+Users can type inconsistent, non-standard formats like "123/B, Some Street, City, Postcode" in one cell.
+
+This breaks address match consistency because of:
+
+Lack of delimiters (e.g., missing commas).
+
+Extra special characters.
+
+Non-standard formatting.
+
+c) Current BST Address Format
+A plugin formats the address into a BST (British Standard) format for Dataverse.
+
+However, inconsistencies can still arise from how data is inputted in Excel vs how it is written to the Portal Request table.
+
+Often truncation or incorrect formatting happens during address string manipulation.
+
+🟡 Why is this a concern?
+Poor address quality leads to:
+
+Incorrect portal display.
+
+Risk of case management teams getting incorrect info.
+
+Redundant validation work downstream.
+
+Increased manual intervention (e.g., matching by Emma’s team).
+
+System inefficiency (address match repeating downstream when SSU ID is already known upstream).
+
+🔵 Technical Flow Summary
+Bulk Excel Upload ➡ Address Matching ➡ SSU ID found.
+
+Portal Request Table:
+
+Currently captures the original Excel address instead of using the matched/correct address from the SSU match process.
+
+Portal Submission Table:
+
+Corrects the address automatically using another integration lookup using SSU ID.
+
+Opportunity:
+
+Fix at Portal Request Table level itself by injecting the correct address and SSU ID early.
+
+🔶 Recommended Next Steps
+Address Plugin Fix:
+
+After SSU match:
+
+Write SSU ID directly into the Portal Request Table.
+
+Write the matched/cleaned address from the lookup instead of Excel address string.
+
+Enhance Bulk Upload Validation Logic:
+
+Improve sanitization/formatting logic to:
+
+Strip unwanted characters.
+
+Normalize address strings before lookup.
+
+Possibly implement client-side sanitization (e.g., Power Automate/JS validation).
+
+Michael’s Logic Review:
+
+Confirm with Michael why the SSU ID is not persisted at Portal Request step.
+
+Align to update front door service to save correct address + SSU ID earlier.
+
+Address Standard Compliance:
+
+Ensure all formatted addresses follow BST (ISO) standard before persistence.
+
+
+
+
+
+Story 1: Persist SSU ID on Portal Request Record
+Summary: Ensure that the SSU ID retrieved after address matching is persisted in the Portal Request table.
 
 Acceptance Criteria:
-Assess how the centralized Address Table will affect current address capture in:
 
-Portal File Management table
+On successful address match, the SSU ID is saved on the Portal Request table.
 
-Portal Request Submission table
+Ensure SSU ID is passed forward to downstream processes (submissions, case creation).
 
-Request Line Item table
+Story 2: Overwrite Free-Text Excel Address with Matched Address
+Summary: Update the Portal Request record to store the clean/matched address from the SSU process instead of the raw Excel-uploaded address.
 
-Evaluate changes needed in front-door plugins (e.g., address match, SSU ID assignment).
+Acceptance Criteria:
 
-Propose a solution for referencing the centralized Address Table instead of persisting address fields in multiple tables.
+When BA Code + BA Ref / UPRN match an address, the matched BST-formatted address replaces the free-text input in the Portal Request table.
 
-Identify changes to UI/UX where applicable (e.g., where addresses are displayed or modified).
+Ensure no manual intervention is required by Emma’s team for these matched records.
 
-Document a high-level design including updated data flow and entity relationship diagram (ERD).
+Story 3: Address Formatting & Sanitization Enhancement for Bulk Upload
+Summary: Enhance validation logic to clean, normalize, and sanitize free-text addresses coming from Excel uploads.
 
-Provide a list of portal-side API/plugin updates required.
+Acceptance Criteria:
 
-Highlight risks (e.g., data migration of historical addresses, integration timing with case management backend).
+Strip special characters like /, \, ;, . , () etc. before address match.
 
-Tasks under this ticket:
-Task 1: Current State Assessment
-Analyze how address fields are currently captured and stored in portal tables (including plugins and front-end components).
+Normalize to a consistent case (e.g., Title Case or UPPER).
 
-Task 2: Centralized Address Table Schema Review
-Review schema structure of the new centralized Address Table from case management.
+Validate address string against standard regex patterns before further processing.
 
-Task 3: Impact on Address Matching and SSU ID Logic
-Analyze how address match logic, including SSU ID population, will be affected when switching to a centralized address record.
+Story 4: Align with Michael’s Address Matching Service Logic
+Summary: Conduct a joint review session with Michael’s team to align on SSU ID persistence and address formatting logic.
 
-Task 4: Front-Door/Plugin Changes
-Identify required plugin/service layer changes to reference and populate centralized address records instead of storing full addresses directly in portal-specific tables.
+Acceptance Criteria:
 
-Task 5: Design Document Preparation
-Prepare a solution design document, including:
+Confirm if Michael’s service should handle writing the SSU ID + clean address to the portal.
 
-ERD changes (new relationships)
+Update logic if necessary based on joint discussion.
 
-Data flow diagrams (before/after)
+Spike:
+Evaluate BST Format Implementation Gaps
 
-Technical steps for integration
+Goal: Investigate gaps between Excel input → plugin BST formatting → submission address quality.
 
-Risks and mitigation plan
+Deliverable: Document issues found and recommendations (e.g., missed trimming, inconsistencies in multi-line address handling).
