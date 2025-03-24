@@ -1,159 +1,93 @@
-Main Points:
-1. SSU ID (Statutory Spatial Unit ID)
-SSU ID is considered the gold standard for identifying property addresses.
+Plugin Overview:
+PreAnnotationCreate : IPlugin
 
-The front door process does an address match using various criteria:
+Key Responsibilities of Plugin:
+Triggered on creation of annotation (notes) entity (pre-operation).
 
-Priority 1: BA Code + BA Ref.
+Checks if the file is related to the voap_portalfilemanagement table.
 
-Priority 2: UPRN.
+Prepares the file for SDES upload:
 
-Priority 3: Address string + Postcode.
+Reads metadata (filename, mimetype, document body).
 
-Once a match is found, an SSU ID is retrieved.
+Converts the document body (base64 encoded file content) to a byte array.
 
-The current process:
+Renames the file and calls FileUploadHelper.AttemptFileUpload().
 
-Michael’s service finds the SSU ID but does not persist it into the Portal Request Table.
+Inside FileUploadHelper.AttemptFileUpload():
+Prepares metadata for SDES API (account info, filename, filesize, etc.).
 
-Instead, it’s passed forward later during submission creation.
+Calls SDESServiceController.NotifyFile() to get upload URL.
 
-Ideal flow: The SSU ID should be directly saved in the Portal Request Table once found to avoid redundant lookups in downstream processes like submission creation or case management.
+Uploads file using SDESServiceController.UploadFile() by posting to SDES API.
 
-2. Current Issues/Gaps Identified
-a) Address Mismatch Between Portal Request Table & Submission Table
-When BA Code and BA Ref are valid but the Excel provides an incorrect/free-text address:
+Blank out file content in Dataverse (for security reasons).
 
-Address match process correctly finds the matching address (based on BA Code/Ref).
+Where is the Issue?
+Current Implementation:
 
-But Portal Request Table still stores the free-text/wrong Excel address.
+It is treating any uploaded file as a single binary stream.
 
-The submission process later corrects this address using SSU match or integration logic.
+It reads the content from annotation.documentbody (base64 string) and uploads the entire file as-is to SDES.
 
-Impact: Users see the wrong address on the portal initially (Portal Request record) even though it gets fixed in submission later.
+This means if you upload an .msg or .eml file with attachments, it uploads only the .msg/.eml file itself but does not inspect or extract internal attachments from it.
 
-b) Address Formatting Gap (Bulk Upload)
-Excel uploads can have poorly formatted free-text addresses.
+What is missing?
+The plugin does not parse the contents of .msg or .eml files to identify and extract embedded attachments.
 
-Users can type inconsistent, non-standard formats like "123/B, Some Street, City, Postcode" in one cell.
+There is no logic in place to handle MIME structure parsing to separate attachments from the email body.
 
-This breaks address match consistency because of:
+The plugin uploads the whole email file (including attachments embedded inside) as a flat binary file, so SDES only receives the email file, not its child attachments as individual files.
 
-Lack of delimiters (e.g., missing commas).
+Conclusion:
+✅ The issue is plugin-side, not SDES-side.
 
-Extra special characters.
+SDES is correctly receiving whatever binary payload is sent by the plugin.
 
-Non-standard formatting.
+The plugin simply takes the uploaded note/annotation (email or file) and sends it as one binary.
 
-c) Current BST Address Format
-A plugin formats the address into a BST (British Standard) format for Dataverse.
+Recommendation:
+You will need to:
 
-However, inconsistencies can still arise from how data is inputted in Excel vs how it is written to the Portal Request table.
+Enhance this plugin (before calling AttemptFileUpload()):
 
-Often truncation or incorrect formatting happens during address string manipulation.
+Add MIME or MSG parser logic to extract attachments inside .msg/.eml.
 
-🟡 Why is this a concern?
-Poor address quality leads to:
+Loop through extracted files and create separate annotation records for each attachment or bundle them separately for SDES.
 
-Incorrect portal display.
+Or implement a helper class to preprocess .msg/.eml files and break them into:
 
-Risk of case management teams getting incorrect info.
+Main email content.
 
-Redundant validation work downstream.
+Child attachments.
 
-Increased manual intervention (e.g., matching by Emma’s team).
 
-System inefficiency (address match repeating downstream when SSU ID is already known upstream).
 
-🔵 Technical Flow Summary
-Bulk Excel Upload ➡ Address Matching ➡ SSU ID found.
+Title: Spike: Analyze and Enhance PreAnnotationCreate Plugin for Email Attachments Handling
 
-Portal Request Table:
+Description:
+Currently, when users upload email files (e.g., .msg or .eml) as evidence, only the parent email file is uploaded to SDES. Embedded attachments inside the email are not extracted or processed.
 
-Currently captures the original Excel address instead of using the matched/correct address from the SSU match process.
+Objectives:
+Analyze the current PreAnnotationCreate plugin and FileUploadHelper.AttemptFileUpload() to understand how the file is processed.
 
-Portal Submission Table:
+Determine if the plugin is capable of parsing email files to extract attachments.
 
-Corrects the address automatically using another integration lookup using SSU ID.
+Explore C# libraries (e.g., MimeKit, MsgReader) for extracting attachments from .msg or .eml files.
 
-Opportunity:
+Identify the appropriate place in the plugin workflow to extract and process attachments before uploading to SDES.
 
-Fix at Portal Request Table level itself by injecting the correct address and SSU ID early.
+Assess how extracted attachments should be managed:
 
-🔶 Recommended Next Steps
-Address Plugin Fix:
+As separate annotations.
 
-After SSU match:
+Or grouped into a batch for SDES.
 
-Write SSU ID directly into the Portal Request Table.
+Deliverables:
+Technical analysis report.
 
-Write the matched/cleaned address from the lookup instead of Excel address string.
+Tool/library recommendation for email parsing.
 
-Enhance Bulk Upload Validation Logic:
+Suggested implementation strategy.
 
-Improve sanitization/formatting logic to:
-
-Strip unwanted characters.
-
-Normalize address strings before lookup.
-
-Possibly implement client-side sanitization (e.g., Power Automate/JS validation).
-
-Michael’s Logic Review:
-
-Confirm with Michael why the SSU ID is not persisted at Portal Request step.
-
-Align to update front door service to save correct address + SSU ID earlier.
-
-Address Standard Compliance:
-
-Ensure all formatted addresses follow BST (ISO) standard before persistence.
-
-
-
-
-
-Story 1: Persist SSU ID on Portal Request Record
-Summary: Ensure that the SSU ID retrieved after address matching is persisted in the Portal Request table.
-
-Acceptance Criteria:
-
-On successful address match, the SSU ID is saved on the Portal Request table.
-
-Ensure SSU ID is passed forward to downstream processes (submissions, case creation).
-
-Story 2: Overwrite Free-Text Excel Address with Matched Address
-Summary: Update the Portal Request record to store the clean/matched address from the SSU process instead of the raw Excel-uploaded address.
-
-Acceptance Criteria:
-
-When BA Code + BA Ref / UPRN match an address, the matched BST-formatted address replaces the free-text input in the Portal Request table.
-
-Ensure no manual intervention is required by Emma’s team for these matched records.
-
-Story 3: Address Formatting & Sanitization Enhancement for Bulk Upload
-Summary: Enhance validation logic to clean, normalize, and sanitize free-text addresses coming from Excel uploads.
-
-Acceptance Criteria:
-
-Strip special characters like /, \, ;, . , () etc. before address match.
-
-Normalize to a consistent case (e.g., Title Case or UPPER).
-
-Validate address string against standard regex patterns before further processing.
-
-Story 4: Align with Michael’s Address Matching Service Logic
-Summary: Conduct a joint review session with Michael’s team to align on SSU ID persistence and address formatting logic.
-
-Acceptance Criteria:
-
-Confirm if Michael’s service should handle writing the SSU ID + clean address to the portal.
-
-Update logic if necessary based on joint discussion.
-
-Spike:
-Evaluate BST Format Implementation Gaps
-
-Goal: Investigate gaps between Excel input → plugin BST formatting → submission address quality.
-
-Deliverable: Document issues found and recommendations (e.g., missed trimming, inconsistencies in multi-line address handling).
+Risk assessment and dependencies.
