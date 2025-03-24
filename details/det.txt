@@ -1,109 +1,98 @@
-Multiple Council Access Feature Overview
-Purpose:
-To allow a portal user (typically third-party providers such as Capita) to access and manage records for multiple councils (Billing Authorities) via the LA Portal. This feature enables users to switch between councils they represent without requiring multiple user accounts.
+Summary of Discussion: B2B Process for LA Portal
+1. Current Guest User Onboarding (B2B Flow):
+Users (e.g., Cognizant users) are added to the HMRC tenant as Azure AD guest users.
 
-Core Implementation Details:
-Many-to-Many Relationship between Contact and Account (Council):
+Once created, guest users are provided access to LA Portal via Access Packages.
 
-A custom many-to-many (N:N) relationship is established between the Contact entity and Account entity (representing Billing Authorities).
+A default email notification is triggered during guest user creation (HMRC plans to suppress or customize this email as it's not GDS-compliant or desirable for end-users at this stage).
 
-This allows a single user (Contact) to be related to multiple councils.
+2. Access Package & MyAccess Portal
+Users typically use Microsoft's myaccess.microsoft.com to view available access packages, but HMRC has hidden these packages from general view.
 
-The current active account is still handled via the standard Active Account lookup field on the contact record.
+Access packages can now only be assigned via direct URL, as per HMRC configuration.
 
-Represents Multiple Switch:
+Once access is approved (by someone like Stuart or Emma), users get application-level access (e.g., LA Portal).
 
-A custom boolean field VOA_p_representsmultiple (Yes/No) is added to the Contact table.
+3. Portal User Setup vs Manual B2B
+The legacy "Canvas App" method still exists for creating guest users but is bypassed for bulk user uploads.
 
-If set to Yes, the user will be presented with the option to switch between councils they are associated with.
+For private beta, a bulk upload mechanism is followed:
 
-If set to No, the portal functions as it does today, limiting the user to their single assigned council.
+Bulk creation of guest users
 
-Portal Changes:
+Bulk assignment of access packages
 
-A custom GDS-styled web template was implemented called "VOA GDS Choose an Account", linked to a portal webpage (e.g., "Choose a Billing Authority").
+Bypassing the manual Canvas App flow
 
-The page retrieves all related councils using a FetchXML query based on the many-to-many relationship.
+4. Custom Portal Page for Approval (Day 2 Plan)
+HMRC plans to introduce a custom-built admin page on the portal where internal users (e.g., Emma & Stuart) can manage user onboarding:
 
-The user is presented with a list of councils they have access to and can switch between them.
+Fill in contact details
 
-Active Account Switch Logic:
+Select roles, accounts, councils
 
-Upon selecting a council, the system updates the Active Account lookup in the Contact record (via a custom OData API call).
+Trigger guest user creation and access package assignment via automation (avoiding myaccess.microsoft.com altogether).
 
-The active account switch dynamically filters the portal data and user experience, reflecting the selected council’s records.
+5. Authentication Sync (Dataverse Contacts & Azure AD)
+When a guest user logs in, the system automatically creates the external identity and web authentication records (in Dataverse) if they don’t already exist.
 
-UI Changes in Portal Dashboard:
+The system will map external users based on email matching, controlled via a site setting (Azure AD authentication: allow email mapping = yes).
 
-A “Change” button is added next to the Billing Authority on the portal dashboard.
+6. Security Stamp Fix
+Issue previously identified where contact records didn’t have a "security stamp" causing external identity linking failures.
 
-Clicking this triggers the user to the “Choose Billing Authority” screen where they can select a different council.
+Workaround: use "Change Password" on the contact record to auto-generate a security stamp (though this is being phased out with new automation).
 
-Portal User Setup Process (Current Limitation):
+7. Next Steps Identified
+Suppress the default onboarding email.
 
-Current user onboarding process (via Portal User Setup table) does not yet handle this multiple-account relationship.
+Formalize the "custom portal user onboarding" process with automated guest user creation and access package assignment.
 
-Further enhancement is needed to extend the setup process to:
-
-Allow selection of multiple councils during onboarding.
-
-Automatically create the relationship records in Dataverse.
-
-Next Steps Identified:
-Review user setup workflows to integrate multiple council relationship creation.
-
-Ensure portal table permissions (on Contact & Account entities) allow for this enhanced visibility.
-
-Fine-tune the UX around switching councils and handle cache/session management post-switch.
+Ensure system syncs authentication records seamlessly using Graph API when needed.
 
 
 
 
-
- User Story: Implement Multiple Council Access Switching
-Title: Enable Portal Users to Switch Between Multiple Councils
+JIRA SPIKE
+Title:
+Spike: Analysis and Design for Automated Guest User Onboarding for LA Portal (B2B Model)
 
 Description:
-As a portal user representing multiple councils (Billing Authorities), I want to be able to switch between the councils I manage, so that I can access and submit data on behalf of each council as needed.
+This spike is to investigate, design, and recommend a solution for automating the onboarding process of external guest users (B2B users) into the HMRC Azure AD tenant and granting them secure access to the LA Portal.
 
-Implement many-to-many relationship between Contact and Account entities.
+The scope includes analyzing how to automate guest user creation, assigning access packages, suppressing default Azure AD onboarding emails, and automating contact and role assignment within Dataverse through a custom admin interface.
 
-Display available councils on a new "Choose Billing Authority" page when applicable.
+Acceptance Criteria:
 
-Update the Active Account field based on user selection via portal.
+Understand the current manual process (Canvas App + MyAccess portal + manual approvals).
 
-Ensure proper UX with a "Change" button on the portal dashboard.
+Explore automation options via Microsoft Graph API for:
 
-2. Task: Enhance Portal User Setup Process for Multi-Council Users
-Title: Extend Portal User Setup to Handle Multi-Council Relationships
+Guest user creation in Azure AD (HMRC tenant).
 
-Description:
-Update the existing Portal User Setup process to include the option to assign multiple councils to a user.
+Access package assignment.
 
-Allow admins to select multiple related councils during user onboarding.
+Integration with the portal user setup table and Dataverse contact records.
 
-Automatically create contact-account relationships in Dataverse.
+Evaluate how to suppress Azure AD invitation emails and replace with custom onboarding emails.
 
-Ensure this process aligns with existing contact creation workflows.
+Define architecture & flow for onboarding via Power Pages / Power Apps admin interface.
 
-3. Task: Review and Adjust Portal Permissions
-Title: Update Portal Table Permissions for Multi-Council Feature
+Recommend an approach for handling single and multiple council/account associations.
 
-Description:
-Adjust Dataverse security roles and portal table permissions to ensure users can access their multiple assigned councils correctly.
+Document dependencies (Azure AD, Dataverse, Power Automate, Azure Function, Graph API permissions, etc.).
 
-Review permissions for Contact and Account tables.
+Produce a high-level design with steps for implementation, automation flow, and security considerations.
 
-Ensure proper filtering of data based on active account context.
+Deliverables:
 
-4. Task: Refactor & Optimize Choose Billing Authority Page
-Title: Finalize UI/UX for "Choose Billing Authority" Page
+Design document outlining end-to-end automation.
 
-Description:
-Improve the user interface and logic of the "Choose Billing Authority" page to provide a seamless switching experience for multi-council users.
+List of required Azure resources (Graph API permissions, service principals, etc.).
 
-Validate FetchXML queries for retrieving multiple accounts.
+High-level flow diagram for the onboarding process.
 
-Refine front-end presentation based on GDS standards.
+Recommendations on minimizing manual intervention and aligning with B2B onboarding best practices.
 
-Handle user session/cache refresh post account switch.
+Target Outcome:
+A clear design and implementation plan to automate the LA Portal guest user onboarding process aligned with HMRC's security model and user experience standards.
