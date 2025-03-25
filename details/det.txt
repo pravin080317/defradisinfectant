@@ -1,313 +1,52 @@
-1. Business Requirement - Search on Schedules (Virtual Entity Search)
-Users want a search functionality on the portal's schedules page (likely for LA portal users).
+Title:
+Bug: SDES Rejecting .docx File Type Despite Initial Acknowledgement
 
-The search should allow searching across fields like:
+Type:
+Bug
 
-File Name
+Priority:
+High
 
-List Name
+Description:
+There appears to be an inconsistency in the SDES file handling process in PROD. A .docx file uploaded as part of a standard evidence submission initially triggered an automated confirmation email from SDES confirming successful receipt and secure storage:
 
-Description
+File: 01634f32-a308-f011-bae2-6045bd0f8cf5.docx
+Received Timestamp: 24/03/2025 11:29:23
 
-Possibly more (this wasn't fully confirmed).
+However, a follow-up communication from SDES support indicated that .docx is not an accepted file extension for this type of transfer (Request ID: 19581). This discrepancy raises a potential PROD incident, as .docx is one of the expected and supported formats for evidence uploads.
 
-The schedule data is coming from a virtual entity (Dataverse Virtual Table) which sources data from a PostgreSQL (PgSQL) backend.
+Impact:
 
-Technical Challenges Identified:
-The virtual table points to a PgSQL source, so the data is brought into Dataverse on-the-fly via the API app.
+Creates confusion around allowed file types for users uploading evidence.
 
-Searching inside a virtual table in Dataverse (Dataverse Search or query) will only apply to the retrieved records (e.g., 65 rows in memory).
+Possibility of file rejection after confirmation email is misleading and can lead to data loss or rework.
 
-There is no full direct search on the PgSQL backend from Dataverse without customizing the API integration logic.
+Impacts the automation and user experience for LA Portal submissions.
 
-Why was it descoped earlier?
-Initially, this schedule table was expected to be in Dataverse, making OOTB PowerApps search/filtering feasible.
+Steps to Reproduce:
 
-After it moved to PgSQL as the actual source, the limitation arose due to how virtual entities behave (they don’t allow deep server-side queries, only limited filtering via API parameters).
+Upload a .docx file to SDES via the evidence submission flow.
 
-2. UX Insight - Sorting Component
-Sorting is available on the grid via GDS pattern components, but users are unaware.
+Observe initial success message from SDES confirming secure storage.
 
-There is existing click-sort functionality on the schedules grid but no prominent UI indicator.
+Receive a follow-up email rejecting the .docx file type.
 
-Potential action: This is more of a UX issue, and educating users or enhancing the UI could resolve it.
+Expected Result:
+.docx should be consistently accepted across all stages of the process, or if restricted, validation should occur before upload confirmation.
 
-3. File Size Discussion
-There is a mention of large PDFs from councils like Birmingham.
+Actual Result:
+File acknowledged as received, followed by a rejection notification for unsupported extension.
 
-PDFs in some cases (e.g., Birmingham) are around 70-80 MB due to consolidated council data.
+Proposed Next Steps:
 
-Currently supported formats:
+Raise with Katie and Abo for clarification on accepted file types.
 
-PDF, HTML, CSV, XLS, XML.
+Investigate SDES integration rules/config for file type handling.
 
-Context on Display Limit:
-There's a historical reason why only 4 documents are shown (possibly due to the size of schedules).
+Update validation logic if .docx is indeed unsupported, or ensure SDES configuration allows it.
 
-4. Filtering and Source-side Constraints
-The virtual table's current API integration only allows filtering by:
+Attachments:
 
-BA Code
+Initial SDES confirmation screenshot
 
-Type (private or public schedules).
-
-No filtering based on date ranges like "last 2 weeks" or "last 4 weeks" is available currently.
-
-The current API App/plugin is restricted to those two filter params.
-
-Suggested improvement discussed:
-Add a new field in the PgSQL table, like:
-
-Active/Inactive flag OR
-
-Published Date/Expiry logic.
-
-Let the source handle record visibility (e.g., the PgSQL backend should expose only "active" schedules).
-
-Ownership:
-The schedules data ownership and visibility filtering should ideally sit with the PgSQL team, not the portal frontend team.
-
-5. Schema Relationship Insight
-The schedule table has columns like:
-
-ID
-
-List ID
-
-Billing Authority ID
-
-It has a relation to a Dataverse entity, possibly linking to the schedule generation records.
-
-Mentioned PgSQL tables may be standalone (not impacting other legacy products) but linked via metadata like list ID or external ID.
-
-6. Potential Risks Highlighted:
-If PgSQL is used for other downstream systems, any structural changes (e.g., adding new fields) might impact them.
-
-However, the belief is each product has its own isolated tables within PgSQL (schedule table here appears isolated).
-
-7. Pending Items / Unclarified:
-No clarity yet on whether users want:
-
-Just a search box across 65-100+ schedule records (client-side)
-
-Or deep search on PgSQL directly.
-
-No decision yet whether filtering by date or status will be handled in UI or backend API.
-
-Summary of Actions Discussed:
-Investigate UI search/filter for virtual entity.
-
-Recommend backend changes (PgSQL-side filtering or status flag).
-
-Review UX enhancements for sorting awareness (e.g., tooltips or buttons).
-
-
-
-
-
-
-
-1. PGSQL Data and Record Duplication Issue
-When a user submits a form, a record is created in PGSQL.
-
-If the submission is edited and re-submitted, it creates a new record instead of updating the existing one (due to design or integration constraint).
-
-This means duplicate records may appear on the portal as there is no deduplication logic at the PGSQL layer.
-
-The filtering at the PGSQL level is limited (e.g., by File Type, BA Code) and doesn't handle deduplication or versioning of records.
-
-Current situation:
-
-The portal reads this virtual entity (backed by PGSQL) and shows all matching records as per current filtering (e.g., BA Code + Type).
-
-The problem arises because PGSQL stores each correction or re-submission as a new record rather than updating an existing one.
-
-2. Download Service and Notifications
-The portal is downloading files (PDFs, CSVs, etc.) using metadata from PGSQL records and a URL (via API).
-
-There's a mention that notifications or failures in schedules might also be visible at the customer end (this is somewhat vague but points to a feedback mechanism for file availability).
-
-Additional points:
-
-There was a mention of wanting to see a notification counter on the dashboard.
-
-Additionally, discussions about introducing an internal messaging/notification system into the portal for council users.
-
-It would behave like typical notifications, specific to a user, and unread ones wouldn’t disappear if another council member logs in.
-
-3. Duplicate Submission Scenario (Portal Request vs Submission)
-a) Single Submission Issue (Manual)
-Scenario:
-
-User submits a record via the portal.
-
-The record status changes from "Incomplete" → "Submitted".
-
-Power Automate triggers on the status change and creates the Portal Request Submission.
-
-Problem:
-
-If the user hits the back button on the browser, goes back to the "Check Your Answers" page, and clicks Submit again, it retriggers the flow and creates duplicate submissions.
-
-Root Cause:
-
-Power Automate is configured to trigger on any status reason change, even if the value remains "Submitted" (re-setting the same value counts as an update).
-
-Fix Proposed & Implemented:
-
-Add a check before triggering the status change update:
-
-js
-Copy
-Edit
-if (currentStatus !== "Submitted") { 
-    // proceed with update logic 
-} else {
-    // navigate without re-triggering
-}
-Prevents multiple re-submissions due to browser navigation tricks.
-
-b) Bulk Submission Issue (Service Bus Trigger)
-Scenario:
-
-Related to bulk file uploads (e.g., Excel/XML bulk import).
-
-The Service Bus integration does not properly check if there is an ongoing processing request, leading to multiple Portal Request Submissions for the same record.
-
-Root Cause:
-
-Lack of a deduplication/duplicate check inside the plugin/service bus handler when bulk processing.
-
-Fix being applied by Michael:
-
-Introducing a duplicate detection mechanism inside the plugin before creating the submission.
-
-Will check if there is already a record with:
-
-Same ID / Name
-
-Status = Processing or Pending
-
-If so, it won’t create another duplicate.
-
-4. Planned Architectural Improvements / Security Controls
-There was an older discussion to further secure the Portal Request Table due to concerns:
-
-Avoid showing internal GUIDs or sensitive data on the portal.
-
-Lock down the Portal Request Table so that once records are "inactive," they can't be edited externally via web API.
-
-Introduce a secondary/staging table (e.g., PortalRequest2 or WebPortalRequest) for handling the front-end view and interaction.
-
-Possibly add a "tap" system where:
-
-On submission, data is moved to the secondary table.
-
-The original table is locked/inactivated.
-
-This prevents external users from altering the core records.
-
-This would also support scenarios where maintenance windows could be toggled without fully disabling the portal.
-
-5. Suggested backlog/security improvements (optional)
-Hide grid URLs: In Check Your Answers/Review pages, remove URL exposure for submitted records.
-
-Introduce temporary (interim) tables: To further limit portal exposure, map records to an alternate ID during navigation.
-
-Record deactivation post-submission: Immediately mark core records inactive once submission is complete.
-
-Automation redirection: Make automations run from the staging table rather than the active portal submission table.
-
-Flexibility during downtime: The interim table would allow continued data entry while backend automations are paused.
-
-6. Service Design Awareness
-PGSQL stores schedules and other records used by multiple systems.
-
-Some schedules come from PgSQL → Virtual Table → Power Platform / Portal, while legacy or other applications might have different dependencies.
-
-PgSQL schemas have some relationships with Dataverse (via List ID, BA ID, etc.).
-
-Conclusion
-There are three main streams here:
-
-Bug fix for manual duplicate submissions (single submission scenario with browser back button).
-
-Bug fix for programmatic duplicates (bulk submissions due to service bus/plugin logic).
-
-Long-term proposal for a secure/staging model to segregate sensitive data exposure.
-
-
-
-
-
-
-
-
-
-From this JSON schema and column metadata you've provided, we can now clearly see the structure of the PgSQL schedules table that is backing the virtual table on the LA Portal. Here's the breakdown of this data along with insights:
-
-PgSQL Table Breakdown
-Column Name	Type	Description
-id	GUID	Unique ID for the schedule record
-groupId	GUID	Used for grouping multiple output types for the same schedule
-baCode	String (100)	Billing Authority Code (e.g., "0116")
-listId	GUID	FK to the list table in Dataverse to indicate which list this schedule belongs to
-listYear	Integer	Denormalized field for the base year (e.g., 2005)
-listType	String (50)	Either CT (Council Tax) or NDR (Non-Domestic Rates)
-billingAuthorityId	GUID	FK to the Dynamics Account (Dataverse) for the Billing Authority
-reportType	GUID	FK to a Report Type table in Dataverse
-fileType	String (10)	Output file format: CSV, PDF, XML
-filePath	String (255)	URL path to the file (e.g., Azure Blob Storage)
-fileSize	Integer	File size in bytes (e.g., 347 KB)
-fileName	String (255)	Name of the file as stored in Blob
-description	Text / String(MAX)	Free text description (e.g., "Full Council Tax Valuation List")
-language	String	Language metadata (e.g., "English")
-createdDate	Date	When the report was generated (e.g., "2024-08-03")
-Big Picture Summary
-This is a Schedules table exposed as a virtual table inside Dataverse for LA Portal consumption.
-
-Current filter options exposed to Dataverse/portal seem limited to:
-
-BA Code (Billing Authority Code)
-
-File Type or other lightweight metadata.
-
-Observation from discussions:
-There's currently no filtering based on dates like createdDate exposed via the API.
-
-There’s also no status/flag (like "active/inactive") currently in the table to handle visibility requirements (e.g., showing only last 2 weeks).
-
-Main Constraints Identified:
-Virtual table search limitations: Searches/filtering are confined to what’s retrieved in Dataverse.
-
-Backend Filtering needed: The PgSQL backend/API would need to allow dynamic filters (e.g., by createdDate or by a new "active" flag).
-
-UX issue for portal users: They can't currently search schedules on file name, description, etc.
-
-Other Insights Based on Schema
-fileSize can help filter very large files if needed (e.g., exclude PDFs above certain MB).
-
-listType can be leveraged to separate CT from NDR records.
-
-createdDate can be useful if PgSQL exposes dynamic filtering for "last X days/weeks".
-
-groupId is mainly for UI grouping and not exposed to users directly.
-
-Potential Recommendations
-Short-term (Frontend):
-
-Implement a local text search (on the Dataverse virtual entity side) for:
-
-fileName, description, and maybe listType.
-
-Medium-term (Backend):
-
-Engage with PgSQL API owners to:
-
-Add an "active/inactive" flag in the schedules table.
-
-Enable API-side filtering by createdDate or custom status.
-
-Long-term:
-
-Improve UX on the schedules grid to make sorting/filtering more discoverable (e.g., GDS component improvements).
+Rejection email from SDES Support
