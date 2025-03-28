@@ -1,52 +1,58 @@
-Title:
-Bug: SDES Rejecting .docx File Type Despite Initial Acknowledgement
-
-Type:
-Bug
-
-Priority:
-High
-
+ 1. Task: Develop Custom Telemetry Script for Application Insights
+Title: AI-DEV01 - Develop Client Telemetry Script for Performance Analytics
 Description:
-There appears to be an inconsistency in the SDES file handling process in PROD. A .docx file uploaded as part of a standard evidence submission initially triggered an automated confirmation email from SDES confirming successful receipt and secure storage:
+Develop a custom JavaScript snippet using the Application Insights SDK to track user activity in the Power Pages portal. This includes:
 
-File: 01634f32-a308-f011-bae2-6045bd0f8cf5.docx
-Received Timestamp: 24/03/2025 11:29:23
+Page views, user ID, and timestamp tracking.
 
-However, a follow-up communication from SDES support indicated that .docx is not an accepted file extension for this type of transfer (Request ID: 19581). This discrepancy raises a potential PROD incident, as .docx is one of the expected and supported formats for evidence uploads.
+setAuthenticatedUserContext() to log the Azure AD user ID.
 
-Impact:
+Disable cookies (disableCookiesUsage: true) and avoid storing user context in cookies.
 
-Creates confusion around allowed file types for users uploading evidence.
+Add telemetry initializers for contextual data (e.g., council info, roles).
 
-Possibility of file rejection after confirmation email is misleading and can lead to data loss or rework.
+🚀 2. Task: Deploy Application Insights and Portal Snippet Changes
+Title: AI-DEP01 - Deploy Application Insights Resource and Portal Snippet Updates
+Description:
+Deploy Application Insights resource in Azure and integrate the telemetry script into Power Pages:
 
-Impacts the automation and user experience for LA Portal submissions.
+Add script via web template or content snippet.
 
-Steps to Reproduce:
+Store connection string in site settings or a secure reference.
 
-Upload a .docx file to SDES via the evidence submission flow.
+Confirm the Application Insights resource is scoped to LA portal only.
 
-Observe initial success message from SDES confirming secure storage.
+📊 3. Task: Set Up Log Analytics Workspace and Dashboard
+Title: AI-DASH01 - Configure Log Analytics & Build Kusto-Based Dashboard
+Description:
+Create a Log Analytics workspace and configure diagnostic settings to route Application Insights logs to it.
+Build a dashboard to support the PA team with key metrics such as:
 
-Receive a follow-up email rejecting the .docx file type.
+Page views per user/session.
 
-Expected Result:
-.docx should be consistently accepted across all stages of the process, or if restricted, validation should occur before upload confirmation.
+Load times and common access patterns.
 
-Actual Result:
-File acknowledged as received, followed by a rejection notification for unsupported extension.
+Custom events or failures.
 
-Proposed Next Steps:
+🧪 4. Task: Test Telemetry with Performance Analyst and Apply Enhancements
+Title: AI-QA01 - Validate Telemetry with PA and Incorporate Feedback
+Description:
+Coordinate with the Performance Analyst (PA) to:
 
-Raise with Katie and Abo for clarification on accepted file types.
+Test the telemetry data being captured.
 
-Investigate SDES integration rules/config for file type handling.
+Validate user ID, page hits, and other contextual details.
 
-Update validation logic if .docx is indeed unsupported, or ensure SDES configuration allows it.
+Apply refinements based on feedback to improve reporting accuracy or event tagging.
 
-Attachments:
+📥 5. Task: Set Up Scheduled Download and Power BI Integration
+Title: AI-PBI01 - Schedule Data Export and Integrate with Power BI
+Description:
+Enable scheduled export of required telemetry data (e.g., via Azure Monitor workbook or direct KQL query output).
+Make this data available to PA through Power BI:
 
-Initial SDES confirmation screenshot
+Use Kusto queries to define the dataset.
 
-Rejection email from SDES Support
+Set up refresh schedules and access.
+
+Include any custom filtering logic (e.g., exclude test users or spam telemetry).
