@@ -1,58 +1,22 @@
- 1. Task: Develop Custom Telemetry Script for Application Insights
-Title: AI-DEV01 - Develop Client Telemetry Script for Performance Analytics
-Description:
-Develop a custom JavaScript snippet using the Application Insights SDK to track user activity in the Power Pages portal. This includes:
-
-Page views, user ID, and timestamp tracking.
-
-setAuthenticatedUserContext() to log the Azure AD user ID.
-
-Disable cookies (disableCookiesUsage: true) and avoid storing user context in cookies.
-
-Add telemetry initializers for contextual data (e.g., council info, roles).
-
-🚀 2. Task: Deploy Application Insights and Portal Snippet Changes
-Title: AI-DEP01 - Deploy Application Insights Resource and Portal Snippet Updates
-Description:
-Deploy Application Insights resource in Azure and integrate the telemetry script into Power Pages:
-
-Add script via web template or content snippet.
-
-Store connection string in site settings or a secure reference.
-
-Confirm the Application Insights resource is scoped to LA portal only.
-
-📊 3. Task: Set Up Log Analytics Workspace and Dashboard
-Title: AI-DASH01 - Configure Log Analytics & Build Kusto-Based Dashboard
-Description:
-Create a Log Analytics workspace and configure diagnostic settings to route Application Insights logs to it.
-Build a dashboard to support the PA team with key metrics such as:
-
-Page views per user/session.
-
-Load times and common access patterns.
-
-Custom events or failures.
-
-🧪 4. Task: Test Telemetry with Performance Analyst and Apply Enhancements
-Title: AI-QA01 - Validate Telemetry with PA and Incorporate Feedback
-Description:
-Coordinate with the Performance Analyst (PA) to:
-
-Test the telemetry data being captured.
-
-Validate user ID, page hits, and other contextual details.
-
-Apply refinements based on feedback to improve reporting accuracy or event tagging.
-
-📥 5. Task: Set Up Scheduled Download and Power BI Integration
-Title: AI-PBI01 - Schedule Data Export and Integrate with Power BI
-Description:
-Enable scheduled export of required telemetry data (e.g., via Azure Monitor workbook or direct KQL query output).
-Make this data available to PA through Power BI:
-
-Use Kusto queries to define the dataset.
-
-Set up refresh schedules and access.
-
-Include any custom filtering logic (e.g., exclude test users or spam telemetry).
+SELECT 
+    pfm.voa_portalfilemanagementid AS [FileManagementId],
+    pfm.voap_name AS [FileName],
+    pfm.statuscode AS [FileStatusCode],
+    pfm.voap_uploadtype AS [UploadType],
+    pfm.voap_portalrequestlookup AS [PortalRequestId],
+    prs.voa_portalrequestsubmissionid AS [PortalRequestSubmissionId],
+    rli.voa_requestlineitemid AS [RequestLineItemId],
+    rli.voa_name AS [RequestLineItemName]
+FROM 
+    voa_portalfilemanagement AS pfm
+LEFT JOIN 
+    voa_portalrequest AS pr ON pr.voa_portalrequestid = pfm.voap_portalrequestlookup
+LEFT JOIN 
+    voa_portalrequestsubmission AS prs ON prs.voap_originatingportalrequest = pr.voa_portalrequestid
+LEFT JOIN 
+    voa_requestlineitem AS rli ON rli.voa_requestlineitemid = prs.voa_requestlineitemid
+WHERE 
+    pfm.voap_uploadtype = 930950000  -- UploadType = Evidence (option set value; adjust if different in your org)
+    AND pfm.statuscode IN (1, 2, 3)   -- Active/Processing/New/etc.
+ORDER BY 
+    pfm.modifiedon DESC
