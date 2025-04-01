@@ -1,124 +1,98 @@
-End-to-End Evidence File Processing Workflow
-User Uploads the Evidence File via Portal
+KEY OBJECTIVES FROM DIAGRAM:
+Retire the hotfix approach (patch directly to PROD) to avoid rework and code divergence.
 
-The user uploads an evidence file (PDF, image, etc.) related to a request/case.
+Separate development streams for:
 
-Portal Plugin Triggered
+BAU Defect Fixes & Minor Enhancements
 
-A backend plugin in Dynamics is triggered upon upload.
+Major Features (Release 2.0)
 
-The plugin:
+Microsoft Wave Updates (platform-level)
 
-Sends the file to SDES (Secure Data Exchange Service) for virus scanning.
+Introduce merge stages for validated releases.
 
-Creates a record in Portal File Management with details of the file.
+Streamline environments – Repurpose unused/test environments (FAT, MOFF, HOTFIX).
 
-If the upload is successful to SDES, the status in Portal File Management is set to:
+Enhance automation and synchronization across all channels.
 
-"Success Upload to SDES"
+Introduce “Training” as a PROD-like environment for onboarding and demos.
 
-If SDES upload fails, the status is set to:
+🧱 ENVIRONMENT STRUCTURE BREAKDOWN
+🔴 HOTFIXING CHANNEL (To Be Removed)
+HOTFIX (U) and HOTFIX (M):
+Used to apply emergency patches directly to production.
+➤ Issue: No code reuse. Patches had to be reworked into the BAU stream.
 
-"Failed Upload to SDES"
+🔵 BAU MAIN CHANNEL (Primary Dev/Defect Fix Path)
+Focus: Defect remediation, BAU change requests.
 
-SDES Processing
+DEV (BAU) → Active development (unmanaged)
 
-Once SDES receives the file, it:
+DEV MASTER → Managed code; pre-SIT validation
 
-Scans the file using the scrubbing centre.
+SIT → Fully integrated testing (DAL, Azure, QUA)
 
-If the file is clean, it:
+UAT → Exploratory testing, stakeholder sign-off
 
-Uploads it to the Azure Blob Storage (la-portal container).
+PPE → Pre-Prod/Smoke testing
 
-Sends a confirmation email to the support contact (e.g., Mike).
+PROD → Live Production
 
-If the file is infected, it:
+TRAINING → Replica of PROD for onboarding/training
 
-Quarantines the file.
+📌 Important Note: SIT is the only fully integrated environment (legacy systems, MDTP, IFS), hence it's the single point for full end-to-end validation.
 
-Sends a rejection email to the support contact.
+🟢 RELEASE 2.0 DEVELOPMENT CHANNEL
+Focus: Major features & business transformations (e.g. aggregation, disaggregation, NDR → CT).
 
-Front Door Timer Azure Function (TimerCheckFolderVestibule)
+DEV (R2.0) + PROD MIRROR → Feature branch development
 
-A scheduled Azure Function runs every few minutes.
+DEV (R2.0) MERGE → Consolidated staging before deployment into BAU
 
-It scans the Azure Blob Storage for new files.
+Merges into SIT → Then flows through to PROD
 
-When a new file is detected:
+📌 Strategy: Maintain sync between R2.0 and BAU streams through controlled merges.
 
-It creates a record in Front Door Header (voa_frontdoorheader).
+🟡 MICROSOFT WAVE UPDATE CHANNEL
+Focus: Dynamics 365 Platform updates (e.g. March & Sept releases).
 
-This record tracks the file and links it to the processing pipeline.
+DEV (MS) + PROD MIRROR → Clone of PROD with platform-only changes
 
-Batch Processing Azure Function (QueueProcessPortalFileBatch)
+DEV (MS) MERGE → Used to validate Wave releases before applying to main PROD
 
-The function:
+📌 Avoids doing MS Wave testing in actual PROD or BAU environments.
 
-Validates the file format and metadata.
+🔄 ENVIRONMENTS TO BE REPURPOSED
+Located in orange boxes:
 
-Verifies it is of "Evidence" type.
+FAT (x) → Becomes DEV (R2.0)
 
-Links the file to the Portal File Management record.
+MOFF (x) → Becomes DEV (MS)
 
-If the file is valid and evidence type:
+HOTFIX (U) → Becomes DEV (R2.0) MERGE
 
-It forwards it to the Evidence Queue for further processing.
+HOTFIX (M) → Becomes DEV (MS) MERGE
 
-If the Portal File Management status is not "Success Upload to SDES", it:
+🟪 STREAMS & THEIR PURPOSE (Bottom Legend)
+Stream	Development Channel
+BAU/Defect Remediation	BAU Main Channel
+Welsh Reform	Also BAU (CRs & Appeals)
+Release 2.0	Dedicated feature release stream
+Business Training/Play	Use Training environment for this
+🧩 ICON LEGEND (Right Corner)
+Red Cross ➝ Environment needs fixing
 
-Logs an error in Front Door Error table.
+DAL/QUA/AZ ➝ Installed components (Dataverse, QuAD, Azure)
 
-Marks the Front Door Header as "Suspended" to stop processing.
+Blue/Green ➝ Unmanaged vs Managed environments
 
-Evidence File Processing Azure Function (QueueProcessPortalEvidenceFile)
+📌 OBSERVATIONS
+The strategy aims for code alignment, reduced duplication, and better environment hygiene.
 
-This function tries to:
+Automation of deployment pipelines is a major goal.
 
-Retrieve the corresponding Request Line Item (voa_requestlineitem) for the uploaded evidence.
+Business stakeholders need to sign off on decommissioning environments like MOFF.
 
-If the Request Line Item is found:
+Multiple dev streams allow for parallelized development without bottlenecks.
 
-The file is uploaded to SharePoint under the correct case folder.
-
-The Portal File Management status is updated to "Complete".
-
-If the Request Line Item is not found:
-
-The file is not uploaded to SharePoint.
-
-The Portal File Management status is reset to "New".
-
-A description message is logged (e.g., “Waiting for request line item...”).
-
-The system will retry this process every 10–15 minutes automatically.
-
-Handling Stuck Files
-
-If the file:
-
-Is not marked as Complete
-
-And is not Failed
-
-Then the portal UI will show the file as “Processing”
-
-This continues until:
-
-A Request Line Item is eventually created (and file gets uploaded), or
-
-The process fails due to a permanent issue.
-
-Key Entities Involved
-Table/Entity	Purpose
-Portal File Management	Tracks upload status, file name, and retry state
-Front Door Header	Controls and tracks file processing pipeline
-Request Line Item	Represents the request/case to which file is linked
-SharePoint	Final storage location for evidence
-Front Door Error	Logs issues during file processing
-Recovery & Retry Logic
-Automatic retries occur every 10–15 minutes if a Request Line Item isn’t yet available.
-
-There is no need to re-upload the evidence file.
-
-Once the case is ready, the system will pick it up and finish processing automatically.
+Reduces cost by repurposing existing instances rather than spinning up new ones.
