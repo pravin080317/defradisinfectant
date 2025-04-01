@@ -1,22 +1,124 @@
-SELECT 
-    pfm.voa_portalfilemanagementid AS [FileManagementId],
-    pfm.voap_name AS [FileName],
-    pfm.statuscode AS [FileStatusCode],
-    pfm.voap_uploadtype AS [UploadType],
-    pfm.voap_portalrequestlookup AS [PortalRequestId],
-    prs.voa_portalrequestsubmissionid AS [PortalRequestSubmissionId],
-    rli.voa_requestlineitemid AS [RequestLineItemId],
-    rli.voa_name AS [RequestLineItemName]
-FROM 
-    voa_portalfilemanagement AS pfm
-LEFT JOIN 
-    voa_portalrequest AS pr ON pr.voa_portalrequestid = pfm.voap_portalrequestlookup
-LEFT JOIN 
-    voa_portalrequestsubmission AS prs ON prs.voap_originatingportalrequest = pr.voa_portalrequestid
-LEFT JOIN 
-    voa_requestlineitem AS rli ON rli.voa_requestlineitemid = prs.voa_requestlineitemid
-WHERE 
-    pfm.voap_uploadtype = 930950000  -- UploadType = Evidence (option set value; adjust if different in your org)
-    AND pfm.statuscode IN (1, 2, 3)   -- Active/Processing/New/etc.
-ORDER BY 
-    pfm.modifiedon DESC
+End-to-End Evidence File Processing Workflow
+User Uploads the Evidence File via Portal
+
+The user uploads an evidence file (PDF, image, etc.) related to a request/case.
+
+Portal Plugin Triggered
+
+A backend plugin in Dynamics is triggered upon upload.
+
+The plugin:
+
+Sends the file to SDES (Secure Data Exchange Service) for virus scanning.
+
+Creates a record in Portal File Management with details of the file.
+
+If the upload is successful to SDES, the status in Portal File Management is set to:
+
+"Success Upload to SDES"
+
+If SDES upload fails, the status is set to:
+
+"Failed Upload to SDES"
+
+SDES Processing
+
+Once SDES receives the file, it:
+
+Scans the file using the scrubbing centre.
+
+If the file is clean, it:
+
+Uploads it to the Azure Blob Storage (la-portal container).
+
+Sends a confirmation email to the support contact (e.g., Mike).
+
+If the file is infected, it:
+
+Quarantines the file.
+
+Sends a rejection email to the support contact.
+
+Front Door Timer Azure Function (TimerCheckFolderVestibule)
+
+A scheduled Azure Function runs every few minutes.
+
+It scans the Azure Blob Storage for new files.
+
+When a new file is detected:
+
+It creates a record in Front Door Header (voa_frontdoorheader).
+
+This record tracks the file and links it to the processing pipeline.
+
+Batch Processing Azure Function (QueueProcessPortalFileBatch)
+
+The function:
+
+Validates the file format and metadata.
+
+Verifies it is of "Evidence" type.
+
+Links the file to the Portal File Management record.
+
+If the file is valid and evidence type:
+
+It forwards it to the Evidence Queue for further processing.
+
+If the Portal File Management status is not "Success Upload to SDES", it:
+
+Logs an error in Front Door Error table.
+
+Marks the Front Door Header as "Suspended" to stop processing.
+
+Evidence File Processing Azure Function (QueueProcessPortalEvidenceFile)
+
+This function tries to:
+
+Retrieve the corresponding Request Line Item (voa_requestlineitem) for the uploaded evidence.
+
+If the Request Line Item is found:
+
+The file is uploaded to SharePoint under the correct case folder.
+
+The Portal File Management status is updated to "Complete".
+
+If the Request Line Item is not found:
+
+The file is not uploaded to SharePoint.
+
+The Portal File Management status is reset to "New".
+
+A description message is logged (e.g., “Waiting for request line item...”).
+
+The system will retry this process every 10–15 minutes automatically.
+
+Handling Stuck Files
+
+If the file:
+
+Is not marked as Complete
+
+And is not Failed
+
+Then the portal UI will show the file as “Processing”
+
+This continues until:
+
+A Request Line Item is eventually created (and file gets uploaded), or
+
+The process fails due to a permanent issue.
+
+Key Entities Involved
+Table/Entity	Purpose
+Portal File Management	Tracks upload status, file name, and retry state
+Front Door Header	Controls and tracks file processing pipeline
+Request Line Item	Represents the request/case to which file is linked
+SharePoint	Final storage location for evidence
+Front Door Error	Logs issues during file processing
+Recovery & Retry Logic
+Automatic retries occur every 10–15 minutes if a Request Line Item isn’t yet available.
+
+There is no need to re-upload the evidence file.
+
+Once the case is ready, the system will pick it up and finish processing automatically.
