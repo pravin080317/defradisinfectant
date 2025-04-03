@@ -1,98 +1,49 @@
-KEY OBJECTIVES FROM DIAGRAM:
-Retire the hotfix approach (patch directly to PROD) to avoid rework and code divergence.
+1. Phase Readiness and Milestones
+Discovery, Alpha, Beta, Live Phases: GDS requires that teams validate they’ve met specific exit criteria at each phase. Make sure you have sign-off steps to progress from Discovery → Alpha → Beta → Live.
 
-Separate development streams for:
+Beta Labelling: If you’re publicly testing, the service should be labeled as “Beta” so users know it might change.
 
-BAU Defect Fixes & Minor Enhancements
+2. Cost, Governance, and Spend Controls
+Cost per Transaction: GDS specifically tracks cost per transaction as a KPI for service efficiency. If this is relevant, make sure you’ve got a plan to measure and report it.
 
-Major Features (Release 2.0)
+Spend Approvals: Certain government services need Cabinet Office or departmental spend approvals. It may not always apply, but it’s worth confirming if your project is subject to this.
 
-Microsoft Wave Updates (platform-level)
+3. Operational and Business Continuity
+Incident Management / Disaster Recovery: Have a documented plan for service outages or major incidents, including fallback approaches for users.
 
-Introduce merge stages for validated releases.
+Business Continuity: If the digital channel is down, how do users continue or complete the process (especially if it’s critical, e.g., tax filing)?
 
-Streamline environments – Repurpose unused/test environments (FAT, MOFF, HOTFIX).
+4. Data Lifecycle, Retention, and Archiving
+Data Minimization / Retention: GDS and HMRC guidelines encourage collecting only what’s strictly necessary. Confirm there’s a documented retention period and data disposal/archiving strategy (especially for personal data).
 
-Enhance automation and synchronization across all channels.
+Data Transfer: If user data moves between systems (internal or third-party), ensure you have documented flows, a data protection impact assessment (DPIA), and a clear legal basis for processing.
 
-Introduce “Training” as a PROD-like environment for onboarding and demos.
+5. Cookie Policy and Consent
+Cookies and Tracking: Ensure you have a clear cookie policy that meets GDPR/PECR. Users should understand (and consent to) how their data is tracked.
 
-🧱 ENVIRONMENT STRUCTURE BREAKDOWN
-🔴 HOTFIXING CHANNEL (To Be Removed)
-HOTFIX (U) and HOTFIX (M):
-Used to apply emergency patches directly to production.
-➤ Issue: No code reuse. Patches had to be reworked into the BAU stream.
+Cookie Banner: Typically required for public services (unless strictly exempt). Even if minimal analytics are used, GDS expects transparency.
 
-🔵 BAU MAIN CHANNEL (Primary Dev/Defect Fix Path)
-Focus: Defect remediation, BAU change requests.
+6. Open Source and Reusability
+Open Source: GDS strongly encourages making source code open if possible (especially generic components) – unless there are good security or commercial reasons not to.
 
-DEV (BAU) → Active development (unmanaged)
+Common Components: Verify if you can use or contribute to open standards and existing GOV.UK design system elements (e.g., form patterns, headings, and icons).
 
-DEV MASTER → Managed code; pre-SIT validation
+7. Policy and Regulatory Alignment
+Compliance with Departmental Policy: For HMRC, ensure relevant policy owners and governance boards have signed off. This includes any official disclaimers, specific guidance text, or compliance statements.
 
-SIT → Fully integrated testing (DAL, Azure, QUA)
+Equality Impact Assessment: Formal documentation to demonstrate you’ve considered equality obligations under the Equality Act (especially in how the service is designed and tested with different user groups).
 
-UAT → Exploratory testing, stakeholder sign-off
+8. Service Naming and Branding
+Service Name: GOV.UK services often follow a standardized naming approach (e.g., “Apply for [X]” or “Check [Y]”). If your service is part of HMRC’s portfolio, confirm it adheres to naming guidelines so users recognize it as official.
 
-PPE → Pre-Prod/Smoke testing
+Domain and URL: For public services, GDS typically advises using a gov.uk domain or a subdomain (if it’s an official government service). Make sure you’re using an approved domain (and brand) if applicable.
 
-PROD → Live Production
+9. Further User Support and Communication
+Help and Complaints Mechanism: GDS emphasizes a clear route for users to get help or escalate issues. This goes beyond “support tickets” – it might include phone lines, chat, or other assisted digital.
 
-TRAINING → Replica of PROD for onboarding/training
+Public Comms / Onboarding: Especially if you’re migrating existing users from a legacy service. Plan how you’ll communicate changes or new features to them.
 
-📌 Important Note: SIT is the only fully integrated environment (legacy systems, MDTP, IFS), hence it's the single point for full end-to-end validation.
+10. Future Iteration Plan
+Post-Live Improvement: GDS is big on continual iteration. It’s good to formalize how you’ll keep measuring, testing with real users, and rolling out improvements (technical, content, or policy changes).
 
-🟢 RELEASE 2.0 DEVELOPMENT CHANNEL
-Focus: Major features & business transformations (e.g. aggregation, disaggregation, NDR → CT).
-
-DEV (R2.0) + PROD MIRROR → Feature branch development
-
-DEV (R2.0) MERGE → Consolidated staging before deployment into BAU
-
-Merges into SIT → Then flows through to PROD
-
-📌 Strategy: Maintain sync between R2.0 and BAU streams through controlled merges.
-
-🟡 MICROSOFT WAVE UPDATE CHANNEL
-Focus: Dynamics 365 Platform updates (e.g. March & Sept releases).
-
-DEV (MS) + PROD MIRROR → Clone of PROD with platform-only changes
-
-DEV (MS) MERGE → Used to validate Wave releases before applying to main PROD
-
-📌 Avoids doing MS Wave testing in actual PROD or BAU environments.
-
-🔄 ENVIRONMENTS TO BE REPURPOSED
-Located in orange boxes:
-
-FAT (x) → Becomes DEV (R2.0)
-
-MOFF (x) → Becomes DEV (MS)
-
-HOTFIX (U) → Becomes DEV (R2.0) MERGE
-
-HOTFIX (M) → Becomes DEV (MS) MERGE
-
-🟪 STREAMS & THEIR PURPOSE (Bottom Legend)
-Stream	Development Channel
-BAU/Defect Remediation	BAU Main Channel
-Welsh Reform	Also BAU (CRs & Appeals)
-Release 2.0	Dedicated feature release stream
-Business Training/Play	Use Training environment for this
-🧩 ICON LEGEND (Right Corner)
-Red Cross ➝ Environment needs fixing
-
-DAL/QUA/AZ ➝ Installed components (Dataverse, QuAD, Azure)
-
-Blue/Green ➝ Unmanaged vs Managed environments
-
-📌 OBSERVATIONS
-The strategy aims for code alignment, reduced duplication, and better environment hygiene.
-
-Automation of deployment pipelines is a major goal.
-
-Business stakeholders need to sign off on decommissioning environments like MOFF.
-
-Multiple dev streams allow for parallelized development without bottlenecks.
-
-Reduces cost by repurposing existing instances rather than spinning up new ones.
+Retrospectives: A structured approach to gather lessons learned at intervals to feed back into the backlog.
