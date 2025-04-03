@@ -1,49 +1,16 @@
-1. Phase Readiness and Milestones
-Discovery, Alpha, Beta, Live Phases: GDS requires that teams validate they’ve met specific exit criteria at each phase. Make sure you have sign-off steps to progress from Discovery → Alpha → Beta → Live.
-
-Beta Labelling: If you’re publicly testing, the service should be labeled as “Beta” so users know it might change.
-
-2. Cost, Governance, and Spend Controls
-Cost per Transaction: GDS specifically tracks cost per transaction as a KPI for service efficiency. If this is relevant, make sure you’ve got a plan to measure and report it.
-
-Spend Approvals: Certain government services need Cabinet Office or departmental spend approvals. It may not always apply, but it’s worth confirming if your project is subject to this.
-
-3. Operational and Business Continuity
-Incident Management / Disaster Recovery: Have a documented plan for service outages or major incidents, including fallback approaches for users.
-
-Business Continuity: If the digital channel is down, how do users continue or complete the process (especially if it’s critical, e.g., tax filing)?
-
-4. Data Lifecycle, Retention, and Archiving
-Data Minimization / Retention: GDS and HMRC guidelines encourage collecting only what’s strictly necessary. Confirm there’s a documented retention period and data disposal/archiving strategy (especially for personal data).
-
-Data Transfer: If user data moves between systems (internal or third-party), ensure you have documented flows, a data protection impact assessment (DPIA), and a clear legal basis for processing.
-
-5. Cookie Policy and Consent
-Cookies and Tracking: Ensure you have a clear cookie policy that meets GDPR/PECR. Users should understand (and consent to) how their data is tracked.
-
-Cookie Banner: Typically required for public services (unless strictly exempt). Even if minimal analytics are used, GDS expects transparency.
-
-6. Open Source and Reusability
-Open Source: GDS strongly encourages making source code open if possible (especially generic components) – unless there are good security or commercial reasons not to.
-
-Common Components: Verify if you can use or contribute to open standards and existing GOV.UK design system elements (e.g., form patterns, headings, and icons).
-
-7. Policy and Regulatory Alignment
-Compliance with Departmental Policy: For HMRC, ensure relevant policy owners and governance boards have signed off. This includes any official disclaimers, specific guidance text, or compliance statements.
-
-Equality Impact Assessment: Formal documentation to demonstrate you’ve considered equality obligations under the Equality Act (especially in how the service is designed and tested with different user groups).
-
-8. Service Naming and Branding
-Service Name: GOV.UK services often follow a standardized naming approach (e.g., “Apply for [X]” or “Check [Y]”). If your service is part of HMRC’s portfolio, confirm it adheres to naming guidelines so users recognize it as official.
-
-Domain and URL: For public services, GDS typically advises using a gov.uk domain or a subdomain (if it’s an official government service). Make sure you’re using an approved domain (and brand) if applicable.
-
-9. Further User Support and Communication
-Help and Complaints Mechanism: GDS emphasizes a clear route for users to get help or escalate issues. This goes beyond “support tickets” – it might include phone lines, chat, or other assisted digital.
-
-Public Comms / Onboarding: Especially if you’re migrating existing users from a legacy service. Plan how you’ll communicate changes or new features to them.
-
-10. Future Iteration Plan
-Post-Live Improvement: GDS is big on continual iteration. It’s good to formalize how you’ll keep measuring, testing with real users, and rolling out improvements (technical, content, or policy changes).
-
-Retrospectives: A structured approach to gather lessons learned at intervals to feed back into the backlog.
+SELECT 
+    PluginTraceLogId,
+    Name,
+    PerformanceExecutionStartTime,
+    PerformanceExecutionDuration,
+    MessageBlock,
+    ExceptionDetails,
+    OperationTypeName,
+    PrimaryEntity,
+    TypeName,
+    MethodName,
+    CreatedOn
+FROM 
+    PluginTraceLog
+ORDER BY 
+    CreatedOn DESC
