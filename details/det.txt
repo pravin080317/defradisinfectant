@@ -1,16 +1,7 @@
-SELECT 
-    PluginTraceLogId,
-    Name,
-    PerformanceExecutionStartTime,
-    PerformanceExecutionDuration,
-    MessageBlock,
-    ExceptionDetails,
-    OperationTypeName,
-    PrimaryEntity,
-    TypeName,
-    MethodName,
-    CreatedOn
-FROM 
-    PluginTraceLog
-ORDER BY 
-    CreatedOn DESC
+traces
+| where message has "ProcessVestibuleEvidenceFile"
+    or message has "QueueProcessPortalEvidenceFile"
+    or message has "SendBatchFilesToTopic"
+    or message has "SendVestibuleEvidenceFrontDoorHeaderToTopic"
+| project timestamp, message
+| order by timestamp desc
