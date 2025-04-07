@@ -1,7 +1,69 @@
-traces
-| where message has "ProcessVestibuleEvidenceFile"
-    or message has "QueueProcessPortalEvidenceFile"
-    or message has "SendBatchFilesToTopic"
-    or message has "SendVestibuleEvidenceFrontDoorHeaderToTopic"
-| project timestamp, message
-| order by timestamp desc
+ 1. Portal File Management
+Logical Name: voa_portalfilemanagement
+
+✅ **When is it created?
+Created when a user uploads a file (evidence or bulk report) via the LA Portal UI.
+
+The plugin triggered on upload creates this record and sets its initial status.
+
+📄 **What does it store?
+File metadata: name, type (evidence or bulk), source (LA portal), upload timestamp
+
+Blob URL: points to the Azure Blob where the file is stored
+
+Status Codes: e.g., SuccessUploadToSDES, FailedUploadToSDES, Processing, Complete, ProcessingError, etc.
+
+Error Codes: in case of virus scan failure, parsing issues, etc.
+
+Reference to Portal Request (voa_portalrequestlookup) – only for evidence files
+
+📌 **Used for:
+Tracking the status and outcome of each file upload.
+
+Later used by Azure Functions to drive evidence or bulk processing.
+
+📦 2. Portal Request
+Logical Name: voa_portalrequest
+
+✅ **When is it created?
+Created when the user begins a submission in the LA Portal – this can happen before uploading a file.
+
+Also created when an evidence upload is made and linked to a case.
+
+📄 **What does it store?
+User-level request metadata (e.g., BA details, submission type, created date)
+
+Links to uploaded evidence (via voa_portalfilemanagement)
+
+May not have all downstream entities created if the submission is incomplete or pending
+
+📌 **Used for:
+Represents the parent request for both evidence and bulk submission flows
+
+Needed for linking to the Portal Request Submission and ultimately to the Request Line Item
+
+📝 3. Portal Request Submission
+Logical Name: voa_portalrequestsubmission
+
+✅ **When is it created?
+Created when a submission is completed or submitted from the LA Portal
+
+Also created from bulk file processing when rows are parsed
+
+Triggered by logic from Azure Function or Plugin
+
+📄 **What does it store?
+Citizen-level submission details: names, addresses, UPRNs, report reason, contact info
+
+Link to Portal Request (originating request)
+
+Link to Request Line Item
+
+Report metadata: report reason, status, tax type, etc.
+
+Tracks status of the submission (Processed, Pending, etc.)
+
+📌 **Used for:
+Central entity to link portal request to the downstream processing
+
+Triggers the creation of Request Line Item, which is required for SharePoint upload (evidence) or validation (bulk)
