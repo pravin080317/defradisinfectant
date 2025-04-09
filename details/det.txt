@@ -1,69 +1,98 @@
- 1. Portal File Management
-Logical Name: voa_portalfilemanagement
+Our commitment to accessibility
+We are committed to making our [Service Name] accessible to the widest possible audience, regardless of technology or ability. We aim to fully meet or exceed the accessibility standards outlined in WCAG 2.1 AA (and we are also working towards aligning with WCAG 2.2 requirements).
 
-✅ **When is it created?
-Created when a user uploads a file (evidence or bulk report) via the LA Portal UI.
+Scope of this statement
+This statement applies to the [Service Name] website ([include URL/link to your service**]). It does not apply to any linked external websites that are not provided by us.
 
-The plugin triggered on upload creates this record and sets its initial status.
+How accessible this service is
+We know some parts of this website are not fully accessible:
 
-📄 **What does it store?
-File metadata: name, type (evidence or bulk), source (LA portal), upload timestamp
+Some links and buttons do not have the correct programmatic attributes (e.g., href attributes may be missing).
 
-Blob URL: points to the Azure Blob where the file is stored
+Certain headings and form elements lack proper semantic structure (<fieldset> without <legend>, error messages not associated with inputs, etc.).
 
-Status Codes: e.g., SuccessUploadToSDES, FailedUploadToSDES, Processing, Complete, ProcessingError, etc.
+PDF documents (such as the schedules calendar) may not be fully accessible to screen reader users.
 
-Error Codes: in case of virus scan failure, parsing issues, etc.
+Dynamic changes to the page are not always announced to screen readers, which may cause confusion.
 
-Reference to Portal Request (voa_portalrequestlookup) – only for evidence files
+Date validation and address lookup functionality may pose barriers for those relying on assistive technology or keyboard-only navigation.
 
-📌 **Used for:
-Tracking the status and outcome of each file upload.
+What to do if you cannot access parts of this service
+If you need information on this service in a different format—such as accessible PDF, large print, easy read, audio recording, or braille—please contact us:
 
-Later used by Azure Functions to drive evidence or bulk processing.
+Email: [accessibility@yourdomain.com]
 
-📦 2. Portal Request
-Logical Name: voa_portalrequest
+Phone: [Contact Number]
 
-✅ **When is it created?
-Created when the user begins a submission in the LA Portal – this can happen before uploading a file.
+Postal Address: [Your Office Address]
 
-Also created when an evidence upload is made and linked to a case.
+We will consider your request and aim to respond within [number] working days.
 
-📄 **What does it store?
-User-level request metadata (e.g., BA details, submission type, created date)
+Reporting accessibility problems with this service
+We’re always looking to improve the accessibility of this service. If you find any problems not listed on this page or believe we are not meeting accessibility requirements, please contact us at [accessibility@yourdomain.com].
 
-Links to uploaded evidence (via voa_portalfilemanagement)
+Enforcement procedure
+If you contact us with a complaint and you’re not happy with our response, or you do not receive a response within [number] working days, you can contact the Equality Advisory and Support Service (EASS) for further advice and assistance.
 
-May not have all downstream entities created if the submission is incomplete or pending
+Technical information about this website’s accessibility
+[Service Name] is committed to making its website accessible in accordance with the Public Sector Bodies (Websites and Mobile Applications) (No. 2) Accessibility Regulations 2018.
 
-📌 **Used for:
-Represents the parent request for both evidence and bulk submission flows
+This website is currently partially compliant with the Web Content Accessibility Guidelines version 2.1 AA standard due to the non-compliances listed below.
 
-Needed for linking to the Portal Request Submission and ultimately to the Request Line Item
+Non-accessible content
+The content listed below is non-accessible for the following reasons:
 
-📝 3. Portal Request Submission
-Logical Name: voa_portalrequestsubmission
+Links without href attributes (WCAG 2.1 criterion 2.4.4):
 
-✅ **When is it created?
-Created when a submission is completed or submitted from the LA Portal
+Some links or interactive elements do not have the correct href or role attributes. This means keyboard and screen reader users may not be able to use them effectively.
 
-Also created from bulk file processing when rows are parsed
+Incorrect or missing form associations (WCAG 2.1 criterion 3.3.2):
 
-Triggered by logic from Azure Function or Plugin
+Some form fields do not have associated labels or error messages, making it difficult for screen reader users to understand which field is incorrect.
 
-📄 **What does it store?
-Citizen-level submission details: names, addresses, UPRNs, report reason, contact info
+Headings and semantic structure (WCAG 2.1 criterion 1.3.1):
 
-Link to Portal Request (originating request)
+A few pages lack properly nested headings, affecting how screen readers parse the page hierarchy.
 
-Link to Request Line Item
+PDF documents (WCAG 2.1 criterion 1.1.1, 1.3.1):
 
-Report metadata: report reason, status, tax type, etc.
+Some PDFs (e.g., our schedules calendar) are not tagged correctly and may not be fully accessible to screen reader users.
 
-Tracks status of the submission (Processed, Pending, etc.)
+Dynamic changes not announced (WCAG 2.1 criterion 4.1.3):
 
-📌 **Used for:
-Central entity to link portal request to the downstream processing
+Some interactive components do not provide alerts or region announcements for dynamic changes, which may confuse screen reader users.
 
-Triggers the creation of Request Line Item, which is required for SharePoint upload (evidence) or validation (bulk)
+Non-compliance with WCAG 2.2
+We are also aware of additional WCAG 2.2-level issues, such as:
+
+Date validation and address lookup challenges (WCAG 2.2 level AA).
+
+We are in the process of addressing these to ensure that we meet (or exceed) 2.1 AA and are ready for 2.2 as soon as it’s fully adopted in regulations.
+
+Disproportionate burden
+At this time, we have not assessed any of our current issues as a disproportionate burden. We are actively working to resolve these issues to ensure users have the best possible experience.
+
+Content that’s not within the scope of the accessibility regulations
+Third-party content: Some external links or embedded media may be outside of our control if they are not created or funded by us. We will do our best to work with third-party providers to improve accessibility where possible.
+
+How we tested this service
+This service was last tested on [date]. The test was carried out internally by [Your Team or Department], using:
+
+Manual testing with keyboard-only navigation and screen readers (e.g., NVDA, JAWS, VoiceOver).
+
+Automated testing tools (e.g., Axe, Wave, or other).
+
+We tested all main user journeys, especially critical tasks like submitting forms, uploading documents, and reading PDFs.
+
+What we’re doing to improve accessibility
+We are currently fixing the issues listed above in a staged approach:
+
+Fixing critical Level A issues (links without href, incorrect form labeling, page title, and heading structures) by [target date].
+
+Addressing Level AA issues (date validation, address lookup, form instructions) by [target date].
+
+Revising PDF documents to ensure they are fully accessible or providing HTML alternatives where possible, ongoing by [target date].
+
+Once these changes are made, we will re-test the website and update this statement.
+
+This statement was prepared on 09 April 2025. It was last updated on 09 April 2025.
