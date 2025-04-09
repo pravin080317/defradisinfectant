@@ -1,98 +1,66 @@
-Our commitment to accessibility
-We are committed to making our [Service Name] accessible to the widest possible audience, regardless of technology or ability. We aim to fully meet or exceed the accessibility standards outlined in WCAG 2.1 AA (and we are also working towards aligning with WCAG 2.2 requirements).
+Priority 1 – Critical Accessibility & Usability Issues (must fix first)
+Postcode input is too strict
 
-Scope of this statement
-This statement applies to the [Service Name] website ([include URL/link to your service**]). It does not apply to any linked external websites that are not provided by us.
+Does not accept lowercase letters or postcodes without spaces (e.g., bs44ru or SW1A1AA).
 
-How accessible this service is
-We know some parts of this website are not fully accessible:
+Violates WCAG 2.2 SC 3.3.3 Error Suggestion (doesn’t help the user correct valid but variably formatted input).
 
-Some links and buttons do not have the correct programmatic attributes (e.g., href attributes may be missing).
+Unclear or misleading error messages
 
-Certain headings and form elements lack proper semantic structure (<fieldset> without <legend>, error messages not associated with inputs, etc.).
+Generic errors like “Postcode should be 5 to 8 characters…” are not specific enough.
 
-PDF documents (such as the schedules calendar) may not be fully accessible to screen reader users.
+Doesn’t explain what exactly is wrong or how to fix it (e.g., format, spacing, upper/lowercase).
 
-Dynamic changes to the page are not always announced to screen readers, which may cause confusion.
+Missing aria-describedby or aria-link references
 
-Date validation and address lookup functionality may pose barriers for those relying on assistive technology or keyboard-only navigation.
+Error messages are not programmatically associated with the input fields.
 
-What to do if you cannot access parts of this service
-If you need information on this service in a different format—such as accessible PDF, large print, easy read, audio recording, or braille—please contact us:
+Screen reader users cannot determine which input the error is about.
 
-Email: [accessibility@yourdomain.com]
+Violates WCAG 1.3.1 Info and Relationships and 4.1.3 Status Messages.
 
-Phone: [Contact Number]
+Redundant use of heading as label (<h1> + field label)
 
-Postal Address: [Your Office Address]
+“Enter the postcode for this property” is both a heading and acts like a label.
 
-We will consider your request and aim to respond within [number] working days.
+Confuses screen readers with multiple <h1>s and violates semantic hierarchy.
 
-Reporting accessibility problems with this service
-We’re always looking to improve the accessibility of this service. If you find any problems not listed on this page or believe we are not meeting accessibility requirements, please contact us at [accessibility@yourdomain.com].
+Incorrect field label associations
 
-Enforcement procedure
-If you contact us with a complaint and you’re not happy with our response, or you do not receive a response within [number] working days, you can contact the Equality Advisory and Support Service (EASS) for further advice and assistance.
+Screen readers may read labels twice or not at all due to incorrect or missing for attributes or implicit associations.
 
-Technical information about this website’s accessibility
-[Service Name] is committed to making its website accessible in accordance with the Public Sector Bodies (Websites and Mobile Applications) (No. 2) Accessibility Regulations 2018.
+🟧 Priority 2 – Important UX / GDS Pattern Deviations
+Use of (mandatory) label for required fields
 
-This website is currently partially compliant with the Web Content Accessibility Guidelines version 2.1 AA standard due to the non-compliances listed below.
+Contradicts GOV.UK guidance: required fields should not be marked; only optional fields should be labeled as such.
 
-Non-accessible content
-The content listed below is non-accessible for the following reasons:
+Inconsistent usage across the form also adds confusion.
 
-Links without href attributes (WCAG 2.1 criterion 2.4.4):
+Address selection implemented with <select> instead of radio buttons
 
-Some links or interactive elements do not have the correct href or role attributes. This means keyboard and screen reader users may not be able to use them effectively.
+GOV.UK Design System recommends using radio buttons for accessibility:
 
-Incorrect or missing form associations (WCAG 2.1 criterion 3.3.2):
+Easier for keyboard navigation.
 
-Some form fields do not have associated labels or error messages, making it difficult for screen reader users to understand which field is incorrect.
+Prevents obscured addresses due to dropdown width.
 
-Headings and semantic structure (WCAG 2.1 criterion 1.3.1):
+Better support for screen readers.
 
-A few pages lack properly nested headings, affecting how screen readers parse the page hierarchy.
+Autocomplete missing on input
 
-PDF documents (WCAG 2.1 criterion 1.1.1, 1.3.1):
+The postcode input is missing the autocomplete="postal-code" attribute.
 
-Some PDFs (e.g., our schedules calendar) are not tagged correctly and may not be fully accessible to screen reader users.
+Reduces usability for users relying on autofill or browser prediction.
 
-Dynamic changes not announced (WCAG 2.1 criterion 4.1.3):
+🟨 Priority 3 – Minor / Structural Improvements
+Multiple <h1> tags on the page
 
-Some interactive components do not provide alerts or region announcements for dynamic changes, which may confuse screen reader users.
+Multiple H1s can disrupt page structure and confuse assistive tech navigation.
 
-Non-compliance with WCAG 2.2
-We are also aware of additional WCAG 2.2-level issues, such as:
+Should follow proper heading hierarchy (h1, then h2, etc.).
 
-Date validation and address lookup challenges (WCAG 2.2 level AA).
+Generic label text ('Postcode') not descriptive enough on its own
 
-We are in the process of addressing these to ensure that we meet (or exceed) 2.1 AA and are ready for 2.2 as soon as it’s fully adopted in regulations.
+Relies on the heading for context.
 
-Disproportionate burden
-At this time, we have not assessed any of our current issues as a disproportionate burden. We are actively working to resolve these issues to ensure users have the best possible experience.
-
-Content that’s not within the scope of the accessibility regulations
-Third-party content: Some external links or embedded media may be outside of our control if they are not created or funded by us. We will do our best to work with third-party providers to improve accessibility where possible.
-
-How we tested this service
-This service was last tested on [date]. The test was carried out internally by [Your Team or Department], using:
-
-Manual testing with keyboard-only navigation and screen readers (e.g., NVDA, JAWS, VoiceOver).
-
-Automated testing tools (e.g., Axe, Wave, or other).
-
-We tested all main user journeys, especially critical tasks like submitting forms, uploading documents, and reading PDFs.
-
-What we’re doing to improve accessibility
-We are currently fixing the issues listed above in a staged approach:
-
-Fixing critical Level A issues (links without href, incorrect form labeling, page title, and heading structures) by [target date].
-
-Addressing Level AA issues (date validation, address lookup, form instructions) by [target date].
-
-Revising PDF documents to ensure they are fully accessible or providing HTML alternatives where possible, ongoing by [target date].
-
-Once these changes are made, we will re-test the website and update this statement.
-
-This statement was prepared on 09 April 2025. It was last updated on 09 April 2025.
+Should either consolidate or make label more contextual (e.g., “Postcode for this property”).
