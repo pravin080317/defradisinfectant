@@ -1,66 +1,66 @@
-Priority 1 – Critical Accessibility & Usability Issues (must fix first)
-Postcode input is too strict
+Here are the required changes in the HTML part to align with WCAG 2.2 SC 3.3.3 and GOV.UK Date Input component best practices:
 
-Does not accept lowercase letters or postcodes without spaces (e.g., bs44ru or SW1A1AA).
+1. Trim Spaces – Input IDs Stay the Same
+No change in input IDs, but the upcoming JS must trim user-entered spaces before validation.
 
-Violates WCAG 2.2 SC 3.3.3 Error Suggestion (doesn’t help the user correct valid but variably formatted input).
+2. Improve Accessibility and Error Feedback
+A. Associate Error Message with Inputs using aria-describedby
+Update the date inputs to associate error and hint messages for screen readers:
 
-Unclear or misleading error messages
+html
+Copy
+Edit
+<fieldset class="govuk-fieldset" role="group" aria-describedby="effective-date-hint effective-date-error">
+Then for each <input>, add aria-describedby:
 
-Generic errors like “Postcode should be 5 to 8 characters…” are not specific enough.
+html
+Copy
+Edit
+<input ... aria-describedby="effective-date-hint effective-date-error">
+Apply to all 3 date fields: day, month, year.
 
-Doesn’t explain what exactly is wrong or how to fix it (e.g., format, spacing, upper/lowercase).
+3. Fix Incorrect <label> Nesting
+The month field has an extra </label> that should be removed:
 
-Missing aria-describedby or aria-link references
+html
+Copy
+Edit
+<label class="govuk-label govuk-date-input_label" for="effective-date-month">
+Month
+</label>
+</label> <!-- REMOVE THIS LINE -->
+4. Improve Error Message Placeholder
+Provide default accessible content for screen readers even if hidden initially:
 
-Error messages are not programmatically associated with the input fields.
+html
+Copy
+Edit
+<p id="effective-date-error" class="govuk-error-message" style="display:none">
+  <span class="govuk-visually-hidden">Error:</span> Enter a valid date in the format DD MM YYYY.
+</p>
+5. Hint Text Clarification
+Enhance the hint text to clarify that spaces are allowed and month names can be used if you plan to support them in JS:
 
-Screen reader users cannot determine which input the error is about.
+html
+Copy
+Edit
+<div id="effective-date-hint" class="govuk-hint">
+  Date must be today or in the past. For example, 27 3 2021. You can enter with or without spaces.
+</div>
+6. Optional: Add autocomplete Attributes
+If desired, add autocomplete="bday-day", etc., to assist browsers in auto-filling.
 
-Violates WCAG 1.3.1 Info and Relationships and 4.1.3 Status Messages.
-
-Redundant use of heading as label (<h1> + field label)
-
-“Enter the postcode for this property” is both a heading and acts like a label.
-
-Confuses screen readers with multiple <h1>s and violates semantic hierarchy.
-
-Incorrect field label associations
-
-Screen readers may read labels twice or not at all due to incorrect or missing for attributes or implicit associations.
-
-🟧 Priority 2 – Important UX / GDS Pattern Deviations
-Use of (mandatory) label for required fields
-
-Contradicts GOV.UK guidance: required fields should not be marked; only optional fields should be labeled as such.
-
-Inconsistent usage across the form also adds confusion.
-
-Address selection implemented with <select> instead of radio buttons
-
-GOV.UK Design System recommends using radio buttons for accessibility:
-
-Easier for keyboard navigation.
-
-Prevents obscured addresses due to dropdown width.
-
-Better support for screen readers.
-
-Autocomplete missing on input
-
-The postcode input is missing the autocomplete="postal-code" attribute.
-
-Reduces usability for users relying on autofill or browser prediction.
-
-🟨 Priority 3 – Minor / Structural Improvements
-Multiple <h1> tags on the page
-
-Multiple H1s can disrupt page structure and confuse assistive tech navigation.
-
-Should follow proper heading hierarchy (h1, then h2, etc.).
-
-Generic label text ('Postcode') not descriptive enough on its own
-
-Relies on the heading for context.
-
-Should either consolidate or make label more contextual (e.g., “Postcode for this property”).
+html
+Copy
+Edit
+<input ... autocomplete="bday-day">
+<input ... autocomplete="bday-month">
+<input ... autocomplete="bday-year">
+Summary of Changes Needed in HTML:
+Section	Change
+<fieldset>	Add aria-describedby="effective-date-hint effective-date-error"
+<input> fields	Add aria-describedby="effective-date-hint effective-date-error"
+Extra </label>	Remove from month input
+Error message block	Add visible content + screen reader prefix
+Hint text	Update to clarify spaces are allowed
+(Optional) Inputs	Add autocomplete attributes
