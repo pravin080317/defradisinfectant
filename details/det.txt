@@ -1,124 +1,255 @@
-Thanks for sharing the full **date validation JS**. Based on your requirement to fix the **WCAG 2.2 AA 3.3.3** error (Error Suggestion), and support **space trimming** + clearer validation, here are the **specific changes** you need to make to your existing code:
+Excellent edge case! Here's what happens if a user enters `"ma"` as the month input using the **fuzzy matching approach**:
 
----
-
-## **Required Changes in Date Validation JS**
-
-### **1. Trim spaces from user input before validation**
-
-**Current issue:**  
-Your code fetches the raw values from the inputs:
+### With This Code:
 ```js
-const day = dayInput.value;
-const month = monthInput.value;
-const year = yearInput.value;
-```
-
-**Fix:**  
-Update these to trim the input and allow users to paste with spaces:
-```js
-const day = dayInput.value.trim();
-const month = monthInput.value.trim().toLowerCase(); // lowercase for name parsing
-const year = yearInput.value.trim();
-```
-
-This ensures users aren’t rejected for entering ` " 27 "` instead of `27`.
-
----
-
-### **2. Optionally support month names like "March" or "Mar"**
-
-If you want to support month names (as per audit feedback), convert them to numbers:
-
-**Add a month map:**
-```js
-const monthMap = {
-  jan: 1, january: 1,
-  feb: 2, february: 2,
-  mar: 3, march: 3,
-  apr: 4, april: 4,
-  may: 5,
-  jun: 6, june: 6,
-  jul: 7, july: 7,
-  aug: 8, august: 8,
-  sep: 9, september: 9,
-  oct: 10, october: 10,
-  nov: 11, november: 11,
-  dec: 12, december: 12
-};
-```
-
-**Then update the month value:**
-```js
-let parsedMonth = parseInt(month);
-if (isNaN(parsedMonth) && monthMap[month]) {
-  parsedMonth = monthMap[month];
+for (const [key, value] of Object.entries(monthMap)) {
+  if (key.startsWith(input)) {
+    return value;
+  }
 }
 ```
 
-**Then update this line:**
+### `input = "ma"` → Ambiguity:
+
+- `"ma"` matches **both**:
+  - `"march"` → 3
+  - `"may"` → 5
+
+Since `for...of Object.entries()` loops in insertion order, and `"march"` comes first, the function will **always return `3` (March)** for `"ma"`.
+
+---
+
+## ❗ Problem: This is ambiguous
+
+If the user meant **May**, but `"ma"` is interpreted as **March**, the system will silently accept the wrong month. That’s a usability and accessibility issue.
+
+---
+
+## ✅ Solution: Handle ambiguity explicitly
+
+We can detect if **more than one month** starts with the user input, and reject the value with a clear error if it’s ambiguous.
+
+### Updated `parseMonthInput()` (with ambiguity check):
+
+```js
+function parseMonthInput(monthInputRaw) {
+  if (!monthInputRaw) return null;
+
+  const input = monthInputRaw.trim().toLowerCase();
+
+  // Try parsing as number
+  const numeric = parseInt(input);
+  if (!isNaN(numeric) && numeric >= 1 && numeric <= 12) {
+    return numeric;
+  }
+
+  const monthMap = {
+    january: 1,
+    february: 2,
+    march: 3,
+    april: 4,
+    may: 5,
+    june: 6,
+    july: 7,
+    august: 8,
+    september: 9,
+    october: 10,
+    november: 11,
+    december: 12
+  };
+
+  const matches = Object.entries(monthMap).filter(([key]) => key.startsWith(input));
+
+  if (matches.length === 1) {
+    return matches[0][1]; // exact match
+  } else if (matches.length > 1) {
+    // ambiguous input like "ma" → march and may
+    return "ambiguous";
+  }
+
+  return null;
+}
+```
+
+### Then update your logic like this:
+
+```js
+const parsedMonth = parseMonthInput(monthRaw);
+
+if (parsedMonth === "ambiguous") {
+  obj.inputs[0].errorMessage = "Month input is unclear. Enter the full month name or number.";
+  monthInput.classList.add("govuk-input--error");
+  errorStyling();
+  return;
+}
+
+if (!parsedMonth) {
+  obj.inputs[0].errorMessage = "Enter a valid month, such as 3 or March.";
+  monthInput.classList.add("govuk-input--error");
+  errorStyling();
+  return;
+}
+```
+
+---
+
+## ✅ Final Behavior Summary:
+
+| User Input | Result |
+|------------|--------|
+| `03` or `3` | Accepted as March |
+| `mar`, `march`, `March` | Accepted as March |
+| `ma` | ❌ Rejected – Ambiguous |
+| `febr` | ✅ Accepted as February |
+| `abc` | ❌ Rejected – Invalid |
+| `May` | ✅ Accepted |
+
+---
+
+Let me know if you'd like this embedded into a clean `dateValidation()` function block ready to drop in.
+
+
+Perfect! Based on your existing setup and decision to go with the **enhanced fuzzy month input** (with ambiguity detection), here's a clear list of changes you need to make:
+
+---
+
+## ✅ **CHANGES TO IMPLEMENT (with Enhanced Month Support)**
+
+---
+
+### 🔧 1. **Create a new helper function**: `parseMonthInput()`
+
+Add this at the top or just before your `dateValidation()` function:
+
+```js
+function parseMonthInput(monthInputRaw) {
+  if (!monthInputRaw) return null;
+
+  const input = monthInputRaw.trim().toLowerCase();
+
+  // Try parsing as a number
+  const numeric = parseInt(input);
+  if (!isNaN(numeric) && numeric >= 1 && numeric <= 12) {
+    return numeric;
+  }
+
+  const monthMap = {
+    january: 1,
+    february: 2,
+    march: 3,
+    april: 4,
+    may: 5,
+    june: 6,
+    july: 7,
+    august: 8,
+    september: 9,
+    october: 10,
+    november: 11,
+    december: 12
+  };
+
+  const matches = Object.entries(monthMap).filter(([key]) => key.startsWith(input));
+
+  if (matches.length === 1) {
+    return matches[0][1]; // return unique match
+  } else if (matches.length > 1) {
+    return "ambiguous"; // e.g. "ma" matches march and may
+  }
+
+  return null; // invalid
+}
+```
+
+---
+
+### ✏️ 2. **Update your `dateValidation()` logic** to use this parser
+
+**Replace your current month logic**:
+```js
+const month = monthInput.value.trim().toLowerCase();
+// ...existing parseInt fallback logic
+```
+
+**With this:**
+```js
+const monthRaw = monthInput.value;
+const parsedMonth = parseMonthInput(monthRaw);
+```
+
+---
+
+### 🛑 3. **Add error handling for invalid or ambiguous months**
+
+Place this **before creating `inputDate`**:
+```js
+if (parsedMonth === "ambiguous") {
+  obj.inputs[0].errorMessage = "Month input is unclear. Please enter the full month name or number.";
+  monthInput.classList.add("govuk-input--error");
+  errorStyling();
+  return;
+}
+
+if (!parsedMonth) {
+  obj.inputs[0].errorMessage = "Enter a valid month, such as 3 or March.";
+  monthInput.classList.add("govuk-input--error");
+  errorStyling();
+  return;
+}
+```
+
+---
+
+### 📅 4. **Update `inputDate` creation to use `parsedMonth`**
+
+Replace:
+```js
+const inputDate = new Date(Date.UTC(year, (month - 1), day));
+```
+
+With:
 ```js
 const inputDate = new Date(Date.UTC(year, parsedMonth - 1, day));
 ```
 
 ---
 
-### **3. Improve error message logic for WCAG 3.3.3**
+### 🧼 5. **Trim day and year input as well**
 
-**Current issue:**  
-Messages like `The date doesn't contain 4 digits` are vague.
-
-**Fix:** Replace generic error messages with specific suggestions:
-
+Update:
 ```js
-if (!day && !month && !year) {
-  obj.inputs[0].errorMessage = "Enter the effective date, including day, month and year.";
-} else if (!day || !month || !year) {
-  let missingParts = [];
-  if (!day) missingParts.push("day");
-  if (!month) missingParts.push("month");
-  if (!year) missingParts.push("year");
-  obj.inputs[0].errorMessage = "The effective date must include a " + missingParts.join(", ").replace(/, ([^,]*)$/, " and $1") + ".";
-} else if (year.length !== 4) {
-  obj.inputs[0].errorMessage = "Year must include 4 digits, for example 2023.";
-} else if (!isDateCorrect) {
-  obj.inputs[0].errorMessage = "Enter a real date, such as 27 03 2023.";
-} else if (inputDate > today) {
-  obj.inputs[0].errorMessage = "The effective date must be today or in the past.";
-}
+const day = dayInput.value;
+const year = yearInput.value;
+```
+
+To:
+```js
+const day = dayInput.value.trim();
+const year = yearInput.value.trim();
 ```
 
 ---
 
-### **4. Ensure accessibility (ARIA and focus)**
+### 🔊 6. **Update error message (optional)** in HTML hint (to reflect support)
 
-Make sure `#effective-date-error` is shown and content is injected into it:
-```js
-$('#effective-date-error').html('<span class="govuk-visually-hidden">Error: </span>' + obj.inputs[0].errorMessage).show();
-```
+Update this in your HTML hint (`#effective-date-hint`):
 
-Ensure `aria-describedby` is already set in your HTML for all inputs (you've fixed this earlier).
-
----
-
-### **Optional (for visual clarity)**  
-If you want to visibly auto-trim the field values for user clarity, you can do:
-```js
-dayInput.value = day;
-monthInput.value = month;
-yearInput.value = year;
+```html
+Date must be today or in the past. For example, 27 3 2021. You can also enter month names, like “March” or “3”.
 ```
 
 ---
 
-## **Summary of Fixes Needed in JS**
+## ✅ Summary of What to Change
 
-| Fix | Description |
-|-----|-------------|
-| **Trim whitespace** | Use `trim()` for all date fields before validation |
-| **Optional month name support** | Use a mapping from name to number and parse |
-| **Improve error messages** | Be specific and helpful, per GOV.UK patterns |
-| **Show accessible error block** | Populate and show `#effective-date-error` dynamically |
-| **Refactor for clarity** | Ensure cleaner structure and remove duplicate conditions |
+| Step | Area | What to Change |
+|------|------|----------------|
+| 1 | JS (global) | Add `parseMonthInput()` helper function |
+| 2 | JS | Use `parsedMonth = parseMonthInput(...)` instead of `parseInt(month)` |
+| 3 | JS | Add error handling for ambiguous/invalid month |
+| 4 | JS | Replace `month` in `new Date(...)` with `parsedMonth` |
+| 5 | JS | Trim `day` and `year` inputs |
+| 6 | HTML (optional) | Update hint to reflect new supported format |
 
-Let me know if you want me to rewrite and hand back the whole corrected `dateValidation()` function for direct use.
+---
+
+Would you like me to drop in the **final `dateValidation()` function** fully updated with all this logic, so you can plug it in directly?
