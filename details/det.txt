@@ -1,66 +1,124 @@
-Here are the required changes in the HTML part to align with WCAG 2.2 SC 3.3.3 and GOV.UK Date Input component best practices:
+Thanks for sharing the full **date validation JS**. Based on your requirement to fix the **WCAG 2.2 AA 3.3.3** error (Error Suggestion), and support **space trimming** + clearer validation, here are the **specific changes** you need to make to your existing code:
 
-1. Trim Spaces – Input IDs Stay the Same
-No change in input IDs, but the upcoming JS must trim user-entered spaces before validation.
+---
 
-2. Improve Accessibility and Error Feedback
-A. Associate Error Message with Inputs using aria-describedby
-Update the date inputs to associate error and hint messages for screen readers:
+## **Required Changes in Date Validation JS**
 
-html
-Copy
-Edit
-<fieldset class="govuk-fieldset" role="group" aria-describedby="effective-date-hint effective-date-error">
-Then for each <input>, add aria-describedby:
+### **1. Trim spaces from user input before validation**
 
-html
-Copy
-Edit
-<input ... aria-describedby="effective-date-hint effective-date-error">
-Apply to all 3 date fields: day, month, year.
+**Current issue:**  
+Your code fetches the raw values from the inputs:
+```js
+const day = dayInput.value;
+const month = monthInput.value;
+const year = yearInput.value;
+```
 
-3. Fix Incorrect <label> Nesting
-The month field has an extra </label> that should be removed:
+**Fix:**  
+Update these to trim the input and allow users to paste with spaces:
+```js
+const day = dayInput.value.trim();
+const month = monthInput.value.trim().toLowerCase(); // lowercase for name parsing
+const year = yearInput.value.trim();
+```
 
-html
-Copy
-Edit
-<label class="govuk-label govuk-date-input_label" for="effective-date-month">
-Month
-</label>
-</label> <!-- REMOVE THIS LINE -->
-4. Improve Error Message Placeholder
-Provide default accessible content for screen readers even if hidden initially:
+This ensures users aren’t rejected for entering ` " 27 "` instead of `27`.
 
-html
-Copy
-Edit
-<p id="effective-date-error" class="govuk-error-message" style="display:none">
-  <span class="govuk-visually-hidden">Error:</span> Enter a valid date in the format DD MM YYYY.
-</p>
-5. Hint Text Clarification
-Enhance the hint text to clarify that spaces are allowed and month names can be used if you plan to support them in JS:
+---
 
-html
-Copy
-Edit
-<div id="effective-date-hint" class="govuk-hint">
-  Date must be today or in the past. For example, 27 3 2021. You can enter with or without spaces.
-</div>
-6. Optional: Add autocomplete Attributes
-If desired, add autocomplete="bday-day", etc., to assist browsers in auto-filling.
+### **2. Optionally support month names like "March" or "Mar"**
 
-html
-Copy
-Edit
-<input ... autocomplete="bday-day">
-<input ... autocomplete="bday-month">
-<input ... autocomplete="bday-year">
-Summary of Changes Needed in HTML:
-Section	Change
-<fieldset>	Add aria-describedby="effective-date-hint effective-date-error"
-<input> fields	Add aria-describedby="effective-date-hint effective-date-error"
-Extra </label>	Remove from month input
-Error message block	Add visible content + screen reader prefix
-Hint text	Update to clarify spaces are allowed
-(Optional) Inputs	Add autocomplete attributes
+If you want to support month names (as per audit feedback), convert them to numbers:
+
+**Add a month map:**
+```js
+const monthMap = {
+  jan: 1, january: 1,
+  feb: 2, february: 2,
+  mar: 3, march: 3,
+  apr: 4, april: 4,
+  may: 5,
+  jun: 6, june: 6,
+  jul: 7, july: 7,
+  aug: 8, august: 8,
+  sep: 9, september: 9,
+  oct: 10, october: 10,
+  nov: 11, november: 11,
+  dec: 12, december: 12
+};
+```
+
+**Then update the month value:**
+```js
+let parsedMonth = parseInt(month);
+if (isNaN(parsedMonth) && monthMap[month]) {
+  parsedMonth = monthMap[month];
+}
+```
+
+**Then update this line:**
+```js
+const inputDate = new Date(Date.UTC(year, parsedMonth - 1, day));
+```
+
+---
+
+### **3. Improve error message logic for WCAG 3.3.3**
+
+**Current issue:**  
+Messages like `The date doesn't contain 4 digits` are vague.
+
+**Fix:** Replace generic error messages with specific suggestions:
+
+```js
+if (!day && !month && !year) {
+  obj.inputs[0].errorMessage = "Enter the effective date, including day, month and year.";
+} else if (!day || !month || !year) {
+  let missingParts = [];
+  if (!day) missingParts.push("day");
+  if (!month) missingParts.push("month");
+  if (!year) missingParts.push("year");
+  obj.inputs[0].errorMessage = "The effective date must include a " + missingParts.join(", ").replace(/, ([^,]*)$/, " and $1") + ".";
+} else if (year.length !== 4) {
+  obj.inputs[0].errorMessage = "Year must include 4 digits, for example 2023.";
+} else if (!isDateCorrect) {
+  obj.inputs[0].errorMessage = "Enter a real date, such as 27 03 2023.";
+} else if (inputDate > today) {
+  obj.inputs[0].errorMessage = "The effective date must be today or in the past.";
+}
+```
+
+---
+
+### **4. Ensure accessibility (ARIA and focus)**
+
+Make sure `#effective-date-error` is shown and content is injected into it:
+```js
+$('#effective-date-error').html('<span class="govuk-visually-hidden">Error: </span>' + obj.inputs[0].errorMessage).show();
+```
+
+Ensure `aria-describedby` is already set in your HTML for all inputs (you've fixed this earlier).
+
+---
+
+### **Optional (for visual clarity)**  
+If you want to visibly auto-trim the field values for user clarity, you can do:
+```js
+dayInput.value = day;
+monthInput.value = month;
+yearInput.value = year;
+```
+
+---
+
+## **Summary of Fixes Needed in JS**
+
+| Fix | Description |
+|-----|-------------|
+| **Trim whitespace** | Use `trim()` for all date fields before validation |
+| **Optional month name support** | Use a mapping from name to number and parse |
+| **Improve error messages** | Be specific and helpful, per GOV.UK patterns |
+| **Show accessible error block** | Populate and show `#effective-date-error` dynamically |
+| **Refactor for clarity** | Ensure cleaner structure and remove duplicate conditions |
+
+Let me know if you want me to rewrite and hand back the whole corrected `dateValidation()` function for direct use.
