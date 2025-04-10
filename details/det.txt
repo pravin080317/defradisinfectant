@@ -1,16 +1,194 @@
-SELECT
-    pr.[voap_billingauthorityaccount] AS CouncilCode,
-    pfm.voap_uploadtypename AS UploadType,
-    COUNT(*) AS FileCount
-FROM
-    voap_portalfilemanagement AS pfm
-LEFT JOIN
-    voap_portalrequest AS pr
-    ON pfm.voap_portalrequestlookup = pr.voap_portalrequestid
-WHERE
-    pfm.statecode = 0
-GROUP BY
-    pr.[voap_billingauthorityaccount],
-    pfm.voap_uploadtypename
-ORDER BY
-    CouncilCode, UploadType;
+Thanks for the full code — you've done a solid job laying it out clearly. Based on the accessibility audit and the GOV.UK Design System guidance, here’s a **comprehensive analysis** of what needs fixing, why, and where to make the changes.
+
+---
+
+## **Accessibility Audit Fixes for Address Lookup Page**
+
+---
+
+### **1. Redundant `<h1>` and `<label>` nesting – fix the heading and label structure**
+
+#### **Issue:**
+```html
+<h1 class="govuk-heading-1">
+  Enter the postcode for this property
+</h1>
+
+<h1 class="govuk-label-wrapper">
+  <label class="govuk-label" for="postcode">
+    Postcode
+  </label>
+</h1>
+```
+
+- GOV.UK guidance: there should **only be one `<h1>` per page** to describe the **overall context**, not for form fields.
+- Labels should not be wrapped in an `<h1>`, and having both heading and label repeat the same wording is **redundant and confusing for screen reader users**.
+
+#### **Fix:**
+Replace this:
+```html
+<h1 class="govuk-heading-1">
+  Enter the postcode for this property
+</h1>
+
+<h1 class="govuk-label-wrapper">
+  <label class="govuk-label" for="postcode">
+    Postcode
+  </label>
+</h1>
+```
+
+**With:**
+```html
+<h1 class="govuk-heading-1">
+  Enter the postcode for this property
+</h1>
+
+<label class="govuk-label" for="postcode">
+  Postcode
+</label>
+```
+
+#### **Why:**
+- Follows semantic HTML
+- Prevents confusion in screen readers
+- Ensures the `<label>` is programmatically linked to the input
+
+---
+
+### **2. Postcode input should accept uppercase, lowercase, and spacing**
+
+#### **Issue:**
+```js
+// Likely JS validation expects uppercased and formatted postcode
+```
+
+- Input rejects lowercase (`bs1 4ru`) or no-space (`BS14RU`), though these are valid UK postcode formats.
+- This causes **validation failures and confusion**.
+
+#### **Fix (JS side):**
+Before sending to backend or validating:
+```js
+const postcode = $("#postcode").val().trim().toUpperCase().replace(/\s+/g, '');
+```
+
+Or if space is needed:
+```js
+const formattedPostcode = formatPostcode(postcode); // function to standardise formatting
+```
+
+Ensure this:
+- **Trims** leading/trailing spaces
+- **Accepts lowercase**
+- **Tolerates extra/missing internal spacing**
+
+You can also use [UK postcode regex](https://stackoverflow.com/a/51885380/5057418) for basic validation.
+
+---
+
+### **3. Error messages are not descriptive enough**
+
+#### **Current HTML:**
+```html
+<p id="postcode-error" class="govuk-error-message" style="display:none">
+  <span class="govuk-visually-hidden">Error:</span> Enter a postcode
+</p>
+
+<p id="postcode-format-error" class="govuk-error-message" style="display:none">
+  <span class="govuk-visually-hidden">Error: </span> Postcode should be 5 to 8 characters and can include letters, numbers and spaces
+</p>
+```
+
+#### **Fix:**
+- Improve messages to follow GOV.UK validation pattern:
+```html
+<p id="postcode-format-error" class="govuk-error-message" style="display:none">
+  <span class="govuk-visually-hidden">Error: </span>
+  Enter a postcode in the correct format, for example SW1A 1AA
+</p>
+```
+
+- Programmatically **set `aria-describedby="postcode-hint postcode-format-error"`** on the input:
+```html
+<input class="govuk-input govuk-input--width-10"
+       id="postcode"
+       name="postcode"
+       type="text"
+       aria-describedby="postcode-hint postcode-format-error">
+```
+
+---
+
+### **4. Replace `<select>` with radio buttons for address selection**
+
+#### **Current:**
+```html
+<select class="govuk-select" name="AddressFromPostcode" id="AddressFromPostcode" style="width: 75%">
+```
+
+#### **Problem:**
+- Dropdowns are harder for screen reader and keyboard users
+- GOV.UK design system recommends **radios** for small, known lists of items (like address results)
+
+#### **Fix:**
+Instead of:
+```html
+<select>
+  <option>Address 1</option>
+  <option>Address 2</option>
+</select>
+```
+
+**Use:**
+```html
+<fieldset class="govuk-fieldset" aria-describedby="select-address-hint">
+  <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">Select an address</legend>
+
+  <div class="govuk-radios">
+    <div class="govuk-radios__item">
+      <input class="govuk-radios__input" type="radio" id="address-1" name="AddressFromPostcode" value="address-1">
+      <label class="govuk-label govuk-radios__label" for="address-1">
+        1 High Street, London SW1A 1AA
+      </label>
+    </div>
+    <!-- Repeat for other addresses -->
+  </div>
+</fieldset>
+```
+
+This will:
+- Improve keyboard navigation
+- Prevent addresses from being truncated due to select width
+- Be more screen-reader-friendly
+
+---
+
+### **5. Remove (mandatory) text from required fields**
+
+#### **Current:**
+You have fields marked as `(mandatory)` or a mix of that across forms.
+
+#### **Fix:**
+- **Remove all `(mandatory)`** text.
+- GOV.UK design assumes all fields are required **unless marked `(optional)`**.
+
+If you have optional fields, label like:
+```html
+<label for="...">Phone number <span class="govuk-hint">(optional)</span></label>
+```
+
+---
+
+## ✅ Summary of Fixes (Where and Why)
+
+| Area | Change Needed | Why |
+|------|---------------|-----|
+| Heading/Label | Remove redundant `<h1>` inside label | Only 1 `<h1>` per page, screen reader clarity |
+| Postcode input | Trim, uppercase, remove strict spacing | Allow flexible input formats |
+| Input validation | Improve error message and use `aria-describedby` | Meet WCAG 3.3.3 – suggest specific fix |
+| Address selection | Replace `<select>` with `<fieldset>` and radios | GDS pattern, better accessibility |
+| Required fields | Remove `(mandatory)` label text | GOV.UK pattern: only mark optional fields |
+
+---
+
+Let me know if you want me to refactor your HTML to apply all these changes in one go.
