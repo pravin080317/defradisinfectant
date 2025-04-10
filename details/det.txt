@@ -1,100 +1,98 @@
-Here is a breakdown of **where exactly the fixes need to be applied** in your current code and **what should be replaced or updated** for each WCAG 2.2 (A) issue related to **form markup, ARIA attributes, and page title**.
+Perfect — here's a complete, **WCAG 2.2-compliant** and **GOV.UK Design System–aligned** rewrite for the **British National Grid Coordinates** and **UPRN** fields, including:
+
+- `aria-describedby`
+- `aria-invalid`
+- correct `<fieldset>` and `<legend>` markup
+- inline error handling pattern
 
 ---
 
-### **1. Add `<legend>` inside `<fieldset>`**
-**Current code:**
-```html
-<fieldset class="govuk-fieldset">
-  <p id="confirm-delete-error" class="govuk-error-message" style="display:none">...</p>
-```
+### ✅ **Full HTML Fix**
 
-**Replace with:**
 ```html
-<fieldset class="govuk-fieldset" aria-describedby="confirm-delete-error">
-  <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
-    Confirm whether you want to delete the file and all its reports
-  </legend>
-  <p id="confirm-delete-error" class="govuk-error-message" style="display:none">
-    <span class="govuk-visually-hidden">Error: </span> Confirm whether you want to delete the file
+<!-- Unique Property Reference Number -->
+<div class="govuk-form-group" id="uprn-form-group">
+  <label class="govuk-label govuk-label--m" for="uprn">Unique Property Reference Number (optional)</label>
+  <div id="uprn-hint" class="govuk-hint">
+    The unique number given to the property by the local authority. This can be up to 12 digits.
+  </div>
+  <p id="uprn-error" class="govuk-error-message" style="display: none;">
+    <span class="govuk-visually-hidden">Error:</span> UPRN must be a number with up to 12 digits
   </p>
+  <input class="govuk-input" id="uprn" name="uprn" type="text"
+         aria-describedby="uprn-hint"
+         aria-invalid="false">
+</div>
+
+<!-- British National Grid Coordinates -->
+<fieldset class="govuk-fieldset" aria-describedby="grid-coordinates-hint">
+  <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+    British National Grid Coordinates (optional)
+  </legend>
+
+  <div id="grid-coordinates-hint" class="govuk-hint">
+    Include if property might be difficult to find. Each coordinate can be up to 6 digits and up to 3 decimal places.
+  </div>
+
+  <!-- X (Eastings) -->
+  <div class="govuk-form-group" id="xeastings-form-group">
+    <label class="govuk-label" for="xeastings">X (Eastings)</label>
+    <p id="xeastings-error" class="govuk-error-message" style="display: none;">
+      <span class="govuk-visually-hidden">Error:</span> Enter a valid X coordinate
+    </p>
+    <input class="govuk-input govuk-input--width-one-third" id="xeastings" name="xeastings" type="text"
+           aria-describedby="grid-coordinates-hint"
+           aria-invalid="false">
+  </div>
+
+  <!-- Y (Northings) -->
+  <div class="govuk-form-group" id="ynorthings-form-group">
+    <label class="govuk-label" for="ynorthings">Y (Northings)</label>
+    <p id="ynorthings-error" class="govuk-error-message" style="display: none;">
+      <span class="govuk-visually-hidden">Error:</span> Enter a valid Y coordinate
+    </p>
+    <input class="govuk-input govuk-input--width-one-third" id="ynorthings" name="ynorthings" type="text"
+           aria-describedby="grid-coordinates-hint"
+           aria-invalid="false">
+  </div>
+</fieldset>
 ```
 
 ---
 
-### **2. Fix `aria-describedby` value**
-**Current (missing or wrong):**
-```html
-<fieldset class="govuk-fieldset">
-```
+### ✅ **JavaScript Error Handling Logic (Simplified)**
 
-**Fix it by adding:**
-```html
-<fieldset class="govuk-fieldset" aria-describedby="confirm-delete-error">
-```
+In your JS validation method (like `locationDetailsVal()`), update error styling and ARIA like this:
 
-**Why:** Ensures screen readers read out the associated error message.
+```javascript
+function showFieldError(inputId, errorMessage) {
+  const input = document.getElementById(inputId);
+  const formGroup = document.getElementById(`${inputId}-form-group`);
+  const error = document.getElementById(`${inputId}-error`);
 
----
+  formGroup.classList.add("govuk-form-group--error");
+  input.setAttribute("aria-invalid", "true");
+  error.style.display = "block";
+  error.querySelector("span + text").textContent = errorMessage;
+}
 
-### **3. Replace misplaced `<p>` error tag**
-**Current:**
-```html
-<p id="confirm-delete-error" class="govuk-error-message" style="display:none">
-```
+function clearFieldError(inputId) {
+  const input = document.getElementById(inputId);
+  const formGroup = document.getElementById(`${inputId}-form-group`);
+  const error = document.getElementById(`${inputId}-error`);
 
-**Fix:** Move this **inside** the fieldset **after** the `<legend>`.
-
-**Reason:** So that assistive technologies associate it correctly with the input group.
-
----
-
-### **4. Update page title**
-**Current (as per screenshot):**
-```html
-<title>Error: GOV.UK</title>
-```
-
-**Fix:**
-Change to reflect the `<h1>`:
-```html
-<title>Are you sure you want to delete the uploaded file and all its reports? – Local authority portal – GOV.UK</title>
-```
-
-**Why:** To meet SC 2.4.2 (A) ensuring the title describes the page meaningfully and aligns with the visible heading.
-
----
-
-### **5. Update the JavaScript error handling (optional but useful)**
-Ensure `aria-invalid` is toggled when error shows:
-```js
-document.getElementById('confirm-delete').setAttribute('aria-invalid', 'true');
-```
-
-And reset when valid:
-```js
-document.getElementById('confirm-delete').removeAttribute('aria-invalid');
+  formGroup.classList.remove("govuk-form-group--error");
+  input.removeAttribute("aria-invalid");
+  error.style.display = "none";
+}
 ```
 
 ---
 
-### **6. Optional Enhancement – `<h1>` structure**
-**In code:**
-```html
-<h1 class="govuk-heading-xl">Are you sure you want to delete the uploaded file and all its reports?</h1>
-```
+### Why This Is Important
 
-Ensure the heading is consistently matched with the `<title>` as above.
+- **Improves accessibility**: Screen readers and voice tools now get proper relationships.
+- **ARIA usage**: Ensures error states are announced clearly.
+- **Design pattern compliance**: Matches [GOV.UK Fieldset pattern](https://design-system.service.gov.uk/components/fieldset/).
 
----
-
-### Summary of Fix Locations:
-
-| Location                      | What to Fix                                       | Replace With / Add                                |
-|------------------------------|--------------------------------------------------|---------------------------------------------------|
-| Inside `<fieldset>`          | Add `<legend>`                                   | Descriptive question summarizing the radio group  |
-| `<fieldset>` tag             | Add `aria-describedby="confirm-delete-error"`   | Associates error message with the group           |
-| `<p id="confirm-delete-error">` | Move inside fieldset, below `<legend>`         | For screen reader context                         |
-| `<title>` in `<head>`        | Set proper descriptive title                     | Match the `<h1>` + service name + GOV.UK          |
-
-Let me know if you want me to generate the corrected full HTML block.
+Let me know if you’d like the same treatment for other fields/pages — happy to build them out.
