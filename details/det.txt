@@ -1,383 +1,100 @@
-Here is a **focused list of the required fixes** to address the **WCAG 2.2 AA - 3.3.3 Error Suggestion** issues in your **Address Lookup JavaScript**, based on your provided code:
+Here is a breakdown of **where exactly the fixes need to be applied** in your current code and **what should be replaced or updated** for each WCAG 2.2 (A) issue related to **form markup, ARIA attributes, and page title**.
 
 ---
 
-## ✅ 1. **Normalize Postcode Input (trim, uppercase, remove extra spaces)**
-
-### **Where:**  
-Inside `findAddress()` function before validation
-
-### **Current Issue:**  
-Users entering lowercase, extra spaces, or no spaces get invalid error even though the postcode is technically correct.
-
-### **Fix:**
-Add normalization logic:
-```js
-let rawPostcode = postcodeInput.val().trim();
-let normalizedPostcode = rawPostcode.toUpperCase().replace(/\s+/g, ''); // Strip extra spaces
-
-postcodeInput.val(rawPostcode); // Optionally preserve original for display
-
-// Use normalizedPostcode for validation and lookup
-```
-
-Then use `normalizedPostcode` in regex test and API call:
-```js
-if (!postcodeRegex.test(normalizedPostcode)) {
-  // trigger format error
-}
-...
-resolve(normalizedPostcode); // use in postcodeSearchWithPluginFetch
-```
-
----
-
-## ✅ 2. **Improve Postcode Validation Regex**
-
-### **Where:**  
-You have:
-```js
-const postcodeRegex = new RegExp(/^([A-Za-z]{1,2}[\d]{1,2}[A-Za-z]?)([\s]?)+([\d][A-Za-z]{2})$/);
-```
-
-### **Issue:**  
-This fails on many valid UK postcode formats, especially no-space or lowercase.
-
-### **Fix:**  
-Use a more inclusive pattern:
-```js
-const postcodeRegex = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
-```
-
-- This allows lowercase, optional space, and all valid postcode structures
-
----
-
-## ✅ 3. **Improve Error Messaging with Examples**
-
-### **Where:**  
-In `findAddress()` where you show error messages for blank or invalid postcodes
-
-### **Current:**
-```js
-$('#postcode-format-error').show();
-// "Postcode should be 5 to 8 characters..."
-```
-
-### **Fix:**
-Update text to:
+### **1. Add `<legend>` inside `<fieldset>`**
+**Current code:**
 ```html
-<span class="govuk-visually-hidden">Error:</span> Enter a valid postcode, for example SW1A 1AA
+<fieldset class="govuk-fieldset">
+  <p id="confirm-delete-error" class="govuk-error-message" style="display:none">...</p>
 ```
 
-And update `.innerText` or `.html()` in JS where appropriate to reflect this.
-
-Also make sure `aria-describedby="postcode-format-error postcode-hint"` is applied to the input.
-
----
-
-## ✅ 4. **Replace `<select>` with radio buttons in `postcodeSuccess()`**
-
-### **Where:**  
-Inside `postcodeSuccess()` function where you create dropdown options
-
-### **Issue:**  
-GOV.UK recommends **radios instead of `<select>`** for address lists (better for accessibility and readability)
-
-### **Fix:**
-Instead of building `<option>` tags:
-```js
-postcodeList[i + 1] = '<option value="' + i + '">' + address + '</option>';
-```
-
-Generate radio button HTML:
-```js
-postcodeList[i + 1] = `
-  <div class="govuk-radios__item">
-    <input class="govuk-radios__input" type="radio" id="address-${i}" name="AddressFromPostcode" value="${i}">
-    <label class="govuk-label govuk-radios__label" for="address-${i}">${address}</label>
-  </div>`;
-```
-
-Also wrap with:
+**Replace with:**
 ```html
-<fieldset class="govuk-fieldset" aria-describedby="select-address-hint">
-  <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">Select an address</legend>
-  <div class="govuk-radios" id="AddressFromPostcode">
-    <!-- insert radios here -->
-  </div>
-</fieldset>
-```
-
-Then in JS, replace:
-```js
-$(postcodeSelector).append(postcodeList[i]);
-```
-
-With:
-```js
-$('#AddressFromPostcode').append(postcodeList[i]);
+<fieldset class="govuk-fieldset" aria-describedby="confirm-delete-error">
+  <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+    Confirm whether you want to delete the file and all its reports
+  </legend>
+  <p id="confirm-delete-error" class="govuk-error-message" style="display:none">
+    <span class="govuk-visually-hidden">Error: </span> Confirm whether you want to delete the file
+  </p>
 ```
 
 ---
 
-## ✅ 5. **Fix inconsistent error class application**
-
-### **Where:**  
-Inside various `if` blocks for errors in `findAddress()` and `commitAddress()`
-
-### **Issue:**  
-Missing `removeClass()` calls when clearing errors — so previous errors sometimes persist.
-
-### **Fix:**  
-Ensure that in all branches where validation passes:
-```js
-$('#postcode').removeClass("govuk-input--error");
-$('#postcode-format-error').hide();
-$('#postcode-error').hide();
-$('.govuk-error-summary').hide();
-```
-
-Same for `addressSelector`:
-```js
-$("#addressSelector").removeClass("govuk-form-group--error");
-$("#select-address-error").hide();
-```
-
----
-
-## ✅ 6. **Ensure all error messages use `govuk-visually-hidden` prefix**
-
-### **Why:**  
-This ensures screen readers announce the word **"Error:"** properly
-
-### **Fix:**  
-Ensure all `.innerHTML` updates for errors include:
+### **2. Fix `aria-describedby` value**
+**Current (missing or wrong):**
 ```html
-<span class="govuk-visually-hidden">Error: </span>
+<fieldset class="govuk-fieldset">
 ```
 
----
-
-## ✅ Summary of Code Fixes
-
-| Fix | Where | Why |
-|-----|-------|-----|
-| Normalize postcode input | `findAddress()` | Accept lowercase, trim spaces, consistent backend lookup |
-| Improve postcode regex | Global (early in JS) | Allow valid UK postcode formats |
-| Improve error messages | `findAddress()` | Better feedback, accessibility |
-| Replace `<select>` with radios | `postcodeSuccess()` | Compliant with GOV.UK address lookup pattern |
-| Remove error classes and summaries on success | All validation paths | Avoid residual validation errors |
-| Prefix all error messages with `govuk-visually-hidden` | All `.innerHTML` / `text()` updates | Screen reader accessibility |
-
----
-
-Let me know if you'd like help implementing the radio replacement structure directly, or if you want to switch over to the [HMRC address lookup microservice](https://github.com/hmrc/address-lookup-frontend) for better compliance and fewer custom builds.
-
-
-Absolutely — here’s a clear breakdown of **postcode regex validation** for both your **current** and the **recommended (improved)** version, with **real-world examples**.
-
----
-
-## 🔍 **Current Regex in Your Code**
-```js
-const postcodeRegex = new RegExp(/^([A-Za-z]{1,2}[\d]{1,2}[A-Za-z]?)([\s]?)+([\d][A-Za-z]{2})$/);
-```
-
-### ❌ Issues:
-- Expects a specific split of parts, with optional space
-- Doesn’t support:
-  - Lowercase input
-  - Certain valid postcode formats (e.g. `GIR 0AA`, `BS1 4RU`)
-- Fails silently on slightly malformed but fixable input
-
----
-
-### ❌ Invalid Examples with Your Current Regex:
-
-| Input        | Expected Outcome | Why |
-|--------------|------------------|-----|
-| `bs1 4ru`     | ❌ Invalid         | Lowercase |
-| `BS14RU`      | ❌ Invalid         | No space |
-| `BS1     4RU` | ❌ Invalid         | Multiple spaces |
-| `GIR 0AA`     | ❌ Invalid         | Non-standard but valid postcode |
-
----
-
-## ✅ **Recommended UK Postcode Regex**
-```js
-const postcodeRegex = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
-```
-
-### ✅ Benefits:
-- Allows:
-  - Optional space (`AB1C1DE` or `AB1 C1DE`)
-  - Lowercase or uppercase (`i` flag)
-  - All valid postcode patterns including special ones (`GIR 0AA`)
-- Follows [official UK postcode rules](https://en.wikipedia.org/wiki/Postcodes_in_the_United_Kingdom#Formatting)
-
----
-
-### ✅ Examples This Regex Will Accept:
-
-| Input        | Format       | Valid? |
-|--------------|--------------|--------|
-| `BS1 4RU`     | Standard     | ✅ |
-| `BS14RU`      | No space     | ✅ |
-| `bs1 4ru`     | Lowercase    | ✅ |
-| `GIR 0AA`     | Special case | ✅ |
-| `W1A 0AX`     | London       | ✅ |
-| `M1 1AE`      | Manchester   | ✅ |
-| `EC1A1BB`     | No space     | ✅ |
-| `ec1a 1bb`    | Lowercase    | ✅ |
-| `SW1A     2AA`| Excess spaces| ❌ (You should `.replace(/\s+/g, ' ')` or trim first) |
-
----
-
-## ✅ Recommended Normalization (before regex match)
-Before matching:
-```js
-let input = postcodeInput.val().trim().toUpperCase().replace(/\s+/g, '');
-```
-
-Then:
-```js
-const formatted = input.slice(0, -3) + ' ' + input.slice(-3); // insert standard space
-postcodeRegex.test(formatted);
-```
-
-This ensures the input is always matched in a **normalized, expected format**, regardless of how the user typed it.
-
----
-
-### ✅ Summary
-
-| Version | Regex | Accepts Lowercase | Accepts No Space | GOV.UK Compliant |
-|--------|--------|-------------------|------------------|------------------|
-| Current | `/^([A-Za-z]{1,2}[\d]{1,2}[A-Za-z]?)([\s]?)+([\d][A-Za-z]{2})$/` | ❌ | ❌ | ❌ |
-| Recommended | `/^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i` | ✅ | ✅ | ✅ |
-
-Let me know if you want a helper function to automatically **normalize and validate** a postcode from raw input — I can provide a plug-and-play snippet.
-
-
-
-
-
-Great — let's walk through **exactly where** you should make the **postcode regex, normalization, and validation changes** based on your **Address Lookup flow** and **Manual Address Entry** logic.
-
----
-
-## ✅ PART 1: **Where to Apply Postcode Fixes**
-
----
-
-### 🔧 1. `findAddress()` — Lookup Entry Point
-
-#### **What to fix:**
-- Normalize input (`trim`, `uppercase`, `remove extra spaces`)
-- Replace the regex with the GOV.UK compliant one
-
-#### ✅ Changes:
-```js
-let rawPostcode = $('#postcode').val().trim();
-let normalized = rawPostcode.toUpperCase().replace(/\s+/g, '');
-let formatted = normalized.slice(0, -3) + ' ' + normalized.slice(-3);
-
-const postcodeRegex = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
-
-if (!postcodeRegex.test(formatted)) {
-  // show error
-}
-```
-
----
-
-### 🔧 2. `postcodeSearchWithPluginFetch(postcode)` — API fetch
-
-#### **What to fix:**
-- Pass the **normalized postcode** to backend (or formatted if needed)
-
-#### ✅ Change:
-```js
-resolve(formatted); // use consistent format for lookup
-```
-
----
-
-### 🔧 3. `postcodeSuccess()` — showing selected postcode
-
-#### **What to fix:**
-- Display the formatted postcode back in UI for user confirmation
-
-#### ✅ Change:
-```js
-document.getElementById("pc-success").innerText = formatted;
-```
-
----
-
-### 🔧 4. `commitAddress()` — validation when user selects from dropdown (or radios)
-
-#### **What to fix:**
-- Validate if a selection was made
-- No change to postcode regex here directly — it's indirectly tied to selection success
-- ✅ Make sure to **clear previous postcode errors** if successful
-
----
-
-## ✅ PART 2: **Manual Address Entry (`manualAddressVal`)**
-
-You have a separate postcode field for manual entry.
-
----
-
-### 🔧 5. `manualAddressVal()` — Postcode field validation
-
-#### **What to fix:**
-- Normalize user input
-- Replace regex
-- Improve error message with example
-
-#### ✅ Code to add:
-```js
-let rawManualPostcode = $("#postcode").val().trim();
-let normManualPostcode = rawManualPostcode.toUpperCase().replace(/\s+/g, '');
-let formattedManualPostcode = normManualPostcode.slice(0, -3) + ' ' + normManualPostcode.slice(-3);
-
-const postcodeRegex = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
-
-if (!postcodeRegex.test(formattedManualPostcode)) {
-  obj.inputs[6].isValid = false;
-  obj.inputs[6].errorMessage = "Enter a valid postcode, for example SW1A 1AA";
-  document.getElementById(`${obj.inputs[6].id}-error`).innerHTML =
-    `<span class="govuk-visually-hidden">Error: </span>${obj.inputs[6].errorMessage}`;
-}
-```
-
----
-
-## ✅ Summary Table: Where to Apply Postcode Logic Changes
-
-| Function | Location | What to Fix |
-|----------|----------|-------------|
-| `findAddress()` | Lookup entry | Normalize + new regex |
-| `postcodeSearchWithPluginFetch()` | Lookup fetch | Use formatted postcode |
-| `postcodeSuccess()` | Postcode confirm | Show normalized postcode |
-| `manualAddressVal()` | Manual entry validation | Normalize + regex + hint message |
-| `commitAddress()` | Address selection | Ensure errors clear if selected |
-
----
-
-## 📌 Don't Forget
-
-- Add `aria-describedby="postcode-hint postcode-format-error"` to your postcode `<input>` elements
-- Update your hint/error message in HTML to:
+**Fix it by adding:**
 ```html
-<p id="postcode-format-error" class="govuk-error-message" style="display:none">
-  <span class="govuk-visually-hidden">Error:</span> Enter a valid postcode, for example SW1A 1AA
-</p>
+<fieldset class="govuk-fieldset" aria-describedby="confirm-delete-error">
+```
+
+**Why:** Ensures screen readers read out the associated error message.
+
+---
+
+### **3. Replace misplaced `<p>` error tag**
+**Current:**
+```html
+<p id="confirm-delete-error" class="govuk-error-message" style="display:none">
+```
+
+**Fix:** Move this **inside** the fieldset **after** the `<legend>`.
+
+**Reason:** So that assistive technologies associate it correctly with the input group.
+
+---
+
+### **4. Update page title**
+**Current (as per screenshot):**
+```html
+<title>Error: GOV.UK</title>
+```
+
+**Fix:**
+Change to reflect the `<h1>`:
+```html
+<title>Are you sure you want to delete the uploaded file and all its reports? – Local authority portal – GOV.UK</title>
+```
+
+**Why:** To meet SC 2.4.2 (A) ensuring the title describes the page meaningfully and aligns with the visible heading.
+
+---
+
+### **5. Update the JavaScript error handling (optional but useful)**
+Ensure `aria-invalid` is toggled when error shows:
+```js
+document.getElementById('confirm-delete').setAttribute('aria-invalid', 'true');
+```
+
+And reset when valid:
+```js
+document.getElementById('confirm-delete').removeAttribute('aria-invalid');
 ```
 
 ---
 
-Would you like me to help you rewrite and refactor the updated `findAddress()` and `manualAddressVal()` functions with these changes baked in?
+### **6. Optional Enhancement – `<h1>` structure**
+**In code:**
+```html
+<h1 class="govuk-heading-xl">Are you sure you want to delete the uploaded file and all its reports?</h1>
+```
+
+Ensure the heading is consistently matched with the `<title>` as above.
+
+---
+
+### Summary of Fix Locations:
+
+| Location                      | What to Fix                                       | Replace With / Add                                |
+|------------------------------|--------------------------------------------------|---------------------------------------------------|
+| Inside `<fieldset>`          | Add `<legend>`                                   | Descriptive question summarizing the radio group  |
+| `<fieldset>` tag             | Add `aria-describedby="confirm-delete-error"`   | Associates error message with the group           |
+| `<p id="confirm-delete-error">` | Move inside fieldset, below `<legend>`         | For screen reader context                         |
+| `<title>` in `<head>`        | Set proper descriptive title                     | Match the `<h1>` + service name + GOV.UK          |
+
+Let me know if you want me to generate the corrected full HTML block.
