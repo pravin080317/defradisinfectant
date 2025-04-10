@@ -1,95 +1,16 @@
-Yes, absolutely! Here's how you can create SQL-style queries (using Dataverse SQL / TDS endpoint) to analyze **Portal Requests**, **Portal File Management**, and distinguish between **Bulk Upload** and **Evidence**.
-
----
-
-### 🔍 Assumptions:
-- `voa_portalrequest` – stores requests submitted through the portal.
-- `voa_portalfilemanagement` – stores files uploaded (both evidence and bulk).
-- `voa_uploadtype` – field in `voa_portalfilemanagement` indicates whether it's **evidence** or **bulk**.
-- `createdon`, `createdby`, and `statuscode` used for filtering and reporting.
-- `statecode = 0` filters active records.
-
----
-
-## ✅ 1. **Submissions from Portal Requests**
-
-```sql
-SELECT 
-    pr.voa_originatingcouncilcode AS CouncilCode,
-    COUNT(*) AS SubmissionCount
-FROM 
-    voa_portalrequest AS pr
-WHERE 
-    pr.statecode = 0  -- Active
-GROUP BY 
-    pr.voa_originatingcouncilcode
-ORDER BY 
-    SubmissionCount DESC;
-```
-
----
-
-## ✅ 2. **File Uploads (Bulk and Evidence)**
-
-```sql
-SELECT 
-    pfm.voa_uploadtype AS UploadType,  -- OptionSet: 1 = Bulk, 2 = Evidence (adjust accordingly)
-    COUNT(*) AS UploadCount
-FROM 
-    voa_portalfilemanagement AS pfm
-WHERE 
-    pfm.statecode = 0
-GROUP BY 
-    pfm.voa_uploadtype
-```
-
----
-
-## ✅ 3. **Detailed Uploads by Council and Type**
-
-```sql
-SELECT 
-    pr.voa_originatingcouncilcode AS CouncilCode,
-    pfm.voa_uploadtype AS UploadType,
+SELECT
+    pr.[voap_billingauthorityaccount] AS CouncilCode,
+    pfm.voap_uploadtypename AS UploadType,
     COUNT(*) AS FileCount
-FROM 
-    voa_portalfilemanagement AS pfm
-JOIN 
-    voa_portalrequest AS pr
-    ON pfm.voa_portalrequestlookup = pr.voa_portalrequestid
-WHERE 
+FROM
+    voap_portalfilemanagement AS pfm
+LEFT JOIN
+    voap_portalrequest AS pr
+    ON pfm.voap_portalrequestlookup = pr.voap_portalrequestid
+WHERE
     pfm.statecode = 0
-GROUP BY 
-    pr.voa_originatingcouncilcode,
-    pfm.voa_uploadtype
-ORDER BY 
+GROUP BY
+    pr.[voap_billingauthorityaccount],
+    pfm.voap_uploadtypename
+ORDER BY
     CouncilCode, UploadType;
-```
-
----
-
-## ✅ 4. **Failed File Uploads (e.g., stuck or with errors)**
-
-```sql
-SELECT 
-    pfm.voa_filename,
-    pfm.statuscode,
-    pfm.voa_uploadtype,
-    pfm.voa_errorcodes,
-    pfm.createdon
-FROM 
-    voa_portalfilemanagement AS pfm
-WHERE 
-    pfm.statuscode IN (123456, 654321)  -- Replace with actual error/failure status codes
-ORDER BY 
-    pfm.createdon DESC;
-```
-
----
-
-If you'd like to:
-- Expand this to include `SharePoint upload`, `request line item` linkage.
-- Include the **`description`** and retry logic tracking.
-- Or want pre-built **dashboards or Power BI visuals** based on this data...
-
-Let me know! I can help you build those queries or visuals too.
