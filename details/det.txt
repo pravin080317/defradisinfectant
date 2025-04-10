@@ -1,98 +1,106 @@
-Perfect — here's a complete, **WCAG 2.2-compliant** and **GOV.UK Design System–aligned** rewrite for the **British National Grid Coordinates** and **UPRN** fields, including:
+Absolutely, here’s a **precise, focused fix** for the `locationDetailsVal()` function based on your accessibility improvements (UPRN, X and Y fields). We’ll **only modify what's required** to:
 
-- `aria-describedby`
-- `aria-invalid`
-- correct `<fieldset>` and `<legend>` markup
-- inline error handling pattern
+- Add missing `aria-invalid` attributes
+- Trigger/hide error messages visually and programmatically
+- Match GOV.UK error styling and accessibility practices
 
 ---
 
-### ✅ **Full HTML Fix**
+### ✅ **Required Fixes (Simple Replacements)**
 
-```html
-<!-- Unique Property Reference Number -->
-<div class="govuk-form-group" id="uprn-form-group">
-  <label class="govuk-label govuk-label--m" for="uprn">Unique Property Reference Number (optional)</label>
-  <div id="uprn-hint" class="govuk-hint">
-    The unique number given to the property by the local authority. This can be up to 12 digits.
-  </div>
-  <p id="uprn-error" class="govuk-error-message" style="display: none;">
-    <span class="govuk-visually-hidden">Error:</span> UPRN must be a number with up to 12 digits
-  </p>
-  <input class="govuk-input" id="uprn" name="uprn" type="text"
-         aria-describedby="uprn-hint"
-         aria-invalid="false">
-</div>
+Replace your validation logic **inside `locationDetailsVal()`** with the **correct error toggle code** for each field:
 
-<!-- British National Grid Coordinates -->
-<fieldset class="govuk-fieldset" aria-describedby="grid-coordinates-hint">
-  <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
-    British National Grid Coordinates (optional)
-  </legend>
+---
 
-  <div id="grid-coordinates-hint" class="govuk-hint">
-    Include if property might be difficult to find. Each coordinate can be up to 6 digits and up to 3 decimal places.
-  </div>
+#### ✅ **Fix 1: UPRN Validation Block**
 
-  <!-- X (Eastings) -->
-  <div class="govuk-form-group" id="xeastings-form-group">
-    <label class="govuk-label" for="xeastings">X (Eastings)</label>
-    <p id="xeastings-error" class="govuk-error-message" style="display: none;">
-      <span class="govuk-visually-hidden">Error:</span> Enter a valid X coordinate
-    </p>
-    <input class="govuk-input govuk-input--width-one-third" id="xeastings" name="xeastings" type="text"
-           aria-describedby="grid-coordinates-hint"
-           aria-invalid="false">
-  </div>
-
-  <!-- Y (Northings) -->
-  <div class="govuk-form-group" id="ynorthings-form-group">
-    <label class="govuk-label" for="ynorthings">Y (Northings)</label>
-    <p id="ynorthings-error" class="govuk-error-message" style="display: none;">
-      <span class="govuk-visually-hidden">Error:</span> Enter a valid Y coordinate
-    </p>
-    <input class="govuk-input govuk-input--width-one-third" id="ynorthings" name="ynorthings" type="text"
-           aria-describedby="grid-coordinates-hint"
-           aria-invalid="false">
-  </div>
-</fieldset>
+**🔁 Replace:**
+```js
+if ($("#$(obj.inputs[0].id)").val() && UPRN_REGEX.test($("#${obj.inputs[0].id)').val()) === false) {
+    obj.inputs[0].isValid = false;
+} else {
+    obj.inputs[0].isValid = true;
+}
 ```
 
----
-
-### ✅ **JavaScript Error Handling Logic (Simplified)**
-
-In your JS validation method (like `locationDetailsVal()`), update error styling and ARIA like this:
-
-```javascript
-function showFieldError(inputId, errorMessage) {
-  const input = document.getElementById(inputId);
-  const formGroup = document.getElementById(`${inputId}-form-group`);
-  const error = document.getElementById(`${inputId}-error`);
-
-  formGroup.classList.add("govuk-form-group--error");
-  input.setAttribute("aria-invalid", "true");
-  error.style.display = "block";
-  error.querySelector("span + text").textContent = errorMessage;
-}
-
-function clearFieldError(inputId) {
-  const input = document.getElementById(inputId);
-  const formGroup = document.getElementById(`${inputId}-form-group`);
-  const error = document.getElementById(`${inputId}-error`);
-
-  formGroup.classList.remove("govuk-form-group--error");
-  input.removeAttribute("aria-invalid");
-  error.style.display = "none";
+**✅ With:**
+```js
+const uprnInput = document.getElementById(obj.inputs[0].id);
+if (uprnInput.value && !UPRN_REGEX.test(uprnInput.value)) {
+    obj.inputs[0].isValid = false;
+    uprnInput.setAttribute('aria-invalid', 'true');
+    document.getElementById(`${obj.inputs[0].id}-error`).style.display = "block";
+    document.getElementById(`${obj.inputs[0].id}-form-group`).classList.add("govuk-form-group--error");
+} else {
+    obj.inputs[0].isValid = true;
+    uprnInput.removeAttribute('aria-invalid');
+    document.getElementById(`${obj.inputs[0].id}-error`).style.display = "none";
+    document.getElementById(`${obj.inputs[0].id}-form-group`).classList.remove("govuk-form-group--error");
 }
 ```
 
 ---
 
-### Why This Is Important
+#### ✅ **Fix 2: X (Eastings) Validation Block**
 
-- **Improves accessibility**: Screen readers and voice tools now get proper relationships.
-- **ARIA usage**: Ensures error states are announced clearly.
-- **Design pattern compliance**: Matches [GOV.UK Fieldset pattern](https://design-system.service.gov.uk/components/fieldset/).
+**🔁 Replace:**
+```js
+if ($('#$(obj.inputs[1].id)').val() && GRID_REGEX.test($('#$(obj.inputs[1].id)").val()) === false) {
+    obj.inputs[1].isValid = false;
+} else {
+    obj.inputs[1].isValid = true;
+}
+```
 
-Let me know if you’d like the same treatment for other fields/pages — happy to build them out.
+**✅ With:**
+```js
+const xInput = document.getElementById(obj.inputs[1].id);
+if (xInput.value && !GRID_REGEX.test(xInput.value)) {
+    obj.inputs[1].isValid = false;
+    xInput.setAttribute('aria-invalid', 'true');
+    document.getElementById(`${obj.inputs[1].id}-error`).style.display = "block";
+    document.getElementById(`${obj.inputs[1].id}-form-group`).classList.add("govuk-form-group--error");
+} else {
+    obj.inputs[1].isValid = true;
+    xInput.removeAttribute('aria-invalid');
+    document.getElementById(`${obj.inputs[1].id}-error`).style.display = "none";
+    document.getElementById(`${obj.inputs[1].id}-form-group`).classList.remove("govuk-form-group--error");
+}
+```
+
+---
+
+#### ✅ **Fix 3: Y (Northings) Validation Block**
+
+**🔁 Replace:**
+```js
+if ($("#${obj.inputs [2].id)").val() && GRID_REGEX.test($('#$(obj.inputs[2].id}').val()) === false) {
+    obj.inputs[2].isValid = false;
+} else {
+    obj.inputs[2].isValid = true;
+}
+```
+
+**✅ With:**
+```js
+const yInput = document.getElementById(obj.inputs[2].id);
+if (yInput.value && !GRID_REGEX.test(yInput.value)) {
+    obj.inputs[2].isValid = false;
+    yInput.setAttribute('aria-invalid', 'true');
+    document.getElementById(`${obj.inputs[2].id}-error`).style.display = "block";
+    document.getElementById(`${obj.inputs[2].id}-form-group`).classList.add("govuk-form-group--error");
+} else {
+    obj.inputs[2].isValid = true;
+    yInput.removeAttribute('aria-invalid');
+    document.getElementById(`${obj.inputs[2].id}-error`).style.display = "none";
+    document.getElementById(`${obj.inputs[2].id}-form-group`).classList.remove("govuk-form-group--error");
+}
+```
+
+---
+
+### ✅ Where to Replace:
+
+Inside `function locationDetailsVal()` — only replace the 3 individual field validation blocks as shown above. Keep your loop and `updateRecord()` logic untouched.
+
+Let me know if you'd like me to drop this as a full block or integrate it into the version you're working on.
