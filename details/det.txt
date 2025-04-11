@@ -1,106 +1,75 @@
-Absolutely, here’s a **precise, focused fix** for the `locationDetailsVal()` function based on your accessibility improvements (UPRN, X and Y fields). We’ll **only modify what's required** to:
+Thanks for sharing the JavaScript and markup related to the **`/ct-upload-bulk-reports`** page.
 
-- Add missing `aria-invalid` attributes
-- Trigger/hide error messages visually and programmatically
-- Match GOV.UK error styling and accessibility practices
+You're aiming to resolve the **WCAG 2.2 issue: Link Purpose (In Context)** — specifically for the **"Change"** link in the upload confirmation table.
 
 ---
 
-### ✅ **Required Fixes (Simple Replacements)**
+### **Issue Recap:**
+The **"Change"** link currently reads:
+```html
+<a class="govuk-link" id="change" href="#">Change</a>
+```
 
-Replace your validation logic **inside `locationDetailsVal()`** with the **correct error toggle code** for each field:
+This **lacks context** for screen reader users. If there are multiple files or links with "Change", users won’t know which file it applies to.
 
 ---
 
-#### ✅ **Fix 1: UPRN Validation Block**
-
-**🔁 Replace:**
-```js
-if ($("#$(obj.inputs[0].id)").val() && UPRN_REGEX.test($("#${obj.inputs[0].id)').val()) === false) {
-    obj.inputs[0].isValid = false;
-} else {
-    obj.inputs[0].isValid = true;
-}
-```
-
-**✅ With:**
-```js
-const uprnInput = document.getElementById(obj.inputs[0].id);
-if (uprnInput.value && !UPRN_REGEX.test(uprnInput.value)) {
-    obj.inputs[0].isValid = false;
-    uprnInput.setAttribute('aria-invalid', 'true');
-    document.getElementById(`${obj.inputs[0].id}-error`).style.display = "block";
-    document.getElementById(`${obj.inputs[0].id}-form-group`).classList.add("govuk-form-group--error");
-} else {
-    obj.inputs[0].isValid = true;
-    uprnInput.removeAttribute('aria-invalid');
-    document.getElementById(`${obj.inputs[0].id}-error`).style.display = "none";
-    document.getElementById(`${obj.inputs[0].id}-form-group`).classList.remove("govuk-form-group--error");
-}
-```
+### ✅ Fix Needed:
+**Add visually hidden contextual copy** inside the "Change" link (just like with “Fix errors” and “Edit” links on other pages).
 
 ---
 
-#### ✅ **Fix 2: X (Eastings) Validation Block**
+### ✅ Updated HTML for “Change” Link
 
-**🔁 Replace:**
-```js
-if ($('#$(obj.inputs[1].id)').val() && GRID_REGEX.test($('#$(obj.inputs[1].id)").val()) === false) {
-    obj.inputs[1].isValid = false;
-} else {
-    obj.inputs[1].isValid = true;
-}
+Locate this block inside your upload table:
+
+```html
+<td class="govuk-table_cell govuk-1-text-align-right">
+  <a class="govuk-link" id="change" href="#">Change</a>
+</td>
 ```
 
-**✅ With:**
+**Replace it with:**
+
+```html
+<td class="govuk-table_cell govuk-1-text-align-right">
+  <a class="govuk-link" id="change" href="#">
+    Change<span class="govuk-visually-hidden"> file {{ uploadedFileName }}</span>
+  </a>
+</td>
+```
+
+Since you’re already dynamically setting the uploaded filename via:
+
 ```js
-const xInput = document.getElementById(obj.inputs[1].id);
-if (xInput.value && !GRID_REGEX.test(xInput.value)) {
-    obj.inputs[1].isValid = false;
-    xInput.setAttribute('aria-invalid', 'true');
-    document.getElementById(`${obj.inputs[1].id}-error`).style.display = "block";
-    document.getElementById(`${obj.inputs[1].id}-form-group`).classList.add("govuk-form-group--error");
-} else {
-    obj.inputs[1].isValid = true;
-    xInput.removeAttribute('aria-invalid');
-    document.getElementById(`${obj.inputs[1].id}-error`).style.display = "none";
-    document.getElementById(`${obj.inputs[1].id}-form-group`).classList.remove("govuk-form-group--error");
-}
+fileNameTable.append(fileData.filename);
+```
+
+You can **also update the visually hidden context via JavaScript** just after that:
+
+---
+
+### ✅ JS Fix for Visually Hidden Span
+
+Update this part inside `addFileToList(fileData)`:
+
+```js
+fileNameTable.append(fileData.filename);
+fileSizeTable.append(fileSize + " KB");
+
+// Add visually hidden span for screen reader context on "Change"
+document.getElementById("change").innerHTML =
+  `Change<span class="govuk-visually-hidden"> file ${fileData.filename}</span>`;
 ```
 
 ---
 
-#### ✅ **Fix 3: Y (Northings) Validation Block**
+### ✅ Final Outcome:
+For screen reader users, the link will now announce:
+> "Change file LAPortal_BAR_CT_CSV (Template) v2.csv"
 
-**🔁 Replace:**
-```js
-if ($("#${obj.inputs [2].id)").val() && GRID_REGEX.test($('#$(obj.inputs[2].id}').val()) === false) {
-    obj.inputs[2].isValid = false;
-} else {
-    obj.inputs[2].isValid = true;
-}
-```
-
-**✅ With:**
-```js
-const yInput = document.getElementById(obj.inputs[2].id);
-if (yInput.value && !GRID_REGEX.test(yInput.value)) {
-    obj.inputs[2].isValid = false;
-    yInput.setAttribute('aria-invalid', 'true');
-    document.getElementById(`${obj.inputs[2].id}-error`).style.display = "block";
-    document.getElementById(`${obj.inputs[2].id}-form-group`).classList.add("govuk-form-group--error");
-} else {
-    obj.inputs[2].isValid = true;
-    yInput.removeAttribute('aria-invalid');
-    document.getElementById(`${obj.inputs[2].id}-error`).style.display = "none";
-    document.getElementById(`${obj.inputs[2].id}-form-group`).classList.remove("govuk-form-group--error");
-}
-```
+This ensures it passes **WCAG 2.4.4** for link purpose clarity **in context**.
 
 ---
 
-### ✅ Where to Replace:
-
-Inside `function locationDetailsVal()` — only replace the 3 individual field validation blocks as shown above. Keep your loop and `updateRecord()` logic untouched.
-
-Let me know if you'd like me to drop this as a full block or integrate it into the version you're working on.
+Let me know if you also need to apply similar fixes for the **“Continue to upload”** button or elsewhere!
