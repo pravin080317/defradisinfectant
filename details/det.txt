@@ -1,75 +1,115 @@
-Thanks for sharing the JavaScript and markup related to the **`/ct-upload-bulk-reports`** page.
-
-You're aiming to resolve the **WCAG 2.2 issue: Link Purpose (In Context)** — specifically for the **"Change"** link in the upload confirmation table.
+Perfect — let’s start addressing the WCAG 2.2 accessibility issues **one by one** on the **`ct-fix-upload-errors`** page. We'll begin with:
 
 ---
 
-### **Issue Recap:**
-The **"Change"** link currently reads:
-```html
-<a class="govuk-link" id="change" href="#">Change</a>
-```
+## **Issue 1: Missing Context in “Fix errors” Action Links**  
+**WCAG 2.2 Criterion:** [2.4.4 Link Purpose (In Context)](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html)
 
-This **lacks context** for screen reader users. If there are multiple files or links with "Change", users won’t know which file it applies to.
+### **Problem:**
+Screen reader users hear multiple “Fix errors” links in the table without knowing which file each one applies to.
 
 ---
 
-### ✅ Fix Needed:
-**Add visually hidden contextual copy** inside the "Change" link (just like with “Fix errors” and “Edit” links on other pages).
+### ✅ **Fix: Add visually hidden context to each “Fix errors” link**
+
+In your loop where you're generating rows for `reports.results.entities`, you currently have:
+
+```liquid
+<a class="govuk-link" tabindex="0" href="{{ sitemarkers['FE002 Fix Reports with Data Errors'].url }}?id={{ result.voap_portalfilemanagementid }}">Fix errors</a>
+```
 
 ---
 
-### ✅ Updated HTML for “Change” Link
+### ✅ Replace it with:
 
-Locate this block inside your upload table:
-
-```html
-<td class="govuk-table_cell govuk-1-text-align-right">
-  <a class="govuk-link" id="change" href="#">Change</a>
-</td>
+```liquid
+<a class="govuk-link" tabindex="0"
+   href="{{ sitemarkers['FE002 Fix Reports with Data Errors'].url }}?id={{ result.voap_portalfilemanagementid }}">
+  Fix errors<span class="govuk-visually-hidden"> for file {{ result.voap_filenameoriginal }}</span>
+</a>
 ```
 
-**Replace it with:**
+This way, a screen reader will announce:
+> “Fix errors for file 2-lines-all-correct.xlsx”
 
+---
+
+## **Issue 2: Table Header Sorting Links Lack Context**
+
+The column headers use `<button>` inside `<th>` elements for sorting. While that’s good for accessibility, they lack screen-reader-specific descriptions.
+
+---
+
+### ✅ Fix: Add `aria-label` to sorting buttons
+
+**Before:**
 ```html
-<td class="govuk-table_cell govuk-1-text-align-right">
-  <a class="govuk-link" id="change" href="#">
-    Change<span class="govuk-visually-hidden"> file {{ uploadedFileName }}</span>
-  </a>
-</td>
+<button type="button" onclick="sortTable(0)" class="govuk-link" style="color:#005ea5">File</button>
 ```
 
-Since you’re already dynamically setting the uploaded filename via:
+**After:**
+```html
+<button type="button" onclick="sortTable(0)" class="govuk-link" style="color:#005ea5" aria-label="Sort by file name">File</button>
+```
 
+Apply similar `aria-label` attributes to the **Date uploaded** and **Status** headers:
+
+```html
+<button type="button" onclick="sortTable(1, true)" class="govuk-link" aria-label="Sort by date uploaded">Date uploaded</button>
+<button type="button" onclick="sortTable(2)" class="govuk-link" aria-label="Sort by status">Status</button>
+```
+
+---
+
+## **Issue 3: Pagination Links Are Not Descriptive**
+
+You’re generating `<a class="govuk-pagination_link">1</a>` with page numbers — but they **lack accessible labels**.
+
+---
+
+### ✅ Fix: Add `aria-label` dynamically to pagination links
+
+In your `addPaginationLink(i)` function, update the code:
+
+**Before:**
 ```js
-fileNameTable.append(fileData.filename);
+link.textContent = i;
 ```
 
-You can **also update the visually hidden context via JavaScript** just after that:
-
----
-
-### ✅ JS Fix for Visually Hidden Span
-
-Update this part inside `addFileToList(fileData)`:
-
+**After:**
 ```js
-fileNameTable.append(fileData.filename);
-fileSizeTable.append(fileSize + " KB");
-
-// Add visually hidden span for screen reader context on "Change"
-document.getElementById("change").innerHTML =
-  `Change<span class="govuk-visually-hidden"> file ${fileData.filename}</span>`;
+link.textContent = i;
+link.setAttribute('aria-label', 'Go to page ' + i);
 ```
 
+So that a screen reader hears:
+> "Go to page 3"
+
+Also update the **Previous** and **Next** links:
+
+**Before:**
+```html
+<span class="govuk-pagination_link-title">Next</span>
+```
+
+**After:**
+```html
+<span class="govuk-pagination_link-title" aria-label="Go to next page">Next</span>
+```
+
+Do the same for **Previous**.
+
 ---
 
-### ✅ Final Outcome:
-For screen reader users, the link will now announce:
-> "Change file LAPortal_BAR_CT_CSV (Template) v2.csv"
+## ✅ Summary of Fixes
 
-This ensures it passes **WCAG 2.4.4** for link purpose clarity **in context**.
+| Area | Fix |
+|------|-----|
+| **Fix errors link** | Add `<span class="govuk-visually-hidden"> for file [filename]</span>` |
+| **Table sorting buttons** | Add `aria-label` to each sorting `<button>` |
+| **Pagination numbers** | Add `aria-label="Go to page X"` dynamically in JS |
+| **Next/Previous links** | Add `aria-label="Go to next page"` etc. to `span` elements |
 
 ---
 
-Let me know if you also need to apply similar fixes for the **“Continue to upload”** button or elsewhere!
+Would you like me to prepare updated snippets for all these and give you the revised Liquid and JavaScript together for copy-paste?
