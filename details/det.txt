@@ -1,50 +1,63 @@
-Thanks for sharing the full context of the **“Fix reports with data errors”** page. Let’s now go through **the key WCAG 2.2 accessibility fixes** this page needs, just like we did for the other ones.
+Great — let’s address the **accessibility issues on the `/ct-submitted-reports/` page** following the WCAG 2.2 guidance, just like we did for the others.
 
 ---
 
-## ✅ ISSUE 1: **“Edit” link lacks context for screen reader users**
+## ✅ ISSUE 1: **“View supporting documents” / “Add documents” links lack context**
 
 ### **Problem:**
-Multiple `Edit` links are present in the table, but they don’t describe what’s being edited. A screen reader would just say “Edit” with no idea which row or report it relates to.
+Multiple rows have the same link text:  
+- “View supporting documents”  
+- “Add documents”  
+
+These **do not indicate which report they apply to**, making it inaccessible for screen reader users.
+
+---
+
+### ✅ Fix: Add visually hidden context to each action link
+
+#### Find this block:
+
+```liquid
+{% if attachments.results.entities.size == 0 %}
+  <a class="govuk-link" tabindex="0" href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ result.voap_portalrequestid }}">
+    Add documents
+  </a>
+{% else %}
+  <a class="govuk-link" tabindex="0" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}#supporting-documents">
+    View supporting documents
+  </a>
+{% endif %}
+```
+
+---
+
+### ✅ Replace with:
+
+```liquid
+{% if attachments.results.entities.size == 0 %}
+  <a class="govuk-link" tabindex="0" href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ result.voap_portalrequestid }}">
+    Add documents<span class="govuk-visually-hidden"> for report {{ result.voap_billingauthorityreportnumber }}</span>
+  </a>
+{% else %}
+  <a class="govuk-link" tabindex="0" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}#supporting-documents">
+    View supporting documents<span class="govuk-visually-hidden"> for report {{ result.voap_billingauthorityreportnumber }}</span>
+  </a>
+{% endif %}
+```
+
+---
+
+## ✅ ISSUE 2: **Table header sort buttons lack `aria-label`s**
+
+Same as before, the column sorting buttons are good visually but need accessible labels.
 
 ---
 
 ### ✅ Fix:
 
-#### In your current markup:
+Update each `<button>` inside `<th>` to include a `aria-label`.
 
-```liquid
-<a class="govuk-link" tabindex="0" href="{{ sitemarkers['FE006 Check and Modify Your Report Details'].url }}?id={{ result.voap_portalrequestid }}"> Edit </a>
-```
-
-#### Replace it with:
-
-```liquid
-<a class="govuk-link" tabindex="0"
-   href="{{ sitemarkers['FE006 Check and Modify Your Report Details'].url }}?id={{ result.voap_portalrequestid }}">
-   Edit<span class="govuk-visually-hidden"> report for billing authority {{ result.voap_billingauthorityreportnumber }}</span>
-</a>
-```
-
-> **Outcome:** For screen reader users, this will now read:  
-> “Edit report for billing authority 20230004”
-
----
-
-## ✅ ISSUE 2: **Table column headers with sort buttons lack `aria-label`**
-
-Each `<th>` contains a `<button>` to sort the table, but there is no screen reader label explaining what the button does.
-
-### Fix for sorting buttons:
-
-#### Before:
-```html
-<button type="button" onclick="sortTable(0)" class="govuk-link" style="color:#005ea5">
-  Billing authority report number
-</button>
-```
-
-#### After:
+#### Example:
 ```html
 <button type="button" onclick="sortTable(0)" class="govuk-link" style="color:#005ea5"
         aria-label="Sort by billing authority report number">
@@ -52,59 +65,48 @@ Each `<th>` contains a `<button>` to sort the table, but there is no screen read
 </button>
 ```
 
-Repeat this for the “Billing authority reference number” column too:
+Apply this to:
 
-```html
-<button type="button" onclick="sortTable(1)" class="govuk-link" style="color:#005ea5"
-        aria-label="Sort by billing authority reference number">
-  Billing authority reference number
-</button>
-```
-
----
-
-## ✅ ISSUE 3: **Pagination links lack `aria-label` and clarity**
-
-The pagination controls at the bottom have numeric links like:
-
-```html
-<a class="govuk-link govuk-pagination_link" href="#">1</a>
-```
-
-This is ambiguous to screen readers.
+| Column | `aria-label` |
+|--------|--------------|
+| Billing authority report number | `Sort by billing authority report number` |
+| Billing authority reference number | `Sort by billing authority reference number` |
+| Date created | `Sort by date created` |
+| Postcode | `Sort by postcode` |
 
 ---
 
-### Fix (in `addPaginationLink(i)` in JS):
+## ✅ ISSUE 3: **Pagination links need `aria-labels`**
 
-Add this line:
-```javascript
+The pagination links (1, 2, 3… Next) don’t describe their purpose.
+
+---
+
+### ✅ Fix in your JS: Add `aria-label` in `addPaginationLink(i)`
+
+In `VOA/GDS_Table_Sorting_Pagination_JS`, update:
+
+```js
 link.setAttribute('aria-label', 'Go to page ' + i);
 ```
 
-So it becomes:
-```javascript
-link.textContent = i;
-link.setAttribute('aria-label', 'Go to page ' + i);
-```
+Also update the **Next** and **Previous** buttons:
 
-Also add:
 ```html
 <span class="govuk-pagination_link-title" aria-label="Go to next page">Next</span>
+<span class="govuk-pagination_link-title" aria-label="Go to previous page">Previous</span>
 ```
-
-And similarly for **Previous**.
 
 ---
 
-## ✅ Summary of Changes for This Page
+## ✅ Summary of Fixes for `/ct-submitted-reports/`
 
 | Element | Fix |
 |--------|-----|
-| `Edit` link | Add a visually hidden span with the billing authority report number |
-| Table sorting buttons | Add `aria-label` attributes |
-| Pagination links | Add `aria-label` attributes in JS |
+| “View supporting documents” / “Add documents” | Add `govuk-visually-hidden` span with billing authority report number |
+| Sorting buttons | Add `aria-label` describing the column |
+| Pagination | Add `aria-label="Go to page X"`, and for “Next”/“Previous” |
 
 ---
 
-Let me know if you'd like a complete updated Liquid+JS snippet of the table and pagination logic for copy-paste.
+Would you like a fully cleaned-up HTML + Liquid snippet for the `<td>` + action column for copy-paste?
