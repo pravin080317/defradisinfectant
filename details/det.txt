@@ -1,115 +1,110 @@
-Perfect — let’s start addressing the WCAG 2.2 accessibility issues **one by one** on the **`ct-fix-upload-errors`** page. We'll begin with:
+Thanks for sharing the full context of the **“Fix reports with data errors”** page. Let’s now go through **the key WCAG 2.2 accessibility fixes** this page needs, just like we did for the other ones.
 
 ---
 
-## **Issue 1: Missing Context in “Fix errors” Action Links**  
-**WCAG 2.2 Criterion:** [2.4.4 Link Purpose (In Context)](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html)
+## ✅ ISSUE 1: **“Edit” link lacks context for screen reader users**
 
 ### **Problem:**
-Screen reader users hear multiple “Fix errors” links in the table without knowing which file each one applies to.
+Multiple `Edit` links are present in the table, but they don’t describe what’s being edited. A screen reader would just say “Edit” with no idea which row or report it relates to.
 
 ---
 
-### ✅ **Fix: Add visually hidden context to each “Fix errors” link**
+### ✅ Fix:
 
-In your loop where you're generating rows for `reports.results.entities`, you currently have:
+#### In your current markup:
 
 ```liquid
-<a class="govuk-link" tabindex="0" href="{{ sitemarkers['FE002 Fix Reports with Data Errors'].url }}?id={{ result.voap_portalfilemanagementid }}">Fix errors</a>
+<a class="govuk-link" tabindex="0" href="{{ sitemarkers['FE006 Check and Modify Your Report Details'].url }}?id={{ result.voap_portalrequestid }}"> Edit </a>
 ```
 
----
-
-### ✅ Replace it with:
+#### Replace it with:
 
 ```liquid
 <a class="govuk-link" tabindex="0"
-   href="{{ sitemarkers['FE002 Fix Reports with Data Errors'].url }}?id={{ result.voap_portalfilemanagementid }}">
-  Fix errors<span class="govuk-visually-hidden"> for file {{ result.voap_filenameoriginal }}</span>
+   href="{{ sitemarkers['FE006 Check and Modify Your Report Details'].url }}?id={{ result.voap_portalrequestid }}">
+   Edit<span class="govuk-visually-hidden"> report for billing authority {{ result.voap_billingauthorityreportnumber }}</span>
 </a>
 ```
 
-This way, a screen reader will announce:
-> “Fix errors for file 2-lines-all-correct.xlsx”
+> **Outcome:** For screen reader users, this will now read:  
+> “Edit report for billing authority 20230004”
 
 ---
 
-## **Issue 2: Table Header Sorting Links Lack Context**
+## ✅ ISSUE 2: **Table column headers with sort buttons lack `aria-label`**
 
-The column headers use `<button>` inside `<th>` elements for sorting. While that’s good for accessibility, they lack screen-reader-specific descriptions.
+Each `<th>` contains a `<button>` to sort the table, but there is no screen reader label explaining what the button does.
 
----
+### Fix for sorting buttons:
 
-### ✅ Fix: Add `aria-label` to sorting buttons
-
-**Before:**
+#### Before:
 ```html
-<button type="button" onclick="sortTable(0)" class="govuk-link" style="color:#005ea5">File</button>
+<button type="button" onclick="sortTable(0)" class="govuk-link" style="color:#005ea5">
+  Billing authority report number
+</button>
 ```
 
-**After:**
+#### After:
 ```html
-<button type="button" onclick="sortTable(0)" class="govuk-link" style="color:#005ea5" aria-label="Sort by file name">File</button>
+<button type="button" onclick="sortTable(0)" class="govuk-link" style="color:#005ea5"
+        aria-label="Sort by billing authority report number">
+  Billing authority report number
+</button>
 ```
 
-Apply similar `aria-label` attributes to the **Date uploaded** and **Status** headers:
+Repeat this for the “Billing authority reference number” column too:
 
 ```html
-<button type="button" onclick="sortTable(1, true)" class="govuk-link" aria-label="Sort by date uploaded">Date uploaded</button>
-<button type="button" onclick="sortTable(2)" class="govuk-link" aria-label="Sort by status">Status</button>
+<button type="button" onclick="sortTable(1)" class="govuk-link" style="color:#005ea5"
+        aria-label="Sort by billing authority reference number">
+  Billing authority reference number
+</button>
 ```
 
 ---
 
-## **Issue 3: Pagination Links Are Not Descriptive**
+## ✅ ISSUE 3: **Pagination links lack `aria-label` and clarity**
 
-You’re generating `<a class="govuk-pagination_link">1</a>` with page numbers — but they **lack accessible labels**.
+The pagination controls at the bottom have numeric links like:
+
+```html
+<a class="govuk-link govuk-pagination_link" href="#">1</a>
+```
+
+This is ambiguous to screen readers.
 
 ---
 
-### ✅ Fix: Add `aria-label` dynamically to pagination links
+### Fix (in `addPaginationLink(i)` in JS):
 
-In your `addPaginationLink(i)` function, update the code:
-
-**Before:**
-```js
-link.textContent = i;
+Add this line:
+```javascript
+link.setAttribute('aria-label', 'Go to page ' + i);
 ```
 
-**After:**
-```js
+So it becomes:
+```javascript
 link.textContent = i;
 link.setAttribute('aria-label', 'Go to page ' + i);
 ```
 
-So that a screen reader hears:
-> "Go to page 3"
-
-Also update the **Previous** and **Next** links:
-
-**Before:**
-```html
-<span class="govuk-pagination_link-title">Next</span>
-```
-
-**After:**
+Also add:
 ```html
 <span class="govuk-pagination_link-title" aria-label="Go to next page">Next</span>
 ```
 
-Do the same for **Previous**.
+And similarly for **Previous**.
 
 ---
 
-## ✅ Summary of Fixes
+## ✅ Summary of Changes for This Page
 
-| Area | Fix |
-|------|-----|
-| **Fix errors link** | Add `<span class="govuk-visually-hidden"> for file [filename]</span>` |
-| **Table sorting buttons** | Add `aria-label` to each sorting `<button>` |
-| **Pagination numbers** | Add `aria-label="Go to page X"` dynamically in JS |
-| **Next/Previous links** | Add `aria-label="Go to next page"` etc. to `span` elements |
+| Element | Fix |
+|--------|-----|
+| `Edit` link | Add a visually hidden span with the billing authority report number |
+| Table sorting buttons | Add `aria-label` attributes |
+| Pagination links | Add `aria-label` attributes in JS |
 
 ---
 
-Would you like me to prepare updated snippets for all these and give you the revised Liquid and JavaScript together for copy-paste?
+Let me know if you'd like a complete updated Liquid+JS snippet of the table and pagination logic for copy-paste.
