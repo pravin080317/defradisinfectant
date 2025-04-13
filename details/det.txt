@@ -1,115 +1,66 @@
-Thanks for sharing the code. Now let’s map it directly to the **WCAG 2.2 issue #9307** and show exactly what needs to change **and where**, in your code, to fix the multiple checkbox accessibility problem.
+function sortTable(n, isDate) {
+  var table = document.getElementById('{{ tableid }}');
+  var rows = table.tBodies[0].rows;
+  var switching = true;
+  var dir = 'asc';
+  var switchcount = 0;
 
----
+  resetSortArrows();
 
-## ✅ Issue Breakdown (from audit):
+  while (switching) {
+    switching = false;
+    for (var i = 0; i < rows.length - 1; i++) {
+      var shouldSwitch = false;
+      var x = rows[i].getElementsByTagName("td")[n];
+      var y = rows[i + 1].getElementsByTagName("td")[n];
 
-### **1. Checkboxes are not grouped semantically (fails WCAG 1.3.1)**
-- **Fix:** Wrap table in a `<fieldset>` with a `<legend>`.
+      var xVal = x.innerText.toLowerCase();
+      var yVal = y.innerText.toLowerCase();
 
-### **2. `<label>`s for checkboxes are empty (fails WCAG 3.3.2)**
-- **Fix:** Use the **file name** as the label text for the associated checkbox.
+      if (dir === 'asc') {
+        document.getElementsByClassName('govuk-table_header')[n].setAttribute('aria-sort', 'ascending');
 
-### **3. Action buttons appear *before* checkboxes (fails usability/flow)**
-- **Fix:** Move buttons **below** the checkboxes.
+        if (isDate) {
+          if (new Date(xVal) > new Date(yVal)) {
+            shouldSwitch = true;
+            break;
+          }
+        } else {
+          if (xVal > yVal) {
+            shouldSwitch = true;
+            break;
+          }
+        }
+      } else if (dir === 'desc') {
+        document.getElementsByClassName('govuk-table_header')[n].setAttribute('aria-sort', 'descending');
 
----
+        if (isDate) {
+          if (new Date(xVal) < new Date(yVal)) {
+            shouldSwitch = true;
+            break;
+          }
+        } else {
+          if (xVal < yVal) {
+            shouldSwitch = true;
+            break;
+          }
+        }
+      }
+    }
 
-## ✅ What needs to be changed in your code
+    if (shouldSwitch) {
+      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+      switching = true;
+      switchcount++;
+    } else {
+      if (switchcount === 0 && dir === 'asc') {
+        dir = 'desc';
+        switching = true;
+      }
+    }
+  }
 
-### 1. **Wrap the table in a `<fieldset>` with a `<legend>`**
-
-#### Find:
-```html
-<table class="govuk-table" id="schedules">
-```
-
-#### Replace with:
-```html
-<fieldset class="govuk-fieldset govuk-!-margin-bottom-6">
-  <legend class="govuk-fieldset__legend govuk-visually-hidden">
-    Select the schedules you want to download
-  </legend>
-
-  <table class="govuk-table" id="schedules">
-```
-
-#### Then close the fieldset after the table:
-```html
-  </table>
-</fieldset>
-```
-
----
-
-### 2. **Fix each checkbox's label by using the file name as its visible label**
-
-#### Find this code block:
-```html
-<input class="govuk-checkboxes_input" id="select-schedule-{{ row-index }}" type="checkbox" value="{{ result.voap_filename }}+{{ result.voap_filepath }}">
-<label class="govuk-label govuk-checkboxes_label" for="select-schedule-{{ row-index }}"></label>
-```
-
-#### Replace with:
-```html
-<input class="govuk-checkboxes__input"
-       id="select-schedule-{{ row-index }}"
-       type="checkbox"
-       name="schedule"
-       value="{{ result.voap_filename }}+{{ result.voap_filepath }}">
-
-<label class="govuk-label govuk-checkboxes__label" for="select-schedule-{{ row-index }}">
-  {{ result.voap_filename }}
-</label>
-```
-
-Then you can remove the now redundant `<td>{{ result.voap_filename }}</td>` (or visually hide it with `govuk-visually-hidden` if needed for screen readers).
-
----
-
-### 3. **Move download/clear/change buttons below the table**
-
-#### Find this:
-```html
-<div class="govuk-button-group">
-  <button id="download-schedule" class="govuk-button">Download as {{ filetype | upcase }}</button>
-  <button id="clear-all" class="govuk-button govuk-button--secondary">Clear all</button>
-  <button id="change-file-format" class="govuk-button govuk-button--secondary">Change file format</button>
-</div>
-```
-
-#### Move it **after** the table’s closing tag and fieldset:
-```html
-</table>
-</fieldset>
-
-<div class="govuk-button-group">
-  <button id="download-schedule" class="govuk-button">Download as {{ filetype | upcase }}</button>
-  <button id="clear-all" class="govuk-button govuk-button--secondary">Clear all</button>
-  <button id="change-file-format" class="govuk-button govuk-button--secondary">Change file format</button>
-</div>
-```
-
----
-
-## ✅ Optional Enhancements
-
-| Enhancement | Code |
-|------------|------|
-| Add screen-reader clarity to table headings | `<th scope="col" id="file-col">File name</th>` |
-| Add ARIA roles | `<table role="table">` (optional, GOV.UK guidance typically relies on semantic tags) |
-
----
-
-## ✅ Summary of Code Fixes
-
-| Area | Action |
-|------|--------|
-| `<fieldset>` | Wrap the checkbox table |
-| `<legend>` | Visually hidden, explains the purpose |
-| `<label>` | Use filename text |
-| Button placement | Move below the table for better tab order |
-
----
-
-Let me know if you want a copy-paste ready snippet of the entire `<tbody>` or full component.
+  currentPage = 1;
+  displayTable();
+  generatePagination();
+}
