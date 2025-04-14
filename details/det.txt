@@ -1,66 +1,71 @@
-function sortTable(n, isDate) {
-  var table = document.getElementById('{{ tableid }}');
-  var rows = table.tBodies[0].rows;
-  var switching = true;
-  var dir = 'asc';
-  var switchcount = 0;
+Absolutely — yes, **you can keep the checkbox and filename in separate columns** while still making your solution **WCAG 2.2 compliant**, by using proper `aria-labelledby` or `aria-describedby` attributes to associate the checkbox with the filename.
 
-  resetSortArrows();
+This approach allows you to:
 
-  while (switching) {
-    switching = false;
-    for (var i = 0; i < rows.length - 1; i++) {
-      var shouldSwitch = false;
-      var x = rows[i].getElementsByTagName("td")[n];
-      var y = rows[i + 1].getElementsByTagName("td")[n];
+✅ Keep your table layout unchanged  
+✅ Make the checkboxes accessible  
+✅ Avoid duplicating visible content  
+✅ Pass both **1.3.1 (Info and Relationships)** and **3.3.2 (Labels or Instructions)**
 
-      var xVal = x.innerText.toLowerCase();
-      var yVal = y.innerText.toLowerCase();
+---
 
-      if (dir === 'asc') {
-        document.getElementsByClassName('govuk-table_header')[n].setAttribute('aria-sort', 'ascending');
+## ✅ Solution: Use `aria-labelledby` on the `<input>` referencing the `<td>` containing the filename
 
-        if (isDate) {
-          if (new Date(xVal) > new Date(yVal)) {
-            shouldSwitch = true;
-            break;
-          }
-        } else {
-          if (xVal > yVal) {
-            shouldSwitch = true;
-            break;
-          }
-        }
-      } else if (dir === 'desc') {
-        document.getElementsByClassName('govuk-table_header')[n].setAttribute('aria-sort', 'descending');
+Here’s how to do it:
 
-        if (isDate) {
-          if (new Date(xVal) < new Date(yVal)) {
-            shouldSwitch = true;
-            break;
-          }
-        } else {
-          if (xVal < yVal) {
-            shouldSwitch = true;
-            break;
-          }
-        }
-      }
-    }
+---
 
-    if (shouldSwitch) {
-      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-      switching = true;
-      switchcount++;
-    } else {
-      if (switchcount === 0 && dir === 'asc') {
-        dir = 'desc';
-        switching = true;
-      }
-    }
-  }
+### 🔍 Step-by-step Fix (without merging columns)
 
-  currentPage = 1;
-  displayTable();
-  generatePagination();
-}
+#### ✅ 1. Assign an `id` to the `<td>` that holds the file name
+
+Update the filename `<td>` like this:
+
+```html
+<td id="filename-{{ row-index }}">{{ result.voap_filename }}</td>
+```
+
+---
+
+#### ✅ 2. Use `aria-labelledby` on the checkbox input
+
+```html
+<input 
+  class="govuk-checkboxes__input" 
+  type="checkbox" 
+  id="select-schedule-{{ row-index }}" 
+  name="schedule" 
+  value="{{ result.voap_filename }}+{{ result.voap_filepath }}"
+  aria-labelledby="filename-{{ row-index }}">
+```
+
+Now, the checkbox is *programmatically associated* with the filename, even though it’s in another cell.
+
+---
+
+#### ❌ And remove the empty `<label>`, or at least hide it visually:
+```html
+<label for="select-schedule-{{ row-index }}" class="govuk-visually-hidden">Select {{ result.voap_filename }}</label>
+```
+
+You can keep it if you prefer, but make sure it doesn’t override `aria-labelledby`.
+
+---
+
+## ✅ Why This Works
+
+- `aria-labelledby` links the checkbox to the filename cell — screen readers will read the filename when focusing the checkbox.
+- You keep your existing visual layout — checkbox column stays separate from the filename.
+- It passes **WCAG 2.2 Success Criteria 1.3.1 and 3.3.2**, as it clearly defines the control’s purpose and label.
+
+---
+
+## ✅ Summary
+
+| Element | Change |
+|--------|--------|
+| `<td>` with filename | Add `id="filename-{{ row-index }}"` |
+| `<input type="checkbox">` | Add `aria-labelledby="filename-{{ row-index }}"` |
+| `<label>` | Optional: hide visually or remove entirely |
+
+Would you like a fully rewritten `<tbody>` example using this method?
