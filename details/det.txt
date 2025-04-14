@@ -1,71 +1,95 @@
-Absolutely — yes, **you can keep the checkbox and filename in separate columns** while still making your solution **WCAG 2.2 compliant**, by using proper `aria-labelledby` or `aria-describedby` attributes to associate the checkbox with the filename.
+Perfect — let's walk through **exactly what to change**, and how to implement the **GOV.UK summary list pattern** for the **postcode + change link** section **accessibly and cleanly**, including:
 
-This approach allows you to:
-
-✅ Keep your table layout unchanged  
-✅ Make the checkboxes accessible  
-✅ Avoid duplicating visible content  
-✅ Pass both **1.3.1 (Info and Relationships)** and **3.3.2 (Labels or Instructions)**
+- ✅ HTML structure changes (what to remove and replace)
+- 🧠 JavaScript changes (if needed)
+- 🔁 What’s being replaced with what
 
 ---
 
-## ✅ Solution: Use `aria-labelledby` on the `<input>` referencing the `<td>` containing the filename
+## 🧩 STEP 1: What you're currently doing (that needs changing)
 
-Here’s how to do it:
+### ❌ Current HTML pattern (problematic):
 
----
-
-### 🔍 Step-by-step Fix (without merging columns)
-
-#### ✅ 1. Assign an `id` to the `<td>` that holds the file name
-
-Update the filename `<td>` like this:
+This appears **after address lookup is successful**:
 
 ```html
-<td id="filename-{{ row-index }}">{{ result.voap_filename }}</td>
+<p class="govuk-body">
+  <strong id="pc-success"></strong>
+  <a href="#" onclick="resetSelect(); event.preventDefault();" class="govuk-link govuk-1-margin-left-3">
+    Change <span class="govuk-visually-hidden">your postcode</span>
+  </a>
+</p>
+```
+
+### ❌ Why this is a problem:
+
+- It appears **between the label and the `<select>`** field.
+- It’s not semantically clear (no key-value structure).
+- Screen readers may not connect "Change" to "Postcode".
+- It violates [WCAG 2.2 SC 3.3.2](https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html).
+
+---
+
+## ✅ STEP 2: Replace it with the GOV.UK **summary list pattern**
+
+### ✅ Replace the above `<p>` block with:
+
+```html
+<dl class="govuk-summary-list govuk-!-margin-bottom-4">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Postcode entered</dt>
+    <dd class="govuk-summary-list__value" id="pc-summary-postcode">SW1A 1AA</dd>
+    <dd class="govuk-summary-list__actions">
+      <a href="#" class="govuk-link" onclick="resetSelect(); event.preventDefault();">
+        Change<span class="govuk-visually-hidden"> postcode</span>
+      </a>
+    </dd>
+  </div>
+</dl>
+```
+
+### 🧠 Replaces:
+- `<strong id="pc-success">…</strong>`
+- The separate `<a>Change…</a>`
+- Keeps them grouped properly for screen reader context
+
+---
+
+## 🧩 STEP 3: Update JavaScript to populate the postcode value
+
+Currently, your code does:
+
+```javascript
+document.getElementById("pc-success").innerText = $('#postcode').val();
+```
+
+### ✅ Update it to instead target the new summary list cell:
+
+```javascript
+document.getElementById("pc-summary-postcode").innerText = $('#postcode').val();
+```
+
+> 📍 That’s the **only JS change needed** to populate the postcode dynamically.
+
+---
+
+## ✅ Summary: What changes where
+
+| Location | What to do |
+|---------|------------|
+| **HTML** | Replace `<p><strong id="pc-success">...</strong> <a>Change</a></p>` with the summary list markup |
+| **JS** | Replace `pc-success` population with `pc-summary-postcode` |
+| **Accessibility** | You now meet WCAG 3.3.2 by giving screen readers a semantically meaningful and properly grouped label-value-action structure |
+
+---
+
+### Optional Enhancement (JS fallback)
+If you're dynamically injecting postcode in other places, also update:
+
+```javascript
+$('#pc-summary-postcode').text($('#postcode').val());
 ```
 
 ---
 
-#### ✅ 2. Use `aria-labelledby` on the checkbox input
-
-```html
-<input 
-  class="govuk-checkboxes__input" 
-  type="checkbox" 
-  id="select-schedule-{{ row-index }}" 
-  name="schedule" 
-  value="{{ result.voap_filename }}+{{ result.voap_filepath }}"
-  aria-labelledby="filename-{{ row-index }}">
-```
-
-Now, the checkbox is *programmatically associated* with the filename, even though it’s in another cell.
-
----
-
-#### ❌ And remove the empty `<label>`, or at least hide it visually:
-```html
-<label for="select-schedule-{{ row-index }}" class="govuk-visually-hidden">Select {{ result.voap_filename }}</label>
-```
-
-You can keep it if you prefer, but make sure it doesn’t override `aria-labelledby`.
-
----
-
-## ✅ Why This Works
-
-- `aria-labelledby` links the checkbox to the filename cell — screen readers will read the filename when focusing the checkbox.
-- You keep your existing visual layout — checkbox column stays separate from the filename.
-- It passes **WCAG 2.2 Success Criteria 1.3.1 and 3.3.2**, as it clearly defines the control’s purpose and label.
-
----
-
-## ✅ Summary
-
-| Element | Change |
-|--------|--------|
-| `<td>` with filename | Add `id="filename-{{ row-index }}"` |
-| `<input type="checkbox">` | Add `aria-labelledby="filename-{{ row-index }}"` |
-| `<label>` | Optional: hide visually or remove entirely |
-
-Would you like a fully rewritten `<tbody>` example using this method?
+Let me know if you'd like me to give you a **full snippet** combining this with the `<label>` and `<select>` for the full final markup!
