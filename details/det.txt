@@ -1,51 +1,27 @@
-<div class="govuk-form-group" id="addressSelector">
-  <label class="govuk-label govuk-label--m" for="AddressFromPostcode">
-    Select the property's address
-  </label>
+<h1 class="govuk-heading-1" style="margin-bottom: 30px">Select an address</h1>
 
-  <p id="select-address-error" class="govuk-error-message" style="display:none">
-    <span class="govuk-visually-hidden">Error: </span> Select the property's address
-  </p>
-
-  <select class="govuk-select" name="AddressFromPostcode" id="AddressFromPostcode" style="width: 75%">
-    <option value="-2">Select an address</option>
-  </select>
-</div>
-
-<!-- Summary list pattern for postcode display -->
-<dl class="govuk-summary-list govuk-!-margin-top-6">
+<dl class="govuk-summary-list govuk-!-margin-bottom-4">
   <div class="govuk-summary-list__row">
-    <dt class="govuk-summary-list__key">Postcode entered</dt>
-    <dd class="govuk-summary-list__value" id="pc-success"></dd>
+    <dt class="govuk-summary-list__key">Postcode</dt>
+    <dd class="govuk-summary-list__value"><strong id="pc-success"></strong></dd>
     <dd class="govuk-summary-list__actions">
       <a href="#" onclick="resetSelect(); event.preventDefault();" class="govuk-link">
-        Change <span class="govuk-visually-hidden">postcode</span>
+        Change<span class="govuk-visually-hidden"> postcode</span>
       </a>
     </dd>
   </div>
 </dl>
 
+<div class="govuk-form-group" id="addressSelector">
+  <p id="select-address-error" class="govuk-error-message" style="display:none">
+    <span class="govuk-visually-hidden">Error: </span>Select the property's address
+  </p>
 
+  <label class="govuk-label govuk-label--m" for="AddressFromPostcode">
+    Choose an address from the list
+  </label>
 
-function prependErrorToTitle() {
-  let pageTitle = document.getElementsByTagName("title")[0];
-  if (!pageTitle.innerText.startsWith("Error: ")) {
-    pageTitle.innerText = "Error: " + pageTitle.innerText;
-  }
-}
-
-
-
-if (postcodeInput.val().trim() === "") {
-  prependErrorToTitle();
-  // show error UI...
-}
-
-
-
-<select
-  class="govuk-select"
-  name="AddressFromPostcode"
-  id="AddressFromPostcode"
-  aria-describedby="select-address-error"
-  style="width: 75%">
+  <select class="govuk-select" name="AddressFromPostcode" id="AddressFromPostcode" style="width: 75%" aria-describedby="select-address-error">
+    <option value="-2"></option>
+  </select>
+</div>
