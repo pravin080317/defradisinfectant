@@ -1,6 +1,12 @@
-function updatePageTitle() {
-  const baseTitle = document.title.split('– Page')[0].trim(); // Remove existing pagination if present
-  const totalRows = document.querySelectorAll('#{{ tableid }} tbody tr').length;
-  const totalPages = Math.ceil(totalRows / recordsPerPage);
-  document.title = `${baseTitle} – Page ${currentPage} of ${totalPages}`;
+function overridePaginationLinkColors() {
+  const links = document.querySelectorAll('.govuk-pagination_link');
+
+  links.forEach(link => {
+    // Only override style if it’s not the current page
+    if (!link.closest('.govuk-pagination_item--current')) {
+      // Force the color inline to avoid :visited override
+      link.style.color = '#1d70b8'; // GOV.UK standard link color
+      link.style.cursor = 'pointer'; // Restore hand pointer on hover
+    }
+  });
 }
