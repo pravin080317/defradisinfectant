@@ -1,8 +1,6 @@
-Issue | Fix
-Tiles/cards share heading level with sections | Nest using <h3> inside <h2>
-File name in banner uses <h3> | Use <p> or non-heading tags
-“Document ready to upload” uses <label> | Use <h2> instead
-Feedback survey has broken nesting | Maintain one <h1>, logical <h2>/<h3>
-Missing <h1> on upload pages | Add a semantic <h1>
-Heading with <label> inside | Separate heading and form label
-All headings as <h2> | Use structured <h1>, <h2>, <h3> to reflect visual layout
+function updatePageTitle() {
+  const baseTitle = document.title.split('– Page')[0].trim(); // Remove existing pagination if present
+  const totalRows = document.querySelectorAll('#{{ tableid }} tbody tr').length;
+  const totalPages = Math.ceil(totalRows / recordsPerPage);
+  document.title = `${baseTitle} – Page ${currentPage} of ${totalPages}`;
+}
