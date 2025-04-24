@@ -1,16 +1,80 @@
-function overridePaginationLinkColors() {
-  const links = document.querySelectorAll('.govuk-pagination_link');
+if (isNaN(dayInt) || dayInt < 1 || dayInt > 31) {
+  obj.inputs[0].errorMessage = "Enter a valid day between 1 and 31.";
+  dayInput.classList.add("govuk-input--error");
+  errFocus = "day";
 
-  links.forEach(link => {
-    const parent = link.closest('.govuk-pagination_item');
+  // ← add this to summary
+  const dayListItem = document.createElement("li");
+  dayListItem.id = `${obj.inputs[0].id}-error-list-item`;
+  dayListItem.innerHTML = 
+    `<a onclick="dateErrorFocus()" href="#effective-date-day">${obj.inputs[0].errorMessage}</a>`;
+  document.querySelector(".govuk-error-summary_list").prepend(dayListItem);
+  $(".govuk-error-summary").show();
 
-    // If it's the current page, force white color
-    if (parent && parent.classList.contains('govuk-pagination_item--current')) {
-      link.style.color = '#ffffff'; // White text for active page
-      link.style.cursor = 'default'; // Arrow cursor since it's not a real link
-    } else {
-      link.style.color = '#1d70b8'; // GOV.UK standard link blue
-      link.style.cursor = 'pointer'; // Hand pointer
-    }
-  });
+  errorStyling();
+  return;
+}
+
+
+
+if (parsedMonth === "ambiguous") {
+  obj.inputs[0].errorMessage =
+    "Month input is unclear. Please enter the full month name or number.";
+  monthInput.classList.add("govuk-input--error");
+
+  // ← add this to summary
+  const monthAmbigItem = document.createElement("li");
+  monthAmbigItem.id = `${obj.inputs[0].id}-error-list-item`;
+  monthAmbigItem.innerHTML = 
+    `<a onclick="dateErrorFocus()" href="#effective-date-month">${obj.inputs[0].errorMessage}</a>`;
+  document.querySelector(".govuk-error-summary_list").prepend(monthAmbigItem);
+  $(".govuk-error-summary").show();
+
+  errorStyling();
+  return;
+}
+
+
+
+
+if (!parsedMonth) {
+  obj.inputs[0].errorMessage = "Enter a valid month, such as 3 or March.";
+  monthInput.classList.add("govuk-input--error");
+
+  // ← add this to summary
+  const monthInvalidItem = document.createElement("li");
+  monthInvalidItem.id = `${obj.inputs[0].id}-error-list-item`;
+  monthInvalidItem.innerHTML = 
+    `<a onclick="dateErrorFocus()" href="#effective-date-month">${obj.inputs[0].errorMessage}</a>`;
+  document.querySelector(".govuk-error-summary_list").prepend(monthInvalidItem);
+  $(".govuk-error-summary").show();
+
+  errorStyling();
+  return;
+}
+
+
+
+const yearInt = parseInt(year, 10);
+if (
+  year.length !== 4 ||
+  isNaN(yearInt) ||
+  yearInt < 1900 ||
+  yearInt > today.getUTCFullYear()
+) {
+  obj.inputs[0].errorMessage =
+    `Enter a valid year between 1900 and ${today.getUTCFullYear()}.`;
+  yearInput.classList.add("govuk-input--error");
+  errFocus = "year";
+
+  // ← add this to summary
+  const yearListItem = document.createElement("li");
+  yearListItem.id = `${obj.inputs[0].id}-error-list-item`;
+  yearListItem.innerHTML = 
+    `<a onclick="dateErrorFocus()" href="#effective-date-year">${obj.inputs[0].errorMessage}</a>`;
+  document.querySelector(".govuk-error-summary_list").prepend(yearListItem);
+  $(".govuk-error-summary").show();
+
+  errorStyling();
+  return;
 }
