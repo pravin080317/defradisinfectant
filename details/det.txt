@@ -2,11 +2,15 @@ function overridePaginationLinkColors() {
   const links = document.querySelectorAll('.govuk-pagination_link');
 
   links.forEach(link => {
-    // Only override style if it’s not the current page
-    if (!link.closest('.govuk-pagination_item--current')) {
-      // Force the color inline to avoid :visited override
-      link.style.color = '#1d70b8'; // GOV.UK standard link color
-      link.style.cursor = 'pointer'; // Restore hand pointer on hover
+    const parent = link.closest('.govuk-pagination_item');
+
+    // If it's the current page, force white color
+    if (parent && parent.classList.contains('govuk-pagination_item--current')) {
+      link.style.color = '#ffffff'; // White text for active page
+      link.style.cursor = 'default'; // Arrow cursor since it's not a real link
+    } else {
+      link.style.color = '#1d70b8'; // GOV.UK standard link blue
+      link.style.cursor = 'pointer'; // Hand pointer
     }
   });
 }
