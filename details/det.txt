@@ -1,20 +1,21 @@
- // ─── CLEAR OUT OLD ERRORS ────────────────────────────────────────
-  // 1) hide & empty the summary box
-  const summary = document.querySelector(".govuk-error-summary");
-  if (summary) {
-    summary.style.display = "none";
-    const list = summary.querySelector(".govuk-error-summary__list");
-    if (list) list.innerHTML = "";
+// —————————————————————————————————————
+  // 2) INLINE FIELD ERROR
+  // —————————————————————————————————————
+  // populate & show the hidden <p id="effective-date-error">
+  const inlineId = "effective-date-error";
+  const inlineEl = document.getElementById(inlineId);
+  if (inlineEl) {
+    inlineEl.innerHTML = `<span class="govuk-visually-hidden">Error: </span>${message}`;
+    inlineEl.style.display = "block";
   }
 
-  // 2) remove error styles from each date input
-  ["effective-date-day","effective-date-month","effective-date-year"].forEach(id => {
-    const fld = document.getElementById(id);
-    if (fld) fld.classList.remove("govuk-input--error");
-  });
-
-  // 3) hide the inline error <p> and remove form-group wrapper error
-  const inlineError = document.getElementById("effective-date-error");
-  if (inlineError) inlineError.style.display = "none";
+  // add the form-group error class
   const formGroup = document.querySelector(".govuk-form-group");
-  if (formGroup) formGroup.classList.remove("govuk-form-group--error");
+  if (formGroup) formGroup.classList.add("govuk-form-group--error");
+
+  // update the fieldset's aria-describedby to include both hint & error
+  const fieldset = document.querySelector(".govuk-fieldset");
+  if (fieldset) {
+    const hintId = "effective-date-hint";
+    fieldset.setAttribute("aria-describedby", `${hintId} ${inlineId}`);
+  }
