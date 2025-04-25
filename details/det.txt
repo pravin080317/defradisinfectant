@@ -1,21 +1,4 @@
-// —————————————————————————————————————
-  // 2) INLINE FIELD ERROR
-  // —————————————————————————————————————
-  // populate & show the hidden <p id="effective-date-error">
-  const inlineId = "effective-date-error";
-  const inlineEl = document.getElementById(inlineId);
-  if (inlineEl) {
-    inlineEl.innerHTML = `<span class="govuk-visually-hidden">Error: </span>${message}`;
-    inlineEl.style.display = "block";
-  }
-
-  // add the form-group error class
-  const formGroup = document.querySelector(".govuk-form-group");
-  if (formGroup) formGroup.classList.add("govuk-form-group--error");
-
-  // update the fieldset's aria-describedby to include both hint & error
-  const fieldset = document.querySelector(".govuk-fieldset");
-  if (fieldset) {
-    const hintId = "effective-date-hint";
-    fieldset.setAttribute("aria-describedby", `${hintId} ${inlineId}`);
+// 3) any purely-alpha input shorter than 3 chars is ambiguous
+  if (/^[a-z]+$/.test(input) && input.length < 3) {
+    return "ambiguous";
   }
