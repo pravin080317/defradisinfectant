@@ -1,4 +1,124 @@
-// 3) any purely-alpha input shorter than 3 chars is ambiguous
-  if (/^[a-z]+$/.test(input) && input.length < 3) {
-    return "ambiguous";
+Below is a **drop-in patch** that converts the address list from a `<select>` to GOV.UK radios, exactly as the “Address lookup – choose address” pattern prescribes.  
+It is split into four logical steps so you can lift each one straight into your template / JavaScript.
+
+---
+
+## 1  Replace the `<select>` block with a radios fieldset
+
+```diff
+<div id="postcode-success" style="display:none">
+-  <label class="govuk-label govuk-label--m" for="AddressFromPostcode">
+-    Select an address
+-  </label>
+-
+-  <select class="govuk-select" name="AddressFromPostcode"
+-          id="AddressFromPostcode" style="width:75%">
+-    <!-- options injected by JS -->
+-  </select>
++  <form id="address-choice-form">
++    <fieldset class="govuk-fieldset" aria-describedby="select-address-error">
++      <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
++        Which address do you want to use?
++      </legend>
++
++      <p id="select-address-error" class="govuk-error-message" style="display:none">
++        <span class="govuk-visually-hidden">Error:</span>
++        Select the property’s address
++      </p>
++
++      <div id="address-radios" class="govuk-radios govuk-radios--small">
++        <!-- radios injected by JS -->
++      </div>
++    </fieldset>
++
++    <button id="ButtonContinue" class="govuk-button" data-module="govuk-button">
++      Continue
++    </button>
++  </form>
+</div>
+```
+
+**Why radios?**
+
+* The GOV.UK Design System shows radios for up to ~20 addresses and a link to “Enter the address manually” if none apply.  
+* Radios reveal the full address text; no width problems or truncation.  
+* Screen-reader users hear every option immediately, instead of needing to open a combo-box and scroll.
+
+---
+
+## 2  JavaScript – build the radio buttons instead of `<option>`s
+
+```javascript
+function postcodeSuccess(postcodeList, postcodeSelector) {
+
+  // postcodeList[0] is still “<option value='-1'>Select an address</option>”
+  // The rest are full address strings in postcodeList[1...] (unchanged)
+
+  const radiosWrapper = document.getElementById('address-radios');
+  radiosWrapper.innerHTML = '';                    // clear any previous list
+
+  // start at index 1 because index-0 is the “placeholder” string
+  for (let i = 1; i < postcodeList.length; i++) {
+    const addressText = $(postcodeList[i]).text(); // strip the <option> wrapper
+    const id = `address-${i}`;
+
+    radiosWrapper.insertAdjacentHTML('beforeend', `
+      <div class="govuk-radios__item">
+        <input class="govuk-radios__input"
+               id="${id}"
+               name="selectedAddress"
+               type="radio"
+               value="${i}">
+        <label class="govuk-label govuk-radios__label" for="${id}">
+          ${addressText}
+        </label>
+      </div>
+    `);
   }
+
+  // reveal the success panel, hide lookup
+  $('#search').hide();
+  $('#postcode-success').show();
+
+  // set focus to the first radio for keyboard users
+  document.querySelector('#address-radios input').focus();
+}
+```
+
+*No other parts of your lookup logic need to change – keep the `addressBits[]` array and the `commitAddress()` click handler; just read the value of `$('input[name="selectedAddress"]:checked').val()` instead of `$('#AddressFromPostcode').val()`.*
+
+---
+
+## 3  Error handling (no selection)
+
+Add one line to your existing “Continue” click handler:
+
+```javascript
+$('#ButtonContinue').click(function () {
+  if (!$('input[name="selectedAddress"]:checked').length) {
+    $('#select-address-error').show();
+    $('#address-radios').addClass('govuk-form-group--error');
+    document.querySelector('#address-radios input').focus();
+    return;
+  }
+  // proceed with commitAddress();
+});
+```
+
+---
+
+## 4  Remove CSS width override
+
+Delete `style="width:75%"` from the old `<select>` – radios expand naturally to the longest line.
+
+---
+
+### Resulting UX
+
+1. API returns a list → radios appear inside a proper `<fieldset>`.  
+2. The legend (“Which address do you want to use?”) is the question/label.  
+3. Each address wraps onto multiple lines if needed – nothing is cut off.  
+4. Keyboard navigation is a simple **Up/Down** arrow list; screen-reader output follows the GOV.UK pattern exactly.  
+5. You remain fully compliant with WCAG 2.2 and the GDS address-lookup guidance.
+
+Drop these four changes in and the “select-width / pattern mismatch” issue is resolved.
