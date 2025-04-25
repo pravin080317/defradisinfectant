@@ -2,15 +2,16 @@ function sortTable(colIndex, isDate) {
   const table   = document.getElementById('{{tableid}}');
   const tbody   = table.tBodies[0];
   const rows    = Array.from(tbody.rows);
-  const headers = table.querySelectorAll('.govuk-table__header button');
+  const headers = table.querySelectorAll(
+    '.govuk-table__header button, .govuk-table__header a.govuk-link'
+  );
   const btn     = headers[colIndex];
   const name    = btn.textContent.trim();
 
-  // 1) CAPTURE previous state *before* we reset anything:
-  //    (could be "ascending", "descending" or "none")
+  // 1) Capture old state
   const prevState = btn.getAttribute('aria-sort') || 'none';
 
-  // 2) RESET ALL HEADERS to “not sorted”
+  // 2) Reset all headers (aria + remove old arrows)
   headers.forEach(h => {
     const col = h.textContent.trim();
     h.setAttribute('aria-sort', 'none');
@@ -18,16 +19,20 @@ function sortTable(colIndex, isDate) {
       'aria-label',
       `${col}, not sorted. Activate to sort ascending.`
     );
+    const oldArrow = h.querySelector('.sort-indicator');
+    if (oldArrow) oldArrow.remove();
   });
 
-  // 3) DECIDE new direction by flipping prevState
-  //    none→ascending, asc→descending, desc→ascending
+  // 3) Determine new direction
   const newState = prevState === 'ascending' ? 'descending' : 'ascending';
 
-  // 4) SORT the rows array in one pass
-  rows.sort((a, b) => {
-    let va = a.cells[colIndex].innerText.trim();
-    let vb = b.cells[colIndex].innerText.trim();
+  // 4) Sort rows in one pass
+  rows.sort((aRow, bRow) => {
+    const aCell = aRow.cells[colIndex];
+    const bCell = bRow.cells[colIndex];
+    let va = (aCell.querySelector('label') || aCell).innerText.trim();
+    let vb = (bCell.querySelector('label') || bCell).innerText.trim();
+
     if (isDate) {
       va = new Date(va);
       vb = new Date(vb);
@@ -35,16 +40,17 @@ function sortTable(colIndex, isDate) {
       va = va.toLowerCase();
       vb = vb.toLowerCase();
     }
+
     if (va < vb) return newState === 'ascending' ? -1 : 1;
     if (va > vb) return newState === 'ascending' ? 1 : -1;
     return 0;
   });
 
-  // 5) RE-APPEND the sorted rows
+  // 5) Re-attach in order
   tbody.innerHTML = '';
   rows.forEach(r => tbody.appendChild(r));
 
-  // 6) UPDATE the clicked header with newState
+  // 6) Update clicked header’s ARIA & add arrow
   btn.setAttribute('aria-sort', newState);
   btn.setAttribute(
     'aria-label',
@@ -53,7 +59,13 @@ function sortTable(colIndex, isDate) {
       : `${name}, sorted descending. Activate to sort ascending.`
   );
 
-  // 7) (optional) refresh pagination / UI
+  const arrow = document.createElement('span');
+  arrow.className = 'sort-indicator';
+  arrow.setAttribute('aria-hidden', 'true');
+  arrow.textContent = newState === 'ascending' ? ' ▲' : ' ▼';
+  btn.appendChild(arrow);
+
+  // 7) (optional) re-pagination
   // currentPage = 1;
   // displayTable();
   // generatePagination();
