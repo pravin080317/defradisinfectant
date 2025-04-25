@@ -1,80 +1,145 @@
-if (isNaN(dayInt) || dayInt < 1 || dayInt > 31) {
-  obj.inputs[0].errorMessage = "Enter a valid day between 1 and 31.";
-  dayInput.classList.add("govuk-input--error");
-  errFocus = "day";
+// …anywhere above you still need parseMonthInput()…
 
-  // ← add this to summary
-  const dayListItem = document.createElement("li");
-  dayListItem.id = `${obj.inputs[0].id}-error-list-item`;
-  dayListItem.innerHTML = 
-    `<a onclick="dateErrorFocus()" href="#effective-date-day">${obj.inputs[0].errorMessage}</a>`;
-  document.querySelector(".govuk-error-summary_list").prepend(dayListItem);
-  $(".govuk-error-summary").show();
+function dateValidation() {
+  // 1) Grab & strip _all_ whitespace from each field
+  const dayInput    = document.getElementById("effective-date-day");
+  const monthInput  = document.getElementById("effective-date-month");
+  const yearInput   = document.getElementById("effective-date-year");
 
-  errorStyling();
-  return;
+  const dayRaw      = dayInput.value.replace(/\s/g, "");
+  const monthRaw    = monthInput.value.replace(/\s/g, "");
+  const yearRaw     = yearInput.value.replace(/\s/g, "");
+
+  // 2) FIRST: missing‐fields check
+  const missing = [];
+  if (!dayRaw)   missing.push("day");
+  if (!monthRaw) missing.push("month");
+  if (!yearRaw)  missing.push("year");
+
+  if (missing.length) {
+    let msg;
+    if (missing.length === 3) {
+      msg = "Enter a day, month and year.";
+    } else {
+      // e.g. “day and month” or “month and year”
+      msg = "The effective date must include " +
+        missing.join(", ").replace(/, ([^,]*)$/, " and $1") +
+        ".";
+    }
+    errFocus = missing[0];
+    showDateErrorSummary(msg, errFocus);
+    dateErrorFocus();
+    return;
+  }
+
+  // 3) Day‐range
+  const dayInt = parseInt(dayRaw, 10);
+  if (isNaN(dayInt) || dayInt < 1 || dayInt > 31) {
+    errFocus = "day";
+    showDateErrorSummary("Enter a valid day between 1 and 31.", "day");
+    dateErrorFocus();
+    return;
+  }
+
+  // 4) Month parse & checks
+  const parsedMonth = parseMonthInput(monthRaw);
+  if (parsedMonth === "ambiguous") {
+    errFocus = "month";
+    showDateErrorSummary(
+      "Month input is unclear. Please enter the full month name or number.",
+      "month"
+    );
+    dateErrorFocus();
+    return;
+  }
+  if (!parsedMonth) {
+    errFocus = "month";
+    showDateErrorSummary("Enter a valid month, such as 3 or March.", "month");
+    dateErrorFocus();
+    return;
+  }
+
+  // 5) Year‐length/range
+  const yearInt = parseInt(yearRaw, 10);
+  const thisYear = new Date().getUTCFullYear();
+  if (
+    yearRaw.length !== 4 ||
+    isNaN(yearInt) ||
+    yearInt < 1900 ||
+    yearInt > thisYear
+  ) {
+    errFocus = "year";
+    showDateErrorSummary(
+      `Enter a valid year between 1900 and ${thisYear}.`,
+      "year"
+    );
+    dateErrorFocus();
+    return;
+  }
+
+  // 6) Build & validate date object
+  const inputDate = new Date(Date.UTC(yearInt, parsedMonth - 1, dayInt));
+  const isDateCorrect = isDateValid(dayInt, parsedMonth - 1, yearInt);
+
+  // 7) “Real‐date” check (e.g. 31 Feb)
+  if (!isDateCorrect) {
+    errFocus = "day";
+    showDateErrorSummary(
+      "Enter a real date – for example, 28 02 2025. Check the day, month and year.",
+      "day"
+    );
+    dateErrorFocus();
+    return;
+  }
+
+  // 8) Future‐date check
+  const today = new Date();
+  if (inputDate > today) {
+    errFocus = "day";
+    showDateErrorSummary(
+      "The effective date must be today or in the past.",
+      "day"
+    );
+    dateErrorFocus();
+    return;
+  }
+
+  // …if you reach here, the date is valid…
+  // continue with your normal “submit”—no more error summary tweaks
 }
 
 
 
-if (parsedMonth === "ambiguous") {
-  obj.inputs[0].errorMessage =
-    "Month input is unclear. Please enter the full month name or number.";
-  monthInput.classList.add("govuk-input--error");
 
-  // ← add this to summary
-  const monthAmbigItem = document.createElement("li");
-  monthAmbigItem.id = `${obj.inputs[0].id}-error-list-item`;
-  monthAmbigItem.innerHTML = 
-    `<a onclick="dateErrorFocus()" href="#effective-date-month">${obj.inputs[0].errorMessage}</a>`;
-  document.querySelector(".govuk-error-summary_list").prepend(monthAmbigItem);
+
+// ———————————————————————————————————————————
+// HELPERS to unify your summary + focus logic
+// ———————————————————————————————————————————
+
+function showDateErrorSummary(message, whichField) {
+  // ensure the wrapper is visible
   $(".govuk-error-summary").show();
 
-  errorStyling();
-  return;
+  // remove any existing date‐error <li>
+  const listId = "effective-date-error-list-item";
+  document.getElementById(listId)?.remove();
+
+  // build a new one
+  const li = document.createElement("li");
+  li.id = listId;
+  li.innerHTML =
+    `<a onclick="dateErrorFocus()" href="#effective-date-${whichField}">` +
+    message +
+    `</a>`;
+
+  // prepend into the GOV.UK UL (note the __list selector)
+  document
+    .querySelector(".govuk-error-summary__list")
+    .prepend(li);
 }
 
-
-
-
-if (!parsedMonth) {
-  obj.inputs[0].errorMessage = "Enter a valid month, such as 3 or March.";
-  monthInput.classList.add("govuk-input--error");
-
-  // ← add this to summary
-  const monthInvalidItem = document.createElement("li");
-  monthInvalidItem.id = `${obj.inputs[0].id}-error-list-item`;
-  monthInvalidItem.innerHTML = 
-    `<a onclick="dateErrorFocus()" href="#effective-date-month">${obj.inputs[0].errorMessage}</a>`;
-  document.querySelector(".govuk-error-summary_list").prepend(monthInvalidItem);
-  $(".govuk-error-summary").show();
-
-  errorStyling();
-  return;
-}
-
-
-
-const yearInt = parseInt(year, 10);
-if (
-  year.length !== 4 ||
-  isNaN(yearInt) ||
-  yearInt < 1900 ||
-  yearInt > today.getUTCFullYear()
-) {
-  obj.inputs[0].errorMessage =
-    `Enter a valid year between 1900 and ${today.getUTCFullYear()}.`;
-  yearInput.classList.add("govuk-input--error");
-  errFocus = "year";
-
-  // ← add this to summary
-  const yearListItem = document.createElement("li");
-  yearListItem.id = `${obj.inputs[0].id}-error-list-item`;
-  yearListItem.innerHTML = 
-    `<a onclick="dateErrorFocus()" href="#effective-date-year">${obj.inputs[0].errorMessage}</a>`;
-  document.querySelector(".govuk-error-summary_list").prepend(yearListItem);
-  $(".govuk-error-summary").show();
-
-  errorStyling();
-  return;
+function dateErrorFocus() {
+  // use the same errFocus value you set in each branch
+  const fld = document.getElementById(`effective-date-${errFocus}`);
+  if (fld && fld.focus) fld.focus();
 }
