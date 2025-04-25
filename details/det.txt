@@ -1,83 +1,60 @@
-Rather than wrestling with a bubble-sort that can accidentally never finish, I’d recommend switching to a much simpler, one-pass Array-sort approach. That both eliminates infinite-loop risk and makes it trivial to update your ARIA attributes in the right order.
-
----
-
-## Replace your entire `sortTable` loop with this:
-
-```js
 function sortTable(colIndex, isDate) {
-  const table = document.getElementById('{{tableid}}');
-  const tbody = table.tBodies[0];
-  const rows  = Array.from(tbody.rows);
+  const table   = document.getElementById('{{tableid}}');
+  const tbody   = table.tBodies[0];
+  const rows    = Array.from(tbody.rows);
+  const headers = table.querySelectorAll('.govuk-table__header button');
+  const btn     = headers[colIndex];
+  const name    = btn.textContent.trim();
 
-  // 1) Reset all headers:
-  table.querySelectorAll('.govuk-table__header button').forEach(btn => {
-    const name = btn.textContent.trim();
-    btn.setAttribute('aria-sort', 'none');
-    btn.setAttribute(
+  // 1) CAPTURE previous state *before* we reset anything:
+  //    (could be "ascending", "descending" or "none")
+  const prevState = btn.getAttribute('aria-sort') || 'none';
+
+  // 2) RESET ALL HEADERS to “not sorted”
+  headers.forEach(h => {
+    const col = h.textContent.trim();
+    h.setAttribute('aria-sort', 'none');
+    h.setAttribute(
       'aria-label',
-      `${name}, not sorted. Activate to sort ascending.`
+      `${col}, not sorted. Activate to sort ascending.`
     );
   });
 
-  // 2) Determine new sort direction:
-  //    – If the clicked column was ascending, we'll now go descending, and vice versa.
-  const headerBtn    = table
-    .querySelectorAll('.govuk-table__header button')[colIndex];
-  const currentSort  = headerBtn.getAttribute('aria-sort');
-  const newDir       = currentSort === 'ascending' ? 'descending' : 'ascending';
-  const colName      = headerBtn.textContent.trim();
+  // 3) DECIDE new direction by flipping prevState
+  //    none→ascending, asc→descending, desc→ascending
+  const newState = prevState === 'ascending' ? 'descending' : 'ascending';
 
-  // 3) Sort the rows array:
-  rows.sort((aRow, bRow) => {
-    let a = aRow.cells[colIndex].innerText.trim();
-    let b = bRow.cells[colIndex].innerText.trim();
-
+  // 4) SORT the rows array in one pass
+  rows.sort((a, b) => {
+    let va = a.cells[colIndex].innerText.trim();
+    let vb = b.cells[colIndex].innerText.trim();
     if (isDate) {
-      a = new Date(a);
-      b = new Date(b);
+      va = new Date(va);
+      vb = new Date(vb);
     } else {
-      a = a.toLowerCase();
-      b = b.toLowerCase();
+      va = va.toLowerCase();
+      vb = vb.toLowerCase();
     }
-
-    if (a < b) return newDir === 'ascending' ? -1 : 1;
-    if (a > b) return newDir === 'ascending' ? 1 : -1;
+    if (va < vb) return newState === 'ascending' ? -1 : 1;
+    if (va > vb) return newState === 'ascending' ? 1 : -1;
     return 0;
   });
 
-  // 4) Re-attach the rows in the new order:
-  tbody.innerHTML = "";
+  // 5) RE-APPEND the sorted rows
+  tbody.innerHTML = '';
   rows.forEach(r => tbody.appendChild(r));
 
-  // 5) Update aria-sort + aria-label on the clicked header:
-  headerBtn.setAttribute('aria-sort', newDir);
-  headerBtn.setAttribute(
+  // 6) UPDATE the clicked header with newState
+  btn.setAttribute('aria-sort', newState);
+  btn.setAttribute(
     'aria-label',
-    newDir === 'ascending'
-      ? `${colName}, sorted ascending. Activate to sort descending.`
-      : `${colName}, sorted descending. Activate to sort ascending.`
+    newState === 'ascending'
+      ? `${name}, sorted ascending. Activate to sort descending.`
+      : `${name}, sorted descending. Activate to sort ascending.`
   );
 
-  // 6) If you have pagination or other render steps, call them now:
+  // 7) (optional) refresh pagination / UI
   // currentPage = 1;
   // displayTable();
   // generatePagination();
 }
-```
-
-### Why this fixes the infinite-loop
-
-- **One pass sort**: `rows.sort(...)` does everything in a single call. No `while` / `for` bubble-swap needed.  
-- **No “switching” flags** to ever get stuck.  
-- **Easier to read and maintain**.
-
-### ARIA updates in the right spot
-
-1. **Reset everything** before you sort, so old columns read “not sorted.”  
-2. **Decide** if this click is going to ascend or descend.  
-3. **Sort** the array.  
-4. **Re-render** the `<tbody>` in that order.  
-5. **Update only** the clicked header button’s `aria-sort` and `aria-label` to reflect both its new sort state and what will happen on the next click.  
-
-Drop that in for `sortTable(...)`, it’ll eliminate your loop problem and fully implement the accessible labels you need.
