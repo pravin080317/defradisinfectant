@@ -1,17 +1,19 @@
-Sure—here’s a clearer breakdown of **Step 3** (updating your JavaScript so the header buttons always announce the correct sort state and next action):
-
----
-
-### 3A. Reset every header to “not sorted” at the start
-
-Before you begin swapping rows, loop through **all** of your header buttons and set:
-
-- `aria-sort="none"`  
-- `aria-label="<Column Name>, not sorted. Activate to sort ascending."`  
-
-```js
 function sortTable(n, isDate) {
-  // 1) Reset all headers
+  // … your existing declarations …
+  var table = document.getElementById('{{tableid}}');
+  var rows = table.tBodies[0].rows;
+  var startIndex = 0;
+  var endIndex = rows.length - 1;
+  var switching = true;
+  var dir = 'asc';
+  var switchcount = 0;
+
+  resetSortArrows();
+
+  // ───────────────────────────────────────────────────────────────
+  // 1) RESET *ALL* HEADER BUTTONS TO “NOT SORTED”
+  //    (put this right after you clear your visual arrows)
+  // ───────────────────────────────────────────────────────────────
   document
     .querySelectorAll('.govuk-table__header button')
     .forEach(btn => {
@@ -22,54 +24,79 @@ function sortTable(n, isDate) {
         `${name}, not sorted. Activate to sort ascending.`
       );
     });
+  // ───────────────────────────────────────────────────────────────
 
-  // …now figure out your `dir` (asc/desc) and do the row swapping…
-```
+  while (switching) {
+    switching = false;
+    for (var i = startIndex; i < endIndex; i++) {
+      var shouldSwitch = false;
+      var x = rows[i].getElementsByTagName('td')[n];
+      var y = rows[i+1].getElementsByTagName('td')[n];
 
----
+      if (dir === 'asc') {
+        // ───────────────────────────────────────────────────────────
+        // 2a) UPDATE THE *CLICKED* HEADER BUTTON FOR ASCENDING
+        // ───────────────────────────────────────────────────────────
+        const btnAsc = document
+          .querySelectorAll('.govuk-table__header button')[n];
+        const colNameAsc = btnAsc.textContent.trim();
+        btnAsc.setAttribute('aria-sort', 'ascending');
+        btnAsc.setAttribute(
+          'aria-label',
+          `${colNameAsc}, sorted ascending. Activate to sort descending.`
+        );
+        // ───────────────────────────────────────────────────────────
 
-### 3B. After you determine the new sort direction (`asc` or `desc`), update **only the clicked** header
+        if (isDate) {
+          if (new Date(x.innerText) > new Date(y.innerText)) {
+            shouldSwitch = true;
+            break;
+          }
+        } else {
+          if (x.innerText.toLowerCase() > y.innerText.toLowerCase()) {
+            shouldSwitch = true;
+            break;
+          }
+        }
 
-1. **Grab** the button you clicked:  
-   ```js
-   const btn = document
-     .getElementById('{{tableid}}')
-     .querySelectorAll('.govuk-table__header button')[n];
-   const colName = btn.textContent.trim();
-   ```
-2. **Set** its `aria-sort` to `"ascending"` or `"descending"`:  
-   ```js
-   btn.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
-   ```
-3. **Update** its `aria-label` so it reads, for example:  
-   - When sorted ascending:  
-     > “Date uploaded, sorted ascending. Activate to sort descending.”  
-   - When sorted descending:  
-     > “Date uploaded, sorted descending. Activate to sort ascending.”  
+      } else if (dir === 'desc') {
+        // ───────────────────────────────────────────────────────────
+        // 2b) UPDATE THE *CLICKED* HEADER BUTTON FOR DESCENDING
+        // ───────────────────────────────────────────────────────────
+        const btnDesc = document
+          .querySelectorAll('.govuk-table__header button')[n];
+        const colNameDesc = btnDesc.textContent.trim();
+        btnDesc.setAttribute('aria-sort', 'descending');
+        btnDesc.setAttribute(
+          'aria-label',
+          `${colNameDesc}, sorted descending. Activate to sort ascending.`
+        );
+        // ───────────────────────────────────────────────────────────
 
-   ```js
-   if (dir === 'asc') {
-     btn.setAttribute(
-       'aria-label',
-       `${colName}, sorted ascending. Activate to sort descending.`
-     );
-   } else {
-     btn.setAttribute(
-       'aria-label',
-       `${colName}, sorted descending. Activate to sort ascending.`
-     );
-   }
-   ```
+        if (isDate) {
+          if (new Date(x.innerText) < new Date(y.innerText)) {
+            shouldSwitch = true;
+            break;
+          }
+        } else {
+          if (x.innerText.toLowerCase() < y.innerText.toLowerCase()) {
+            shouldSwitch = true;
+            break;
+          }
+        }
+      }
 
----
+      if (shouldSwitch) {
+        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+        switching = true;
+      }
+    }
 
-#### Why these two sub-steps matter
+    if (switchcount == 0 && dir === 'asc') {
+      dir = 'desc';
+      switching = true;
+    }
+  }
 
-- **Resetting all headers** ensures you never accidentally leave an old header flagged as sorted.  
-- **Setting `aria-sort`** tells screen readers the *current* sort on that column.  
-- **Updating `aria-label`** combines:
-  - The column’s name  
-  - Its current sort state  
-  - The action that will happen if the user activates it again  
-
-Together, they give users exactly what they need—no noisy triangles—and fully satisfy WCAG’s “name, role, value” requirements for interactive controls.
+  // … your existing pagination / display logic …
+}
