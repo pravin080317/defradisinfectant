@@ -1,4 +1,67 @@
-function naturalSort(a, b, ascending = true) {
-  return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }) *
-         (ascending ? 1 : -1);
-}
+Title:
+AI-TRACK01 - Enhance Page View & Session Tracking in Power Pages for Completion Rate Analysis
+
+Description:
+The current Application Insights implementation on the Power Pages portal only logs one page view per session/user, which is insufficient for tracking user journey completion. In order to accurately calculate funnel completion rates (e.g., users who start vs. complete a task), we need to ensure that:
+
+Each page view is logged as a separate event.
+
+Each session for a user is identifiable, even without cookies.
+
+Key actions (e.g., starting or submitting a form) are logged as custom events.
+
+This work will enable the Performance Analyst to define metrics like "completion rate per session" using Power BI.
+
+Requirements & Tasks:
+Track Page Views Manually
+
+Add appInsights.trackPageView({ name: 'PageName' }) to all relevant portal pages or web templates.
+
+Page name should reflect the logical function (e.g., "UploadMultipleReports", "FixUploadErrors").
+
+Track Custom Events
+
+Add appInsights.trackEvent() for key stages:
+
+Report started
+
+Report submitted
+
+Validation error (optional)
+
+Include contextual properties like:
+
+UserId, Council, Timestamp, StepName, Status
+
+Handle Session Correlation
+
+Since cookies are disabled (disableCookiesUsage: true), use a guid() as session ID stored in sessionStorage.
+
+Inject it via telemetry initializer:
+
+javascript
+Copy
+Edit
+appInsights.addTelemetryInitializer((envelope) => {
+    envelope.data.baseData.properties["sessionId"] = sessionStorage.getItem("customSessionId") || generateGuid();
+});
+Kusto Schema Readiness
+
+Ensure each event has the necessary structure to be queried in Kusto for funnel reporting:
+
+customDimensions['step']
+
+customDimensions['sessionId']
+
+timestamp
+
+Testing
+
+Test the new tracking across common user paths.
+
+Validate telemetry in Application Insights → customEvents.
+
+Limitations / Not Feasible
+We cannot use ai_user or ai_session cookies due to cookie policy restrictions. All session correlation must be simulated using sessionStorage or localStorage.
+
+Because Power Pages does not offer native SPA lifecycle hooks, page tracking must be added manually per page.
