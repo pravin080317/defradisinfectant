@@ -1,53 +1,53 @@
 Title:
-AI-ISSUE01 – Investigate and Resolve Double-Counting of Login and Page View Events in Application Insights
+AI-TRACK02 – Implement Download Telemetry for VOA List Schedules by Local Authorities
 
 Description:
-Currently, duplicate entries are being recorded in Application Insights for both:
+We need to extend the Application Insights telemetry to track file downloads of VOA list schedules from the Power Pages portal. This is required for auditing and performance analysis by the business team.
 
-trackPageView()
+The tracking must capture the following details for each download initiated by a Local Authority (LA):
 
-trackEvent() for "LAPortalTracking" (login/session events)
+Date and time when the download occurred
 
-This leads to over-counting page views and login events, skewing analytics and affecting the accuracy of performance and completion metrics reported via Power BI.
+Local Authority (council) that initiated the download
 
-This issue likely stems from:
+File name being downloaded
 
-The Application Insights script being loaded multiple times due to how it’s injected in Power Pages (e.g., duplicated in both web templates and content snippets).
+File size in bytes
 
-Or trackPageView() being called on both initial load and via an automatic trigger from Traffic Analytics.
+File type/extension (e.g., .pdf, .xls, .csv)
 
-Tasks:
-Investigate Source of Duplication
+Implementation Tasks:
+Hook Download Trigger
 
-Review where the script is injected:
+Add a JavaScript onclick or download event listener on file download links or buttons.
 
-msdyn_TrackCode content snippet (auto-included by Traffic Analytics).
+Capture Metadata
 
-Custom content snippets or web templates where manual script is added.
+Extract file name, extension, and size (if available via JS or server-side headers).
 
-Consolidate Script Placement
-
-Retain script in only one place (ideally via a controlled web template).
-
-Disable default tracking if needed using disablePageViewTracking: true.
-
-Control trackPageView() Call
-
-Ensure trackPageView() is only called once per page load.
-
-If using SPA or dynamic reloads, use a custom trigger (not on every navigation).
-
-Add Tracking Flag
-
-Add a JS flag to prevent duplicate calls per session:
+Log Custom Event to Application Insights
 
 javascript
 Copy
 Edit
-if (!window.aiPageTracked) {
-    appInsights.trackPageView({ name: 'Dashboard' });
-    window.aiPageTracked = true;
-}
-Test in Dev/Staging
+appInsights.trackEvent({
+  name: "VOAListScheduleDownload",
+  properties: {
+    fileName: "voa_report_apr2024.pdf",
+    fileType: "pdf",
+    fileSize: "204800", // bytes
+    timestamp: new Date().toISOString(),
+    userId: "{{ user.id }}",
+    council: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}"
+  }
+});
+Test Logging
 
-Verify that a user visit logs only one page view and login event per session/page.
+Confirm that the event is captured correctly in Application Insights and visible in Kusto queries.
+
+Acceptance Criteria:
+When a user downloads a VOA list file, a VOAListScheduleDownload event is captured in App Insights.
+
+Each event includes timestamp, file name, file type, file size, and the LA info.
+
+Duplicate entries are avoided for the same download action.
