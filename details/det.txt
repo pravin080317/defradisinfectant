@@ -1,21 +1,3 @@
-Title:
-AI-TRACK02 – Implement Download Telemetry for VOA List Schedules by Local Authorities
-
-Description:
-We need to extend the Application Insights telemetry to track file downloads of VOA list schedules from the Power Pages portal. This is required for auditing and performance analysis by the business team.
-
-The tracking must capture the following details for each download initiated by a Local Authority (LA):
-
-Date and time when the download occurred
-
-Local Authority (council) that initiated the download
-
-File name being downloaded
-
-File size in bytes
-
-File type/extension (e.g., .pdf, .xls, .csv)
-
 Implementation Tasks:
 Hook Download Trigger
 
@@ -44,10 +26,3 @@ appInsights.trackEvent({
 Test Logging
 
 Confirm that the event is captured correctly in Application Insights and visible in Kusto queries.
-
-Acceptance Criteria:
-When a user downloads a VOA list file, a VOAListScheduleDownload event is captured in App Insights.
-
-Each event includes timestamp, file name, file type, file size, and the LA info.
-
-Duplicate entries are avoided for the same download action.
