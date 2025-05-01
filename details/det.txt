@@ -1,28 +1,15 @@
-Implementation Tasks:
-Hook Download Trigger
-
-Add a JavaScript onclick or download event listener on file download links or buttons.
-
-Capture Metadata
-
-Extract file name, extension, and size (if available via JS or server-side headers).
-
-Log Custom Event to Application Insights
-
-javascript
-Copy
-Edit
-appInsights.trackEvent({
-  name: "VOAListScheduleDownload",
-  properties: {
-    fileName: "voa_report_apr2024.pdf",
-    fileType: "pdf",
-    fileSize: "204800", // bytes
-    timestamp: new Date().toISOString(),
-    userId: "{{ user.id }}",
-    council: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}"
-  }
-});
-Test Logging
-
-Confirm that the event is captured correctly in Application Insights and visible in Kusto queries.
+  // App Insights download event tracking
+            if (typeof appInsights !== "undefined") {
+                appInsights.trackEvent({
+                    name: "VOAListScheduleDownload",
+                    properties: {
+                        fileName: fileName,
+                        fileType: mimeType.split('/').pop(), // e.g., 'pdf', 'xls'
+                        fileSize: contentBase64.length * 0.75, // approximate bytes from base64
+                        timestamp: new Date().toISOString(),
+                        userId: "{{ user.id | default: 'Anonymous' }}",
+                        userName: "{{ user.fullname | default: 'N/A' }}",
+                        council: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown' }}"
+                    }
+                });
+            }
