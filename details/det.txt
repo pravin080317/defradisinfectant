@@ -1,15 +1,14 @@
-  // App Insights download event tracking
-            if (typeof appInsights !== "undefined") {
-                appInsights.trackEvent({
-                    name: "VOAListScheduleDownload",
-                    properties: {
-                        fileName: fileName,
-                        fileType: mimeType.split('/').pop(), // e.g., 'pdf', 'xls'
-                        fileSize: contentBase64.length * 0.75, // approximate bytes from base64
-                        timestamp: new Date().toISOString(),
-                        userId: "{{ user.id | default: 'Anonymous' }}",
-                        userName: "{{ user.fullname | default: 'N/A' }}",
-                        council: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown' }}"
-                    }
-                });
-            }
+pageViews
+| extend 
+    pageTitle = tostring(customDimensions["pageTitle"]),
+    pageName = iff(isnull(name) or name == "", tostring(url), name)
+| project 
+    timestamp,
+    user_Id,
+    session_Id,
+    pageName,
+    pageTitle,
+    url
+| summarize PageViewCount = count() by user_Id, session_Id, pageName, pageTitle, url
+| where PageViewCount > 1
+| order by user_Id, session_Id, PageViewCount desc
