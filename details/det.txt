@@ -1,64 +1,49 @@
-Slide 1: Technology Choices & Implementation
-Technology Stack:
+Are they following a standard tech stack?
+Yes. The LA Portal adheres to a standard and supportable tech stack within the Microsoft ecosystem and UK government digital service guidelines:
 
-Frontend: Microsoft Power Pages customized with Gov.UK Design System components for accessible and consistent user experience.
+Frontend:
 
-Backend: Microsoft Dataverse for secure data storage and process orchestration.
+HTML, CSS, and JavaScript are used for customizing Power Pages.
 
-Custom Logic: Implemented via Power Platform Plugins and Azure Functions for validations, file processing, and schedules management.
+Gov.UK Design System components are integrated for consistent, accessible UI.
 
-Integration: Azure API Management (APIM) and Azure Front Door used for secure, scalable access and protection against malicious traffic.
+Backend:
 
-Deployment & DevOps:
+Dataverse is used for data management and process orchestration.
 
-End-to-end CI/CD pipeline using Azure DevOps.
+Plugins and custom connectors are built using C# for server-side logic.
 
-ARM templates and Power Platform Build Tools used to deploy solutions consistently across environments.
+Azure Functions are used for background processing, validation, and data handling.
 
-Maintenance Page: Custom error pages deployed for graceful handling during service outages or deployment windows.
+Describe the development tool chain that you have selected
+Power Platform CLI and Azure DevOps for CI/CD automation.
 
-Authentication & Data Security:
+Visual Studio for plugin and Azure Function development (C#).
 
-Uses Azure Entra ID (B2B) for authentication.
+VS Code and Power Pages Designer for HTML, JS, and Liquid customizations.
 
-Adheres to least privilege access model via table permissions and role-based access control.
+Power Platform Build Tools for Azure DevOps to manage ALM (Application Lifecycle Management).
 
-Files are scanned using SDES-compliant antivirus, encrypted, and stored in Azure Blob Storage.
+Application Insights and Azure Monitor for logging and diagnostics.
 
+How will you know if the service is healthy?
+Yes, service health is actively monitored:
 
+Application Insights is integrated into Azure Functions and plugins for real-time telemetry.
 
+Azure Monitor and Power Platform Admin Center are used to track system events, usage metrics, and potential failures.
 
+Alerts are configured for exception patterns, latency, failed submissions, and unexpected downtime.
 
+Periodic reviews are performed via dashboards and custom logs.
 
-Slide 2: Open Standards, Reuse & Risk Management
-Reuse & Openness:
+How easy is it to rebuild the service, if necessary?
+High Rebuild Readiness:
 
-Follows GOV.UK open standards for frontend (design system) and backend (Azure, Dataverse).
+Infrastructure as Code (IaC): Azure resources are provisioned via ARM templates or Bicep.
 
-Reuses existing Power Platform infrastructure (Dataverse, Power Pages, APIs).
+Source Control: All code (plugins, functions, JS, Liquid templates) is version-controlled in Azure Repos.
 
-Open data patterns explored where feasible (e.g., schedule publication).
+Power Platform Solutions: All customizations are packaged into managed/unmanaged solutions, supporting clean environment rebuilds.
 
-Intellectual property remains within DEFRA/APHA ownership.
-
-Tested Alternatives:
-
-Alternatives such as SharePoint Forms, custom web apps, and Power Apps Canvas were evaluated.
-
-Chosen stack balances configurability, extensibility, and speed to deliver within central government frameworks.
-
-Risk Management:
-
-Data minimisation: Only essential data (report metadata, user contact, evidence) is collected and stored.
-
-Regular threat modelling and reviews aligned with SDES and Cyber Essentials.
-
-Incident plans include auto-failover to maintenance mode and alerting via Azure Monitor.
-
-Discussions held with data protection officer around secure processing and consent.
-
-Planned Integrations:
-
-Future roadmap includes integration with GOV.UK Notify for user alerts and status tracking.
-
-Exploring GOV.UK Pay for any future transactions or payments.
+CI/CD Pipelines ensure consistent deployments with environment-specific configurations, enabling rapid restoration or cloning of environments.
