@@ -24,3 +24,41 @@ Uses Azure Entra ID (B2B) for authentication.
 Adheres to least privilege access model via table permissions and role-based access control.
 
 Files are scanned using SDES-compliant antivirus, encrypted, and stored in Azure Blob Storage.
+
+
+
+
+
+
+Slide 2: Open Standards, Reuse & Risk Management
+Reuse & Openness:
+
+Follows GOV.UK open standards for frontend (design system) and backend (Azure, Dataverse).
+
+Reuses existing Power Platform infrastructure (Dataverse, Power Pages, APIs).
+
+Open data patterns explored where feasible (e.g., schedule publication).
+
+Intellectual property remains within DEFRA/APHA ownership.
+
+Tested Alternatives:
+
+Alternatives such as SharePoint Forms, custom web apps, and Power Apps Canvas were evaluated.
+
+Chosen stack balances configurability, extensibility, and speed to deliver within central government frameworks.
+
+Risk Management:
+
+Data minimisation: Only essential data (report metadata, user contact, evidence) is collected and stored.
+
+Regular threat modelling and reviews aligned with SDES and Cyber Essentials.
+
+Incident plans include auto-failover to maintenance mode and alerting via Azure Monitor.
+
+Discussions held with data protection officer around secure processing and consent.
+
+Planned Integrations:
+
+Future roadmap includes integration with GOV.UK Notify for user alerts and status tracking.
+
+Exploring GOV.UK Pay for any future transactions or payments.
