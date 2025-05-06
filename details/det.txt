@@ -1,14 +1,26 @@
-pageViews
-| extend 
-    pageTitle = tostring(customDimensions["pageTitle"]),
-    pageName = iff(isnull(name) or name == "", tostring(url), name)
-| project 
-    timestamp,
-    user_Id,
-    session_Id,
-    pageName,
-    pageTitle,
-    url
-| summarize PageViewCount = count() by user_Id, session_Id, pageName, pageTitle, url
-| where PageViewCount > 1
-| order by user_Id, session_Id, PageViewCount desc
+Slide 1: Technology Choices & Implementation
+Technology Stack:
+
+Frontend: Microsoft Power Pages customized with Gov.UK Design System components for accessible and consistent user experience.
+
+Backend: Microsoft Dataverse for secure data storage and process orchestration.
+
+Custom Logic: Implemented via Power Platform Plugins and Azure Functions for validations, file processing, and schedules management.
+
+Integration: Azure API Management (APIM) and Azure Front Door used for secure, scalable access and protection against malicious traffic.
+
+Deployment & DevOps:
+
+End-to-end CI/CD pipeline using Azure DevOps.
+
+ARM templates and Power Platform Build Tools used to deploy solutions consistently across environments.
+
+Maintenance Page: Custom error pages deployed for graceful handling during service outages or deployment windows.
+
+Authentication & Data Security:
+
+Uses Azure Entra ID (B2B) for authentication.
+
+Adheres to least privilege access model via table permissions and role-based access control.
+
+Files are scanned using SDES-compliant antivirus, encrypted, and stored in Azure Blob Storage.
