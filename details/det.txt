@@ -1,6 +1,6 @@
-What other distinct options have you tried/tested?
-Option 1: MDTP platform (used by other VOA services).
+How have you resolved conflicts with standards or guidance in your tech choices (e.g., JavaScript dependence)?
+Where custom JavaScript was necessary (e.g., dynamic field validation), it was written with accessibility in mind and tested against WCAG 2.1.
 
-Option 2: Microsoft Power Platform (selected).
-Power Platform was chosen for seamless integration with Dynamics, faster delivery via low-code capabilities, cost efficiency, and reuse of existing BST-aligned infrastructure.
+Styling uses Gov.UK CSS and templates added as Web Files in Power Pages, with careful overrides only where necessary.
 
+All code is documented, security-reviewed, and accessibility-tested in collaboration with internal assurance teams.
