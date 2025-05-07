@@ -1,9 +1,6 @@
-Frontend: Microsoft Power Apps Portal (Power Pages), enhanced with HTML/CSS/JavaScript following Gov.UK Design System standards.
+What other distinct options have you tried/tested?
+Option 1: MDTP platform (used by other VOA services).
 
-Backend: Microsoft Dataverse with C# plugins and Azure Functions to handle business logic and file processing.
+Option 2: Microsoft Power Platform (selected).
+Power Platform was chosen for seamless integration with Dynamics, faster delivery via low-code capabilities, cost efficiency, and reuse of existing BST-aligned infrastructure.
 
-Integration: Azure APIM, Azure Blob Storage, SDES, and the Integration Framework for ECS/HMRC interactions.
-
-Deployment: Azure DevOps pipelines using Power Platform Build Tools and ARM templates.
-
-Third Parties: Microsoft SaaS platforms (Power Platform, Azure), virus scanning via SDES (Defra service), Exchange Online for notifications.
