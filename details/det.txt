@@ -1,49 +1,111 @@
-Are they following a standard tech stack?
-Yes. The LA Portal adheres to a standard and supportable tech stack within the Microsoft ecosystem and UK government digital service guidelines:
+Slide 1: Technology Stack Overview
+Service Name: Local Authority (LA) Reporting Portal
+Platform: Microsoft Power Platform, Azure
 
 Frontend:
 
-HTML, CSS, and JavaScript are used for customizing Power Pages.
+Power Apps Portal (Power Pages)
 
-Gov.UK Design System components are integrated for consistent, accessible UI.
+HTML/CSS/JavaScript with Gov.UK Design System
+
+Azure Entra ID (B2B) for authentication
 
 Backend:
 
-Dataverse is used for data management and process orchestration.
+Microsoft Dataverse (core data entity storage)
 
-Plugins and custom connectors are built using C# for server-side logic.
+C# Plugins for custom business logic
 
-Azure Functions are used for background processing, validation, and data handling.
+Azure Functions for validation, schedule processing
 
-Describe the development tool chain that you have selected
-Power Platform CLI and Azure DevOps for CI/CD automation.
+Integration:
 
-Visual Studio for plugin and Azure Function development (C#).
+Azure API Management (APIM) for secured API exposure
 
-VS Code and Power Pages Designer for HTML, JS, and Liquid customizations.
+Azure Blob for file storage
 
-Power Platform Build Tools for Azure DevOps to manage ALM (Application Lifecycle Management).
+SDES/Integration Framework for ECS & HMRC data transfer
 
-Application Insights and Azure Monitor for logging and diagnostics.
+Exchange Online for notifications (Microsoft 365)
 
-How will you know if the service is healthy?
-Yes, service health is actively monitored:
+Slide 2: System Architecture (based on diagram)
+Users:
 
-Application Insights is integrated into Azure Functions and plugins for real-time telemetry.
+Local Authority users authenticated via Azure Entra ID
 
-Azure Monitor and Power Platform Admin Center are used to track system events, usage metrics, and potential failures.
+Presentation Layer:
 
-Alerts are configured for exception patterns, latency, failed submissions, and unexpected downtime.
+Power Apps Portal with embedded forms, schedule views, and dashboards
 
-Periodic reviews are performed via dashboards and custom logs.
+Processing Layer:
 
-How easy is it to rebuild the service, if necessary?
-High Rebuild Readiness:
+Dataverse stores request data
 
-Infrastructure as Code (IaC): Azure resources are provisioned via ARM templates or Bicep.
+Custom C# plugins perform server-side logic
 
-Source Control: All code (plugins, functions, JS, Liquid templates) is version-controlled in Azure Repos.
+Azure Functions handle file validation and transformation
 
-Power Platform Solutions: All customizations are packaged into managed/unmanaged solutions, supporting clean environment rebuilds.
+Front Door manages file ingestion and routing
 
-CI/CD Pipelines ensure consistent deployments with environment-specific configurations, enabling rapid restoration or cloning of environments.
+Application Insights monitors performance and errors
+
+Integration Layer:
+
+Azure APIM secures all traffic to APIs
+
+SDES for secure data submission to ECS/HMRC
+
+Exchange Online for notifications
+
+Downstream Systems:
+
+BST SharePoint APIs, DAL, and PVDB for downstream data processing
+
+Vestibule for ingestion into processing pipelines
+
+Azure Blob stores uploaded files after virus scan
+
+Slide 3: Security & Resilience
+Security Controls:
+
+Entra ID (B2B) authentication
+
+Virus scanning via SDES
+
+WAF, throttling, and rate limits via Azure Front Door and APIM
+
+Role-based access and table-level permissions
+
+Monitoring & Alerts:
+
+Application Insights and Azure Monitor
+
+Automated alerting and dashboards
+
+Disaster Recovery & Uptime:
+
+DevOps deployment with rollback capability
+
+Maintenance page for user notification during downtime
+
+Data recovery from Dataverse and Azure Blob (geo-redundancy enabled)
+
+Slide 4: Openness, Reuse & Future Plans
+Openness & Reuse:
+
+Follows open standards (OAuth2, REST, OpenAPI)
+
+Gov.UK Design System used for frontend compliance
+
+Plans to open source reusable plugins and validation scripts
+
+Reuses Microsoft common platforms (Power Platform, Azure)
+
+Planned Enhancements:
+
+Integration with GOV.UK Notify
+
+Improved schedule publishing via public APIs
+
+Explore use of AI for anomaly detection in bulk file submissions
+
