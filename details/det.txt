@@ -1,6 +1,7 @@
-How have you resolved conflicts with standards or guidance in your tech choices (e.g., JavaScript dependence)?
-Where custom JavaScript was necessary (e.g., dynamic field validation), it was written with accessibility in mind and tested against WCAG 2.1.
+Reusable components (e.g., C# plugins, Azure Functions) are modularised and stored in shared Azure DevOps repos, with a plan to open source elements where appropriate.
 
-Styling uses Gov.UK CSS and templates added as Web Files in Power Pages, with careful overrides only where necessary.
+REST APIs follow OpenAPI standards; frontend uses Gov.UK Design System.
 
-All code is documented, security-reviewed, and accessibility-tested in collaboration with internal assurance teams.
+Hosted on Microsoft Power Platform and Azure, both widely adopted government platforms.
+
+Schedule data and user actions are logged in Dataverse and may be published in a structured, open format subject to governance.
