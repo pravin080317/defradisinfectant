@@ -1,7 +1,32 @@
-Reusable components (e.g., C# plugins, Azure Functions) are modularised and stored in shared Azure DevOps repos, with a plan to open source elements where appropriate.
+How will you ensure the service is safe for users – data privacy, security threats, fraud vectors?
+Azure Entra ID (B2B) for secure authentication.
 
-REST APIs follow OpenAPI standards; frontend uses Gov.UK Design System.
+File uploads scanned using SDES; all submissions validated before processing.
 
-Hosted on Microsoft Power Platform and Azure, both widely adopted government platforms.
+Application Insights monitors suspicious patterns and alerts for anomalies.
 
-Schedule data and user actions are logged in Dataverse and may be published in a structured, open format subject to governance.
+Only pre-approved council users can access the portal.
+
+Privacy policy and data collection practices reviewed and cleared with the Data Protection Officer (DPO).
+
+What is the minimum amount of personal information the service needs to collect?
+Name, email address, council role, and authority name.
+
+Only the information needed to authenticate the user, associate them with an organisation, and allow contact.
+
+Does your service need an authentication solution?
+Yes. The service uses Azure Entra ID (B2B) to authenticate users via their local authority's domain, following Defra’s corporate identity pattern.
+
+What plans do you have if your service is unavailable for any length of time?
+A maintenance page is pre-configured and deployed via Azure Front Door during outages.
+
+Automated monitoring and alerting via Azure Monitor and Application Insights.
+
+Clear runbooks for incident response and rollback via DevOps pipelines.
+
+All infrastructure is redeployable with source-controlled configuration.
+
+Have you spoken to your department’s data protection officer about the decisions you’ve made?
+Yes. The team engaged with Defra’s Data Protection Officer and Information Assurance Board during Alpha and Beta phases.
+
+Data minimisation, consent, and retention policies have been reviewed and approved.
