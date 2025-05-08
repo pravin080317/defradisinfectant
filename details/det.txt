@@ -1,32 +1,67 @@
-How will you ensure the service is safe for users – data privacy, security threats, fraud vectors?
-Azure Entra ID (B2B) for secure authentication.
+Run Book Entry: Application Insights for PA Tracking
+Purpose
+To track user activity and performance data in the LA Portal (Power Pages) for analysis and reporting by Performance Analysts using Azure Application Insights.
 
-File uploads scanned using SDES; all submissions validated before processing.
+Implementation Summary
+Client-side telemetry is enabled using Application Insights JavaScript SDK.
 
-Application Insights monitors suspicious patterns and alerts for anomalies.
+A custom content snippet was created and referenced via the Enable Traffic Analytics feature in Power Pages.
 
-Only pre-approved council users can access the portal.
+Instrumentation is based on a Connection String, configured securely via a site setting:
+applicationinsights/enabletracking.
 
-Privacy policy and data collection practices reviewed and cleared with the Data Protection Officer (DPO).
+Captured Telemetry Includes:
+User information:
 
-What is the minimum amount of personal information the service needs to collect?
-Name, email address, council role, and authority name.
+User ID ({{ user.id }} via Liquid)
 
-Only the information needed to authenticate the user, associate them with an organisation, and allow contact.
+Full name ({{ user.fullname }} - optional)
 
-Does your service need an authentication solution?
-Yes. The service uses Azure Entra ID (B2B) to authenticate users via their local authority's domain, following Defra’s corporate identity pattern.
+Council BAC Code ({{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }})
 
-What plans do you have if your service is unavailable for any length of time?
-A maintenance page is pre-configured and deployed via Azure Front Door during outages.
+Session and page tracking:
 
-Automated monitoring and alerting via Azure Monitor and Application Insights.
+Session ID generated with crypto.randomUUID() and stored in sessionStorage.
 
-Clear runbooks for incident response and rollback via DevOps pipelines.
+Page title and page URL using trackPageView().
 
-All infrastructure is redeployable with source-controlled configuration.
+Login time and page load time.
 
-Have you spoken to your department’s data protection officer about the decisions you’ve made?
-Yes. The team engaged with Defra’s Data Protection Officer and Information Assurance Board during Alpha and Beta phases.
+Custom event:
 
-Data minimisation, consent, and retention policies have been reviewed and approved.
+LAPortalTracking event triggered per page view with contextual properties (user, council, status, timestamp).
+
+Technical Highlights
+Cookies are disabled to meet security/privacy compliance using:
+disableCookiesUsage: true
+
+Session ID is managed manually in session storage to maintain user context across pages.
+
+Telemetry initializers enrich data before it's sent.
+
+Avoidance of double-counting with session-level checks.
+
+Data is available in Log Analytics and visualized through Power BI.
+
+Deployment Instructions
+Content snippet created in Power Pages with the AI JavaScript snippet.
+
+Site Setting applicationinsights/enabletracking holds the connection string.
+
+Manual RFC required to update this setting in PROD.
+
+Updates should follow change control process (RFC with 3-day notice).
+
+Known Limitations / Risks
+Instrumentation key is part of the connection string (as per Microsoft’s design), but telemetry data submission only — cannot be used to view or alter data.
+
+Possible spam risk if key is abused — alerts are set in App Insights to monitor for spikes.
+
+Data filtering available via custom dimensions in Power BI to exclude noise or test data.
+
+Next Steps
+Add telemetry tracking for specific user actions (e.g., downloads, form submissions).
+
+Refine page view capture across remaining portal pages.
+
+Finalize dashboard views in Power BI for performance reporting.
