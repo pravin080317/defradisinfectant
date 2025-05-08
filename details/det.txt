@@ -1,67 +1,104 @@
-Run Book Entry: Application Insights for PA Tracking
+Run Book Entry: Application Insights Integration for PA Tracking
 Purpose
-To track user activity and performance data in the LA Portal (Power Pages) for analysis and reporting by Performance Analysts using Azure Application Insights.
+To capture and analyze user activity and behavior on the Local Authority (LA) Portal built using Power Pages, supporting the Performance Analyst (PA) team with data-driven insights via Azure Application Insights and Power BI.
 
-Implementation Summary
-Client-side telemetry is enabled using Application Insights JavaScript SDK.
+Implementation Overview
+Telemetry is implemented client-side using the Application Insights JavaScript SDK.
 
-A custom content snippet was created and referenced via the Enable Traffic Analytics feature in Power Pages.
+A custom content snippet is configured in Power Pages and referenced via the Enable Traffic Analytics feature.
 
-Instrumentation is based on a Connection String, configured securely via a site setting:
+The Application Insights Connection String is securely managed using a Site Setting:
 applicationinsights/enabletracking.
 
-Captured Telemetry Includes:
-User information:
+Captured Telemetry
+Each page view and interaction captures:
 
-User ID ({{ user.id }} via Liquid)
+User Context
+userId: Dataverse contact ID (if logged in), otherwise "Anonymous".
 
-Full name ({{ user.fullname }} - optional)
+userName: Full name (optional, excluded in production reports).
 
-Council BAC Code ({{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }})
+UserStatus: "LoggedIn" or "Guest".
 
-Session and page tracking:
+Council: BAC code from Dataverse (via related account entity).
 
-Session ID generated with crypto.randomUUID() and stored in sessionStorage.
+Session and Page Tracking
+sessionId: Custom session ID (UUID), stored in sessionStorage.
 
-Page title and page URL using trackPageView().
+pageTitle: Retrieved from document.title.
 
-Login time and page load time.
+url: Page URL.
 
-Custom event:
+PortalPageLoadTime: ISO timestamp of page load.
 
-LAPortalTracking event triggered per page view with contextual properties (user, council, status, timestamp).
+loginTime: Time of initial login (captured via trackEvent).
+
+Custom Event
+LAPortalTracking: Custom telemetry event with contextual properties:
+
+User ID, Council, Status, Timestamp, and Page.
 
 Technical Highlights
-Cookies are disabled to meet security/privacy compliance using:
-disableCookiesUsage: true
+Connection String is used (not just InstrumentationKey).
 
-Session ID is managed manually in session storage to maintain user context across pages.
+Cookies are disabled (disableCookiesUsage: true) to prevent ai_user and ai_session.
 
-Telemetry initializers enrich data before it's sent.
+Session management is handled manually using sessionStorage.
 
-Avoidance of double-counting with session-level checks.
+Telemetry Initializers enrich telemetry data before submission.
 
-Data is available in Log Analytics and visualized through Power BI.
+Page tracking logic includes a session-aware mechanism to prevent double-counting across page visits.
 
-Deployment Instructions
-Content snippet created in Power Pages with the AI JavaScript snippet.
+Deployment Notes
+JavaScript snippet is placed in a Content Snippet (used via Traffic Analytics).
 
-Site Setting applicationinsights/enabletracking holds the connection string.
+Site Setting holds the App Insights connection string:
 
-Manual RFC required to update this setting in PROD.
+Key: applicationinsights/enabletracking
 
-Updates should follow change control process (RFC with 3-day notice).
+PROD Deployment:
 
-Known Limitations / Risks
-Instrumentation key is part of the connection string (as per Microsoft’s design), but telemetry data submission only — cannot be used to view or alter data.
+Requires manual RFC to update site settings (3-day notice).
 
-Possible spam risk if key is abused — alerts are set in App Insights to monitor for spikes.
+RFC should include a rollback plan (reverting the site setting to previous value).
 
-Data filtering available via custom dimensions in Power BI to exclude noise or test data.
+Data Access and Reporting
+KQL queries in Azure Monitor used to analyze telemetry in real-time.
 
-Next Steps
-Add telemetry tracking for specific user actions (e.g., downloads, form submissions).
+Power BI is used for visualizing:
 
-Refine page view capture across remaining portal pages.
+Page completion flows
 
-Finalize dashboard views in Power BI for performance reporting.
+Session-level activity
+
+Performance benchmarks per council/user.
+
+Known Limitations and Risks
+InstrumentationKey is part of the Connection String (Microsoft’s SDK design).
+
+Does not allow reading/storing/altering data but can be used to spam telemetry.
+
+Spam mitigation:
+
+Alerts for high ingestion volume configured in Azure Monitor.
+
+Telemetry filtering in Power BI dashboards (via custom dimensions).
+
+Session continuity is managed per-tab; session reuse across tabs or browsers is not guaranteed.
+
+Planned Enhancements
+Finalize download tracking for schedule files (PDF/XLS), including:
+
+Filename, time, file type, and council.
+
+Implement session-aware completion tracking (e.g., page journey tracking).
+
+Extend telemetry to other portal areas beyond dashboard (e.g., bulk report submissions).
+
+Conduct a POC for hybrid telemetry ingestion using:
+
+Reverse proxy (via Azure API Management)
+
+Server-side relay (via Azure Function)
+
+Evaluate and migrate to Entra ID–based telemetry ingestion (IK support ends March 2025).
