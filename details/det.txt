@@ -1,104 +1,100 @@
-Run Book Entry: Application Insights Integration for PA Tracking
-Purpose
-To capture and analyze user activity and behavior on the Local Authority (LA) Portal built using Power Pages, supporting the Performance Analyst (PA) team with data-driven insights via Azure Application Insights and Power BI.
+GDS Assessment - Questions & Responses Summary for LA Portal
 
-Implementation Overview
-Telemetry is implemented client-side using the Application Insights JavaScript SDK.
+1. Authentication & Authorization
 
-A custom content snippet is configured in Power Pages and referenced via the Enable Traffic Analytics feature.
+Q: How does Entra ID B2B authentication work? Is Government Gateway used?
+A: No, Government Gateway is not used. Entra ID B2B allows external users (e.g., Local Authority staff) to authenticate via their own organisation's identity provider. HMRC manages the Entra ID tenant. Only invited users can log in, and authentication is followed by authorization via Power Pages web roles and Dataverse table permissions.
 
-The Application Insights Connection String is securely managed using a Site Setting:
-applicationinsights/enabletracking.
+Q: How is authorization managed?
+A: Power Pages uses web roles tied to Dataverse table permissions. Web roles define read/write/upload access per user and are assigned post-authentication through Power Automate flows.
 
-Captured Telemetry
-Each page view and interaction captures:
+Pending: Formal process to maintain a list of council-approved lead contacts (approvers) is not automated yet.
 
-User Context
-userId: Dataverse contact ID (if logged in), otherwise "Anonymous".
+2. User Onboarding & Role Management
 
-userName: Full name (optional, excluded in production reports).
+Q: How are new users onboarded and who approves them?
+A: Currently manual. Product Owners receive user requests only from known council leads and raise guest access requests. Web roles are then assigned using a semi-automated workflow. There is a future plan to build a UI for lead users to manage this process directly.
 
-UserStatus: "LoggedIn" or "Guest".
+Pending:
 
-Council: BAC code from Dataverse (via related account entity).
+Need formal tracking of council lead approvers.
 
-Session and Page Tracking
-sessionId: Custom session ID (UUID), stored in sessionStorage.
+Consider building a lead user portal page post-public beta.
 
-pageTitle: Retrieved from document.title.
+3. Third-Party Access (e.g., KPMG)
 
-url: Page URL.
+Q: How is third-party access validated?
+A: Product Owners provide a validated list. If a council wants to revoke access, they notify HMRC service team, who manually remove the user. This will be governed via ISRS roles in future.
 
-PortalPageLoadTime: ISO timestamp of page load.
+4. File Upload, Validation & Feedback Flow
 
-loginTime: Time of initial login (captured via trackEvent).
+Q: How are validation errors handled and displayed?
+A: Files are virus-scanned via SDES, then stored in Azure Blob Storage. Azure Functions validate files and write metadata + validation results into Dataverse. Power Pages displays status, errors, and allows users to fix metadata inline or re-upload.
 
-Custom Event
-LAPortalTracking: Custom telemetry event with contextual properties:
+Q: Are partial errors handled?
+A: Yes. Record-level errors are stored in Dataverse. Users can fix metadata for specific records or re-upload the entire file.
 
-User ID, Council, Status, Timestamp, and Page.
+5. Data Retention Policies
 
-Technical Highlights
-Connection String is used (not just InstrumentationKey).
+Q: What are the data retention timelines for Blob, Dataverse, and SDES?
+A:
 
-Cookies are disabled (disableCookiesUsage: true) to prevent ai_user and ai_session.
+Azure Blob: Housekeeping scripts under consideration; preliminary retention target = 6 years.
 
-Session management is handled manually using sessionStorage.
+Dataverse: Retention period not yet finalised.
 
-Telemetry Initializers enrich telemetry data before submission.
+SDES: Temporary holding only; files auto-deleted after configured time window.
 
-Page tracking logic includes a session-aware mechanism to prevent double-counting across page visits.
+Pending: Need confirmation from business/POs on formal retention policies per system.
 
-Deployment Notes
-JavaScript snippet is placed in a Content Snippet (used via Traffic Analytics).
+6. Penetration Testing
 
-Site Setting holds the App Insights connection string:
+Q: Has a pen test been completed?
+A: Yes. A test was done in October/November 2023 for private beta. One low-priority issue was found and fixed.
 
-Key: applicationinsights/enabletracking
+Pending: Confirm if this test also covers public beta or if a new test is planned.
 
-PROD Deployment:
+7. Feature Enhancements from Private to Public Beta
 
-Requires manual RFC to update site settings (3-day notice).
+Q: What changes were made between private and public beta?
+A:
 
-RFC should include a rollback plan (reverting the site setting to previous value).
+Accessibility fixes.
 
-Data Access and Reporting
-KQL queries in Azure Monitor used to analyze telemetry in real-time.
+Bug fixes based on user feedback.
 
-Power BI is used for visualizing:
+New feature: Multiple council switching for users (primarily third-party agents like KPMG).
 
-Page completion flows
+8. Open Source, Standards & Compliance
 
-Session-level activity
+Q: Is the code open source? Are standards being followed?
+A: Yes. Frontend custom code (HTML/JS/CSS) is based on GOV.UK Design System. RESTful APIs follow OpenAPI standards. Components and styling are reused from open-source libraries.
 
-Performance benchmarks per council/user.
+9. Platform Selection Justification
 
-Known Limitations and Risks
-InstrumentationKey is part of the Connection String (Microsoft’s SDK design).
+Q: Why was Power Platform chosen over MDTP?
+A:
 
-Does not allow reading/storing/altering data but can be used to spam telemetry.
+Seamless integration with Dynamics (BST core).
 
-Spam mitigation:
+Faster delivery using low-code/no-code tools.
 
-Alerts for high ingestion volume configured in Azure Monitor.
+Reduced cost and reuse of existing SaaS infrastructure.
 
-Telemetry filtering in Power BI dashboards (via custom dimensions).
+SAD platform used by other internal teams.
 
-Session continuity is managed per-tab; session reuse across tabs or browsers is not guaranteed.
+10. Monitoring & Logging
 
-Planned Enhancements
-Finalize download tracking for schedule files (PDF/XLS), including:
+Q: How is the service monitored?
+A: Azure Application Insights is enabled on Power Pages and custom Azure Functions. A performance analyst is working on Power BI dashboards for tracking usage, errors, and telemetry.
 
-Filename, time, file type, and council.
+11. Disaster Recovery & Availability
 
-Implement session-aware completion tracking (e.g., page journey tracking).
+Q: What happens if the service is unavailable?
+A:
 
-Extend telemetry to other portal areas beyond dashboard (e.g., bulk report submissions).
+Maintenance page configured via Azure Front Door.
 
-Conduct a POC for hybrid telemetry ingestion using:
+CI/CD pipelines can redeploy to any environment.
 
-Reverse proxy (via Azure API Management)
-
-Server-side relay (via Azure Function)
-
-Evaluate and migrate to Entra ID–based telemetry ingestion (IK support ends March 2025).
+Monitoring/alerts in place for rapid triage.
