@@ -1,12 +1,16 @@
-function updatePageHeadingFromTable() {
-  // count every row in the tbody of the ready-for-upload table
-  const rowCount = document
-    .querySelectorAll('#hideshow tbody.govuk-table__body tr')
-    .length;
+function toggleAddButton () {
+  const readyVisible  = $('#hideshow').is(':visible');      // “Document ready” block
+  const queueEmpty    = filesArray.length === 0;
 
-  const heading = document.getElementById('page-heading');
-  heading.textContent =
-    rowCount === 0
-      ? 'Upload multiple reports'
-      : `Upload multiple reports – ${rowCount} document${rowCount > 1 ? 's' : ''} ready`;
+  // 1. Show / hide the Add button
+  $('#upload-multiple-reports').toggle(!readyVisible || queueEmpty);
+
+  // 2. Update the browser tab title
+  if (!readyVisible || queueEmpty) {
+    // User has cancelled Change OR cleared the queue  →  revert to default
+    document.title = 'Upload multiple reports';
+  } else {
+    // At least one document visible in the ready table
+    document.title = 'Document ready for upload – Upload multiple reports';
+  }
 }
