@@ -1,100 +1,117 @@
-GDS Assessment - Questions & Responses Summary for LA Portal
+1 Focus is thrown to the top of the page after an error
+What happens
+Your JS validation hides the file-input, shows the error summary, then calls window.scrollTo(0,0).
+The keyboard focus lands on <body> (or the browser’s top chrome), so a screen-reader user must tab all the way down to find the summary.
 
-1. Authentication & Authorization
+Why it fails
+SC 2.4.3 – the logical focus order is broken.
+SC 3.3.1 – you did not set focus to the actual error message.
 
-Q: How does Entra ID B2B authentication work? Is Government Gateway used?
-A: No, Government Gateway is not used. Entra ID B2B allows external users (e.g., Local Authority staff) to authenticate via their own organisation's identity provider. HMRC manages the Entra ID tenant. Only invited users can log in, and authentication is followed by authorization via Power Pages web roles and Dataverse table permissions.
+Fix
+javascript
+Copy
+Edit
+// after writing errors into the summary…
+document.querySelector('.govuk-error-summary').focus();
+Add tabindex="-1" and role="alert" to the summary so it can receive focus and is announced.
 
-Q: How is authorization managed?
-A: Power Pages uses web roles tied to Dataverse table permissions. Web roles define read/write/upload access per user and are assigned post-authentication through Power Automate flows.
+2 Focus is thrown to the top after adding a file
+What happens
+You append the file row and the green notification banner, then call the same helper that scrolls to the top.
 
-Pending: Formal process to maintain a list of council-approved lead contacts (approvers) is not automated yet.
+Why it fails
+SC 2.4.3 again – users lose their place and do not know a new control appeared.
 
-2. User Onboarding & Role Management
+Fix
+Remove the scroll call.
 
-Q: How are new users onboarded and who approves them?
-A: Currently manual. Product Owners receive user requests only from known council leads and raise guest access requests. Web roles are then assigned using a semi-automated workflow. There is a future plan to build a UI for lead users to manage this process directly.
+Put focus on the “Continue to upload” button the moment the row is added:
 
-Pending:
+javascript
+Copy
+Edit
+$('#continue-upload').show().focus();
+(If the button was already visible, skip .show().)
 
-Need formal tracking of council lead approvers.
+3 Page title never updates when the state changes
+Why it matters
+SC 2.4.2 Page Titled. Screen-reader users rely on the title to know whether the step succeeded.
 
-Consider building a lead user portal page post-public beta.
+Fix
+After a successful add/change:
 
-3. Third-Party Access (e.g., KPMG)
+javascript
+Copy
+Edit
+document.title = 'Document ready for upload – Upload multiple reports';
+4 Notification banner is above the H1 and off-screen at 200 % zoom
+Why it fails
+Not a direct WCAG failure but poor UX for low-vision / magnifier users.
 
-Q: How is third-party access validated?
-A: Product Owners provide a validated list. If a council wants to revoke access, they notify HMRC service team, who manually remove the user. This will be governed via ISRS roles in future.
+Fix (recommended GDS pattern)
+Move the banner inside .govuk-width-container below the H1:
 
-4. File Upload, Validation & Feedback Flow
+html
+Copy
+Edit
+<h1 class="govuk-heading-xl">Upload multiple reports</h1>
 
-Q: How are validation errors handled and displayed?
-A: Files are virus-scanned via SDES, then stored in Azure Blob Storage. Azure Functions validate files and write metadata + validation results into Dataverse. Power Pages displays status, errors, and allows users to fix metadata inline or re-upload.
+<div class="govuk-notification-banner govuk-notification-banner--success"
+     role="alert" data-module="govuk-notification-banner">
+  …
+</div>
+The banner module will set tabindex="-1" and focus itself automatically, so both zoom and screen-reader users see it immediately.
 
-Q: Are partial errors handled?
-A: Yes. Record-level errors are stored in Dataverse. Users can fix metadata for specific records or re-upload the entire file.
+5 “Document ready for upload” section appears after the “Add” button
+Problems
+Users don’t realise something new appeared below.
 
-5. Data Retention Policies
+Screen-reader users do eventually reach it, but only after traversing the whole form again.
 
-Q: What are the data retention timelines for Blob, Dataverse, and SDES?
-A:
+Fix
+Insert the whole confirmation block immediately before the Add button instead of after it.
 
-Azure Blob: Housekeeping scripts under consideration; preliminary retention target = 6 years.
+javascript
+Copy
+Edit
+$('#ready-for-upload').insertBefore('#add-button');
+Add aria-live="polite" to #ready-for-upload so its heading is announced automatically.
 
-Dataverse: Retention period not yet finalised.
+6 Change link returns focus to top, not the file-input
+Fix
+After a file is picked in the dialog:
 
-SDES: Temporary holding only; files auto-deleted after configured time window.
+javascript
+Copy
+Edit
+$('#change-file').focus();           // keeps user on the same row
+updateFileNameInTable(newName);      // then run your update
+Avoid any scroll helper here.
 
-Pending: Need confirmation from business/POs on formal retention policies per system.
+7 Green banner text repeats twice with a screen-reader
+You probably have two identical elements with role="alert" or you are initialising govuk-notification-banner.js twice.
 
-6. Penetration Testing
+Keep one banner container.
 
-Q: Has a pen test been completed?
-A: Yes. A test was done in October/November 2023 for private beta. One low-priority issue was found and fixed.
+Call window.GOVUKFrontend.initAll() exactly once per page.
 
-Pending: Confirm if this test also covers public beta or if a new test is planned.
+8 Make the next step explicit
+Users expect “Upload multiple reports” to upload right away. Fix the copy:
 
-7. Feature Enhancements from Private to Public Beta
+html
+Copy
+Edit
+<h2 class="govuk-heading-m">Document ready for upload</h2>
+<p class="govuk-body">
+  We’ve prepared 1 document. Select **Continue** to finish uploading,
+  or **Change** to replace it.
+</p>
+9 Keyboard testing check-list (must pass)
+Action	Expected focus
+Press Add, choose file, press Open	Focus on Continue to upload button
+Press Change, choose different file	Focus back on Change link
+Submit with empty file list	Focus moves to error summary
+Banner appears	Banner takes focus once, is not duplicated
 
-Q: What changes were made between private and public beta?
-A:
+Run through those steps with NVDA and 200 % zoom: the sequence should feel natural and never jump unexpectedly.
 
-Accessibility fixes.
-
-Bug fixes based on user feedback.
-
-New feature: Multiple council switching for users (primarily third-party agents like KPMG).
-
-8. Open Source, Standards & Compliance
-
-Q: Is the code open source? Are standards being followed?
-A: Yes. Frontend custom code (HTML/JS/CSS) is based on GOV.UK Design System. RESTful APIs follow OpenAPI standards. Components and styling are reused from open-source libraries.
-
-9. Platform Selection Justification
-
-Q: Why was Power Platform chosen over MDTP?
-A:
-
-Seamless integration with Dynamics (BST core).
-
-Faster delivery using low-code/no-code tools.
-
-Reduced cost and reuse of existing SaaS infrastructure.
-
-SAD platform used by other internal teams.
-
-10. Monitoring & Logging
-
-Q: How is the service monitored?
-A: Azure Application Insights is enabled on Power Pages and custom Azure Functions. A performance analyst is working on Power BI dashboards for tracking usage, errors, and telemetry.
-
-11. Disaster Recovery & Availability
-
-Q: What happens if the service is unavailable?
-A:
-
-Maintenance page configured via Azure Front Door.
-
-CI/CD pipelines can redeploy to any environment.
-
-Monitoring/alerts in place for rapid triage.
