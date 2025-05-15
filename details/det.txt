@@ -1,16 +1,31 @@
-function toggleAddButton () {
-  const readyVisible  = $('#hideshow').is(':visible');      // “Document ready” block
-  const queueEmpty    = filesArray.length === 0;
+Issue 1 – “Error summary focus” (WCAG 2.4.3 / P1)
+What the audit reported
 
-  // 1. Show / hide the Add button
-  $('#upload-multiple-reports').toggle(!readyVisible || queueEmpty);
+When an error is generated, the user is navigated to the top of the page instead of to the red error-summary banner.
 
-  // 2. Update the browser tab title
-  if (!readyVisible || queueEmpty) {
-    // User has cancelled Change OR cleared the queue  →  revert to default
-    document.title = 'Upload multiple reports';
-  } else {
-    // At least one document visible in the ready table
-    document.title = 'Document ready for upload – Upload multiple reports';
-  }
-}
+That broke WCAG 2.4.3 Focus order:
+
+Keyboard / screen-reader users had to Tab a long way to discover the error.
+
+Low-vision users landed on a blank part of the page.
+
+What was fixed
+
+Added tabindex="-1" to #error-summary so it can receive programmatic focus.
+
+In the error() function we now run
+document.getElementById('error-summary').focus();
+immediately after $("#error-summary").show();.
+
+All previous window.scrollTo( … top:0 … ) calls were removed, so nothing forces the page up any more.
+
+How the test team can validate
+Step	Expected result (PASS criteria)
+1. Open Upload multiple reports page. Do not choose a file.	—
+2. Activate Add (click or press Space/Enter).	• Viewport does not jump to very top.
+• Keyboard focus lands inside the red error summary.
+• Screen-reader announces: “There is a problem – Select a file to upload”.
+3. Press Tab once.	Focus moves to the error link inside the banner (“Select a file to upload”).
+4. Press Enter on the link.	Focus moves to the file-upload control (<input type="file">).
+5. Press Shift + Tab repeatedly.	Focus steps back through the guidance links in natural reverse order and eventually returns to the error banner. No unexpected jump to the bottom or top occurs.
+6. Repeat the sequence at 200 % browser zoom / with a screen magnifier.
