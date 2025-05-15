@@ -1,31 +1,34 @@
-Issue 1 – “Error summary focus” (WCAG 2.4.3 / P1)
-What the audit reported
+### Issue 1 – “Error summary focus” (WCAG 2.4.3 / P1)
 
-When an error is generated, the user is navigated to the top of the page instead of to the red error-summary banner.
+**What the audit reported**
 
-That broke WCAG 2.4.3 Focus order:
+> *When an error is generated, the user is navigated to the top of the page instead of to the red error-summary banner.*
 
-Keyboard / screen-reader users had to Tab a long way to discover the error.
+That broke WCAG 2.4.3 **Focus order**:
 
-Low-vision users landed on a blank part of the page.
+* Keyboard / screen-reader users had to Tab a long way to discover the error.
+* Low-vision users landed on a blank part of the page.
 
-What was fixed
+**What was fixed**
 
-Added tabindex="-1" to #error-summary so it can receive programmatic focus.
+* Added `tabindex="-1"` to `#error-summary` so it can receive programmatic focus.
+* In the `error()` function we now run
+  `document.getElementById('error-summary').focus();`
+  **immediately after** `$("#error-summary").show();`.
+* All previous `window.scrollTo( … top:0 … )` calls were removed, so nothing forces the page up any more.
 
-In the error() function we now run
-document.getElementById('error-summary').focus();
-immediately after $("#error-summary").show();.
+---
 
-All previous window.scrollTo( … top:0 … ) calls were removed, so nothing forces the page up any more.
+## How the test team can validate
 
-How the test team can validate
-Step	Expected result (PASS criteria)
-1. Open Upload multiple reports page. Do not choose a file.	—
-2. Activate Add (click or press Space/Enter).	• Viewport does not jump to very top.
-• Keyboard focus lands inside the red error summary.
-• Screen-reader announces: “There is a problem – Select a file to upload”.
-3. Press Tab once.	Focus moves to the error link inside the banner (“Select a file to upload”).
-4. Press Enter on the link.	Focus moves to the file-upload control (<input type="file">).
-5. Press Shift + Tab repeatedly.	Focus steps back through the guidance links in natural reverse order and eventually returns to the error banner. No unexpected jump to the bottom or top occurs.
-6. Repeat the sequence at 200 % browser zoom / with a screen magnifier.
+| Step                                                                        | Expected result (PASS criteria)                                                                                                                                                       |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Open **Upload multiple reports** page. Do **not** choose a file.         | —                                                                                                                                                                                     |
+| 2. Activate **Add** (click or press **Space/Enter**).                       | • Viewport does **not** jump to very top. <br>• Keyboard focus lands inside the red **error summary**. <br>• Screen-reader announces: “There is a problem – Select a file to upload”. |
+| 3. Press **Tab** once.                                                      | Focus moves to the error link inside the banner (“Select a file to upload”).                                                                                                          |
+| 4. Press **Enter** on the link.                                             | Focus moves to the **file-upload control** (`<input type="file">`).                                                                                                                   |
+| 5. Press **Shift + Tab** repeatedly.                                        | Focus steps back through the guidance links in natural reverse order and eventually returns to the error banner. No unexpected jump to the bottom or top occurs.                      |
+| 6. Repeat the sequence at **200 % browser zoom** / with a screen magnifier. | Banner is still visible and receives focus; no hidden scroll.                                                                                                                         |
+| 7. Run **axe DevTools / axe-core**.                                         | No violations titled “Error summary must receive focus” or “Focus order” for this page.                                                                                               |
+
+If every point above passes on at least one screen reader (NVDA or VoiceOver) and at 200 % zoom, Issue 1 (error-summary focus) is fully resolved.
