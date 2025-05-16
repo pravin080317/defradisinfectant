@@ -1,34 +1,51 @@
-### Issue 1 – “Error summary focus” (WCAG 2.4.3 / P1)
+const DEMO_HIDE_FORM_ON_UPLOAD = true; // toggle flag
 
-**What the audit reported**
+/**
+ * Adds or removes the upload guidance message based on state.
+ * @param {boolean} show - Whether to show or remove the message.
+ * @param {string} text - Text to inject (required if show = true).
+ * @param {string} afterElementId - Element ID to inject after (required if show = true).
+ */
+function toggleAddGuidanceMessage(show, text = "", afterElementId = "") {
+  const messageId = "confirm-guidance";
 
-> *When an error is generated, the user is navigated to the top of the page instead of to the red error-summary banner.*
+  // Remove any existing message
+  const existing = document.getElementById(messageId);
+  if (existing) existing.remove();
 
-That broke WCAG 2.4.3 **Focus order**:
+  if (show && text && afterElementId) {
+    const para = document.createElement("p");
+    para.id = messageId;
+    para.className = "govuk-body";
+    para.textContent = text;
 
-* Keyboard / screen-reader users had to Tab a long way to discover the error.
-* Low-vision users landed on a blank part of the page.
+    // Insert after anchor element
+    const anchor = document.getElementById(afterElementId);
+    if (anchor) {
+      anchor.insertAdjacentElement("afterend", para);
+    }
 
-**What was fixed**
+    // Optional: announce in live region
+    const announcer = document.getElementById("upload-guidance-wrapper");
+    if (announcer) {
+      announcer.setAttribute("aria-live", "polite");
+      announcer.innerHTML = `<p class="govuk-visually-hidden">${text}</p>`;
+    }
+  }
+}
 
-* Added `tabindex="-1"` to `#error-summary` so it can receive programmatic focus.
-* In the `error()` function we now run
-  `document.getElementById('error-summary').focus();`
-  **immediately after** `$("#error-summary").show();`.
-* All previous `window.scrollTo( … top:0 … )` calls were removed, so nothing forces the page up any more.
 
----
+<div id="upload-guidance-wrapper" aria-live="polite"></div>
 
-## How the test team can validate
 
-| Step                                                                        | Expected result (PASS criteria)                                                                                                                                                       |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Open **Upload multiple reports** page. Do **not** choose a file.         | —                                                                                                                                                                                     |
-| 2. Activate **Add** (click or press **Space/Enter**).                       | • Viewport does **not** jump to very top. <br>• Keyboard focus lands inside the red **error summary**. <br>• Screen-reader announces: “There is a problem – Select a file to upload”. |
-| 3. Press **Tab** once.                                                      | Focus moves to the error link inside the banner (“Select a file to upload”).                                                                                                          |
-| 4. Press **Enter** on the link.                                             | Focus moves to the **file-upload control** (`<input type="file">`).                                                                                                                   |
-| 5. Press **Shift + Tab** repeatedly.                                        | Focus steps back through the guidance links in natural reverse order and eventually returns to the error banner. No unexpected jump to the bottom or top occurs.                      |
-| 6. Repeat the sequence at **200 % browser zoom** / with a screen magnifier. | Banner is still visible and receives focus; no hidden scroll.                                                                                                                         |
-| 7. Run **axe DevTools / axe-core**.                                         | No violations titled “Error summary must receive focus” or “Focus order” for this page.                                                                                               |
+if (DEMO_HIDE_FORM_ON_UPLOAD) {
+  toggleAddGuidanceMessage(
+    true,
+    "Select Confirm and send to finish, or Change to replace it.",
+    "document-ready-heading"
+  );
+}
 
-If every point above passes on at least one screen reader (NVDA or VoiceOver) and at 200 % zoom, Issue 1 (error-summary focus) is fully resolved.
+if (DEMO_HIDE_FORM_ON_UPLOAD) {
+  toggleAddGuidanceMessage(false); // Remove the guidance
+}
