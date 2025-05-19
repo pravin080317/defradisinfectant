@@ -1,85 +1,22 @@
-// accessibility-validation-helpers.js
+function errorValidation() {
+  clearErrorSummary();
+  let hasErrors = false;
 
-/**
- * Injects an accessible error message for a given field
- * @param {string} inputId - The ID of the input or fieldset
- * @param {string} message - The error message to display
- * @param {string} [insertBeforeSelector] - Optional: Insert error before this selector (usually radios container)
- */
-function showErrorMessage(inputId, message, insertBeforeSelector = null) {
-  // Remove existing error if present
-  document.getElementById(`${inputId}-error`)?.remove();
+  for (const input of obj.inputs) {
+    if (!input.id) continue;
 
-  const errorP = document.createElement("p");
-  errorP.className = "govuk-error-message";
-  errorP.id = `${inputId}-error`;
-  errorP.setAttribute("role", "alert");
-  errorP.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${message}`;
+    const inputId = input.id;
+    const message = input.errorMessage || "There is a problem with this field";
+    const insertBeforeSelector = input.insertBefore || (input.radio ? ".govuk-radios" : undefined);
 
-  const container = document.getElementById(inputId)?.closest(".govuk-form-group") || document.querySelector("fieldset");
-  if (container) {
-    if (insertBeforeSelector) {
-      const target = container.querySelector(insertBeforeSelector);
-      container.insertBefore(errorP, target);
+    if (input.isValid === false) {
+      showErrorMessage(inputId, message, insertBeforeSelector);
+      addErrorToSummary(inputId, message);
+      hasErrors = true;
     } else {
-      container.appendChild(errorP);
+      clearErrorMessage(inputId);
     }
   }
 
-  const inputField = document.getElementById(inputId);
-  if (inputField) {
-    inputField.setAttribute("aria-invalid", "true");
-    inputField.classList.add("govuk-input--error");
-  }
-}
-
-/**
- * Removes the error message and ARIA attributes for the given input ID
- */
-function clearErrorMessage(inputId) {
-  document.getElementById(`${inputId}-error`)?.remove();
-  const inputField = document.getElementById(inputId);
-  if (inputField) {
-    inputField.removeAttribute("aria-invalid");
-    inputField.classList.remove("govuk-input--error");
-  }
-}
-
-/**
- * Adds an entry to the GOV.UK error summary
- * @param {string} inputId - ID to link the error to
- * @param {string} message - Message to display
- */
-function addErrorToSummary(inputId, message) {
-  const summaryList = document.querySelector(".govuk-error-summary_list");
-  const listItem = document.createElement("li");
-  listItem.id = `${inputId}-error-summary`;
-  listItem.innerHTML = `<a href="#${inputId}">${message}</a>`;
-  summaryList.appendChild(listItem);
-}
-
-/**
- * Clears all entries from the GOV.UK error summary
- */
-function clearErrorSummary() {
-  document.querySelector(".govuk-error-summary_list").innerHTML = "";
-}
-
-/**
- * Toggles visibility and focus for the error summary
- * @param {boolean} hasErrors
- */
-function toggleErrorSummary(hasErrors) {
-  const summary = document.querySelector(".govuk-error-summary");
-  if (!summary) return;
-
-  if (hasErrors) {
-    summary.style.display = "block";
-    summary.setAttribute("tabindex", "-1");
-    summary.focus();
-    document.title = document.title.startsWith("Error: ") ? document.title : `Error: ${document.title}`;
-  } else {
-    summary.style.display = "none";
-    document.title = document.title.replace(/^Error: /, "");
-  }
+  toggleErrorSummary(hasErrors);
 }
