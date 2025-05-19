@@ -20,3 +20,24 @@ function errorValidation() {
 
   toggleErrorSummary(hasErrors);
 }
+
+
+function reasonCodeVal() {
+  scrollToTop();
+  let reasonSelected = document.querySelector("input[name='report-reason']:checked");
+
+  clearErrorSummary();
+
+  if (!reasonSelected) {
+    // Show inline and summary error using helpers
+    showErrorMessage("report-reason", "Select a reason for creating the report", ".govuk-radios");
+    addErrorToSummary("report-reason", "Select a reason for creating the report");
+    toggleErrorSummary(true);
+    return;
+  } else {
+    clearErrorMessage("report-reason");
+    toggleErrorSummary(false);
+    createRecord(nextPage, dataObject);
+    return;
+  }
+}
