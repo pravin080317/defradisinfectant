@@ -1,1 +1,33 @@
-GET [YourEnvironmentURL]/api/data/v9.2/EntityDefinitions(LogicalName='annotation')?$select=LogicalName,IsEnabledForAdvancedFind,IsValidForAdvancedFind,IsEnabledForQuickFind,IsEnabledForSearch,IsEnabledForRelevanceSearch
+document.getElementById("file-upload-error")?.remove();
+
+const errorPara = document.createElement("p");
+errorPara.id = "file-upload-error";
+errorPara.className = "govuk-error-message govuk-!-margin-top-2";
+errorPara.setAttribute("role", "alert");
+errorPara.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${errorMessage}`;
+
+document.getElementById("fileInputFormGroup").appendChild(errorPara);
+
+
+document.getElementById("file-upload-error")?.remove();
+
+
+
+const errorSummary = document.getElementById("error-summary");
+const errorList = errorSummary.querySelector(".govuk-error-summary_list");
+
+// Clean previous
+errorList.innerHTML = "";
+
+const li = document.createElement("li");
+li.innerHTML = `<a id="error-message" href="#fileInput">${errorMessage}</a>`;
+errorList.appendChild(li);
+
+// Now show the banner
+errorSummary.style.display = "block";
+errorSummary.setAttribute("tabindex", "-1");
+errorSummary.focus();
+
+
+document.getElementById("error-summary").style.display = "none";
+document.querySelector(".govuk-error-summary_list").innerHTML = "";
