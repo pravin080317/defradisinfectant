@@ -1,43 +1,30 @@
-function errorValidation() {
-  clearErrorSummary();
-  let hasErrors = false;
+function showErrorMessage(inputId, message, insertBeforeSelector) {
+  const field = document.getElementById(inputId);
+  if (!field) return;
 
-  for (const input of obj.inputs) {
-    if (!input.id) continue;
+  let errorElement = document.getElementById(`${inputId}-error`);
+  if (!errorElement) {
+    errorElement = document.createElement("p");
+    errorElement.className = "govuk-error-message";
+    errorElement.id = `${inputId}-error`;
+    errorElement.setAttribute("aria-live", "assertive");
+    errorElement.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${message}`;
 
-    const inputId = input.id;
-    const message = input.errorMessage || "There is a problem with this field";
-    const insertBeforeSelector = input.insertBefore || (input.radio ? ".govuk-radios" : undefined);
-
-    if (input.isValid === false) {
-      showErrorMessage(inputId, message, insertBeforeSelector);
-      addErrorToSummary(inputId, message);
-      hasErrors = true;
+    if (insertBeforeSelector) {
+      const referenceNode = document.querySelector(insertBeforeSelector);
+      if (referenceNode && referenceNode.parentNode) {
+        referenceNode.parentNode.insertBefore(errorElement, referenceNode);
+      } else {
+        field.parentNode.insertBefore(errorElement, field);
+      }
     } else {
-      clearErrorMessage(inputId);
+      field.parentNode.insertBefore(errorElement, field);
     }
-  }
-
-  toggleErrorSummary(hasErrors);
-}
-
-
-function reasonCodeVal() {
-  scrollToTop();
-  let reasonSelected = document.querySelector("input[name='report-reason']:checked");
-
-  clearErrorSummary();
-
-  if (!reasonSelected) {
-    // Show inline and summary error using helpers
-    showErrorMessage("report-reason", "Select a reason for creating the report", ".govuk-radios");
-    addErrorToSummary("report-reason", "Select a reason for creating the report");
-    toggleErrorSummary(true);
-    return;
   } else {
-    clearErrorMessage("report-reason");
-    toggleErrorSummary(false);
-    createRecord(nextPage, dataObject);
-    return;
+    errorElement.style.display = "block";
+    errorElement.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${message}`;
   }
+
+  field.setAttribute("aria-describedby", `${inputId}-error`);
+  field.setAttribute("aria-invalid", "true");
 }
