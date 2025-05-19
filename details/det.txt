@@ -1,33 +1,85 @@
-document.getElementById("file-upload-error")?.remove();
+// accessibility-validation-helpers.js
 
-const errorPara = document.createElement("p");
-errorPara.id = "file-upload-error";
-errorPara.className = "govuk-error-message govuk-!-margin-top-2";
-errorPara.setAttribute("role", "alert");
-errorPara.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${errorMessage}`;
+/**
+ * Injects an accessible error message for a given field
+ * @param {string} inputId - The ID of the input or fieldset
+ * @param {string} message - The error message to display
+ * @param {string} [insertBeforeSelector] - Optional: Insert error before this selector (usually radios container)
+ */
+function showErrorMessage(inputId, message, insertBeforeSelector = null) {
+  // Remove existing error if present
+  document.getElementById(`${inputId}-error`)?.remove();
 
-document.getElementById("fileInputFormGroup").appendChild(errorPara);
+  const errorP = document.createElement("p");
+  errorP.className = "govuk-error-message";
+  errorP.id = `${inputId}-error`;
+  errorP.setAttribute("role", "alert");
+  errorP.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${message}`;
 
+  const container = document.getElementById(inputId)?.closest(".govuk-form-group") || document.querySelector("fieldset");
+  if (container) {
+    if (insertBeforeSelector) {
+      const target = container.querySelector(insertBeforeSelector);
+      container.insertBefore(errorP, target);
+    } else {
+      container.appendChild(errorP);
+    }
+  }
 
-document.getElementById("file-upload-error")?.remove();
+  const inputField = document.getElementById(inputId);
+  if (inputField) {
+    inputField.setAttribute("aria-invalid", "true");
+    inputField.classList.add("govuk-input--error");
+  }
+}
 
+/**
+ * Removes the error message and ARIA attributes for the given input ID
+ */
+function clearErrorMessage(inputId) {
+  document.getElementById(`${inputId}-error`)?.remove();
+  const inputField = document.getElementById(inputId);
+  if (inputField) {
+    inputField.removeAttribute("aria-invalid");
+    inputField.classList.remove("govuk-input--error");
+  }
+}
 
+/**
+ * Adds an entry to the GOV.UK error summary
+ * @param {string} inputId - ID to link the error to
+ * @param {string} message - Message to display
+ */
+function addErrorToSummary(inputId, message) {
+  const summaryList = document.querySelector(".govuk-error-summary_list");
+  const listItem = document.createElement("li");
+  listItem.id = `${inputId}-error-summary`;
+  listItem.innerHTML = `<a href="#${inputId}">${message}</a>`;
+  summaryList.appendChild(listItem);
+}
 
-const errorSummary = document.getElementById("error-summary");
-const errorList = errorSummary.querySelector(".govuk-error-summary_list");
+/**
+ * Clears all entries from the GOV.UK error summary
+ */
+function clearErrorSummary() {
+  document.querySelector(".govuk-error-summary_list").innerHTML = "";
+}
 
-// Clean previous
-errorList.innerHTML = "";
+/**
+ * Toggles visibility and focus for the error summary
+ * @param {boolean} hasErrors
+ */
+function toggleErrorSummary(hasErrors) {
+  const summary = document.querySelector(".govuk-error-summary");
+  if (!summary) return;
 
-const li = document.createElement("li");
-li.innerHTML = `<a id="error-message" href="#fileInput">${errorMessage}</a>`;
-errorList.appendChild(li);
-
-// Now show the banner
-errorSummary.style.display = "block";
-errorSummary.setAttribute("tabindex", "-1");
-errorSummary.focus();
-
-
-document.getElementById("error-summary").style.display = "none";
-document.querySelector(".govuk-error-summary_list").innerHTML = "";
+  if (hasErrors) {
+    summary.style.display = "block";
+    summary.setAttribute("tabindex", "-1");
+    summary.focus();
+    document.title = document.title.startsWith("Error: ") ? document.title : `Error: ${document.title}`;
+  } else {
+    summary.style.display = "none";
+    document.title = document.title.replace(/^Error: /, "");
+  }
+}
