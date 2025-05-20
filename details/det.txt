@@ -1,22 +1,114 @@
-We’re currently reviewing the error handling behavior on the single report submission journey, specifically focusing on the screen reader experience and potential WCAG 2.2 violation related to:
+// --- ACCESSIBILITY FIX FOR ct-references PAGE ---
 
-Issue: Error message content is present in the DOM before validation is triggered, and is potentially being read out by screen readers.
+// ======================
+// ✅ HTML CHANGES
+// ======================
 
-We understand that:
+// 1. In the input fields (billing-reference and billing-report), update `aria-describedby`:
+// Replace this:
+// aria-describedby="billing-reference-error billing-reference-hint"
 
-Elements with display: none may still be picked up by assistive technologies depending on how they're implemented.
+// With this:
+// aria-describedby="billing-reference-hint"
+// Do the same for billing-report input:
+// aria-describedby="billing-report-hint"
 
-If aria-describedby points to those elements, it may cause confusion for screen reader users.
+// 2. Keep the <p id="*-error"> element but ensure it's not referenced via aria-describedby.
 
-✅ Request
-Could you please help us validate this behavior by:
+// ======================
+// ✅ JAVASCRIPT CHANGES
+// ======================
 
-Running the pages (e.g., report reason selection page and upload page) through Speech Viewer or a screen reader,
+// 1. Helper: Add a function to conditionally inject aria-describedby AFTER validation fails
+function applyDynamicDescribedBy(inputId, hintId) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.setAttribute("aria-describedby", `${hintId} ${inputId}-error`);
+  }
+}
 
-And confirm:
+function removeDynamicDescribedBy(inputId, hintId) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.setAttribute("aria-describedby", hintId);
+  }
+}
 
-Does the screen reader announce the error summary block (govuk-error-summary) when no validation has occurred yet?
+// 2. In validateRefAndReportNo and validateReportNo:
+// After setting isValid = false, call applyDynamicDescribedBy
+// After setting isValid = true, call removeDynamicDescribedBy
 
-Does it read out the <p> tag linked via aria-describedby even when hidden with display: none?
+// ✅ Example changes in validateRefAndReportNo()
+function validateRefAndReportNo() {
+  const refId = obj.inputs[0].id;
+  const reportId = obj.inputs[1].id;
 
-When validation fails, are the correct error messages read once and clearly, without redundancy?
+  const refVal = document.getElementById(refId).value.trim();
+  const reportVal = document.getElementById(reportId).value.trim();
+
+  if (!refVal) {
+    obj.inputs[0].isValid = false;
+    obj.inputs[0].errorMessage = "Enter a billing authority reference number";
+    applyDynamicDescribedBy(refId, "billing-reference-hint");
+  } else {
+    obj.inputs[0].isValid = true;
+    obj.inputs[0].errorMessage = "";
+    removeDynamicDescribedBy(refId, "billing-reference-hint");
+  }
+
+  if (!reportVal) {
+    obj.inputs[1].isValid = false;
+    obj.inputs[1].errorMessage = "Enter a billing authority report number";
+    applyDynamicDescribedBy(reportId, "billing-report-hint");
+  } else {
+    obj.inputs[1].isValid = true;
+    obj.inputs[1].errorMessage = "";
+    removeDynamicDescribedBy(reportId, "billing-report-hint");
+  }
+
+  // Update error messages visually
+  document.getElementById(`${refId}-error`).innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${obj.inputs[0].errorMessage}`;
+  document.getElementById(`${reportId}-error`).innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${obj.inputs[1].errorMessage}`;
+
+  errorValidation();
+}
+
+// ✅ Do the same in validateReportNo() for billing-report only
+
+// ======================
+// ✅ Summary
+// ======================
+// ✅ HTML: remove aria-describedby="*-error" initially
+// ✅ JS: dynamically add/remove aria-describedby after validation triggers
+// ✅ Keep govuk-error-message block but don't link until error shown
+// ✅ Ensures WCAG 2.2 compliance (prevents screen reader from reading invisible errors)
+
+
+
+1. HTML Updates
+Update the input fields:
+
+html
+Copy
+Edit
+<input ... aria-describedby="billing-reference-hint"> <!-- Remove billing-reference-error -->
+<input ... aria-describedby="billing-report-hint">    <!-- Remove billing-report-error -->
+Leave the <p id="*-error"> in the DOM, but don't connect it with aria-describedby initially.
+
+2. JavaScript Updates
+Modify the validation methods:
+
+Add new helper methods:
+
+applyDynamicDescribedBy(inputId, hintId)
+
+removeDynamicDescribedBy(inputId, hintId)
+
+In validateRefAndReportNo() and validateReportNo(), update aria-describedby dynamically only when validation fails.
+
+✅ Why It Works
+Prevents assistive tech from reading hidden/inactive messages.
+
+Keeps DOM and screen reader behavior in sync with actual visual feedback.
+
+Conforms to WCAG 2.2 SC 1.3.1 (Info and Relationships).
