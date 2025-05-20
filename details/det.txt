@@ -1,105 +1,24 @@
-<!-- ✅ ACCESSIBILITY FIX PLAN FOR 'Why are you creating this report?' SECTION -->
-
-<!-- 1. ✅ HTML CHANGES -->
-<!-- Remove the hardcoded hidden error message from HTML -->
-<!-- BEFORE (REMOVE): -->
-<!-- <p id="report-reason-error" class="govuk-error-message" style="display:none"> -->
-<!--   <span class="govuk-visually-hidden">Error: </span> Select a reason for creating the report -->
-<!-- </p> -->
-
-<!-- AFTER (NO ERROR MESSAGE PRESENT INITIALLY) -->
-<!-- Error message will be injected dynamically if needed -->
-
-<!-- 2. ✅ HELPER FUNCTION FOR ACCESSIBLE ERROR DISPLAY -->
-<script>
-  function injectAccessibleError({ id, message, groupSelector }) {
-    // Remove existing error message if present
-    const existingError = document.getElementById(`${id}-error`);
-    if (existingError) existingError.remove();
-
-    // Add error message below fieldset or input
-    const errorPara = document.createElement("p");
-    errorPara.id = `${id}-error`;
-    errorPara.className = "govuk-error-message govuk-!-margin-top-2";
-    errorPara.setAttribute("role", "alert");
-    errorPara.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${message}`;
-
-    // Add to group wrapper (like .govuk-form-group)
-    const parentGroup = document.querySelector(groupSelector);
-    if (parentGroup) {
-      parentGroup.prepend(errorPara);
-    }
+  // 🔁 Add error ID to aria-describedby
+  const fieldset = document.querySelector(`[aria-describedby*="${id}-hint"]`);
+  if (fieldset && !fieldset.getAttribute("aria-describedby").includes(`${id}-error`)) {
+    fieldset.setAttribute(
+      "aria-describedby",
+      fieldset.getAttribute("aria-describedby") + ` ${id}-error`
+    );
   }
 
-  function clearAccessibleError(id) {
-    const errorNode = document.getElementById(`${id}-error`);
-    if (errorNode) errorNode.remove();
+function clearAccessibleError(id) {
+  const errorNode = document.getElementById(`${id}-error`);
+  if (errorNode) errorNode.remove();
+
+  // 🔁 Remove from aria-describedby
+  const fieldset = document.querySelector(`[aria-describedby*="${id}-hint"]`);
+  if (fieldset) {
+    const currentDesc = fieldset.getAttribute("aria-describedby");
+    const updatedDesc = currentDesc
+      .split(" ")
+      .filter(d => d !== `${id}-error`)
+      .join(" ");
+    fieldset.setAttribute("aria-describedby", updatedDesc);
   }
-
-  function errorValidation() {
-    const errorSummaryList = document.querySelector(".govuk-error-summary__list");
-    errorSummaryList.innerHTML = "";
-    let hasErrors = false;
-
-    for (const input of obj.inputs) {
-      if (input.id && input.isValid === false) {
-        const thisId = input.id;
-
-        // Inject dynamic inline error only for report page radio field
-        if (thisId === "report-reason") {
-          injectAccessibleError({
-            id: thisId,
-            message: "Select a reason for creating the report",
-            groupSelector: ".govuk-form-group"
-          });
-        }
-
-        const errorElement = document.getElementById(`${thisId}-error`);
-
-        if (!input.radio) document.getElementById(thisId).classList.add("govuk-input--error");
-        if (input.isConditional) document.getElementsByClassName("govuk-form-group")[obj.inputs.indexOf(input)].classList.add("govuk-form-group--error");
-
-        if (!input.hasNoMessage && errorElement) {
-          const errorMessage = errorElement.textContent.split(":")[1];
-          const listItem = document.createElement("li");
-          listItem.id = `${thisId}-error-list-item`;
-          listItem.innerHTML = `<a onclick="errorFocus(${obj.inputs.indexOf(input)})" href="#${thisId}">${errorMessage}</a>`;
-          errorSummaryList.appendChild(listItem);
-          hasErrors = true;
-        }
-
-        const field = document.getElementById(thisId);
-        if (field) field.setAttribute("aria-invalid", "true");
-        input.performVal = false;
-
-      } else if (input.id && input.isValid === true) {
-        const thisId = input.id;
-
-        // Clear injected error only for report page
-        if (thisId === "report-reason") {
-          clearAccessibleError(thisId);
-        }
-
-        if (!input.radio) document.getElementById(thisId).classList.remove("govuk-input--error");
-        if (input.isConditional) document.getElementsByClassName("govuk-form-group")[obj.inputs.indexOf(input)].classList.remove("govuk-form-group--error");
-
-        const field = document.getElementById(thisId);
-        if (field) field.removeAttribute("aria-invalid");
-        input.performVal = true;
-      }
-    }
-
-    const errorSummary = document.querySelector(".govuk-error-summary");
-    if (hasErrors) {
-      errorSummary.style.display = "block";
-      errorSummary.setAttribute("tabindex", "-1");
-      errorSummary.focus();
-      if (!document.title.startsWith("Error: ")) {
-        document.title = "Error: " + document.title;
-      }
-    } else {
-      errorSummary.style.display = "none";
-      document.title = document.title.replace(/^Error: /, "");
-    }
-  }
-</script>
+}
