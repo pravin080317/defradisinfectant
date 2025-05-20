@@ -3,9 +3,9 @@
 <!-- 1. ✅ HTML CHANGES -->
 <!-- Remove the hardcoded hidden error message from HTML -->
 <!-- BEFORE (REMOVE): -->
-<p id="report-reason-error" class="govuk-error-message" style="display:none">
-  <span class="govuk-visually-hidden">Error: </span> Select a reason for creating the report
-</p>
+<!-- <p id="report-reason-error" class="govuk-error-message" style="display:none"> -->
+<!--   <span class="govuk-visually-hidden">Error: </span> Select a reason for creating the report -->
+<!-- </p> -->
 
 <!-- AFTER (NO ERROR MESSAGE PRESENT INITIALLY) -->
 <!-- Error message will be injected dynamically if needed -->
@@ -20,7 +20,7 @@
     // Add error message below fieldset or input
     const errorPara = document.createElement("p");
     errorPara.id = `${id}-error`;
-    errorPara.className = "govuk-error-message";
+    errorPara.className = "govuk-error-message govuk-!-margin-top-2";
     errorPara.setAttribute("role", "alert");
     errorPara.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${message}`;
 
@@ -35,12 +35,9 @@
     const errorNode = document.getElementById(`${id}-error`);
     if (errorNode) errorNode.remove();
   }
-</script>
 
-<!-- 3. ✅ INTEGRATE WITH YOUR EXISTING JS LOGIC -->
-<script>
   function errorValidation() {
-    const errorSummaryList = document.querySelector(".govuk-error-summary_list");
+    const errorSummaryList = document.querySelector(".govuk-error-summary__list");
     errorSummaryList.innerHTML = "";
     let hasErrors = false;
 
@@ -48,36 +45,50 @@
       if (input.id && input.isValid === false) {
         const thisId = input.id;
 
-        // Inject dynamic inline error message
-        injectAccessibleError({
-          id: thisId,
-          message: "Select a reason for creating the report",
-          groupSelector: ".govuk-form-group"
-        });
+        // Inject dynamic inline error only for report page radio field
+        if (thisId === "report-reason") {
+          injectAccessibleError({
+            id: thisId,
+            message: "Select a reason for creating the report",
+            groupSelector: ".govuk-form-group"
+          });
+        }
 
-        // Add error styling and mark invalid
+        const errorElement = document.getElementById(`${thisId}-error`);
+
+        if (!input.radio) document.getElementById(thisId).classList.add("govuk-input--error");
+        if (input.isConditional) document.getElementsByClassName("govuk-form-group")[obj.inputs.indexOf(input)].classList.add("govuk-form-group--error");
+
+        if (!input.hasNoMessage && errorElement) {
+          const errorMessage = errorElement.textContent.split(":")[1];
+          const listItem = document.createElement("li");
+          listItem.id = `${thisId}-error-list-item`;
+          listItem.innerHTML = `<a onclick="errorFocus(${obj.inputs.indexOf(input)})" href="#${thisId}">${errorMessage}</a>`;
+          errorSummaryList.appendChild(listItem);
+          hasErrors = true;
+        }
+
         const field = document.getElementById(thisId);
         if (field) field.setAttribute("aria-invalid", "true");
-
-        const listItem = document.createElement("li");
-        listItem.id = `${thisId}-error-list-item`;
-        listItem.innerHTML = `<a onclick="errorFocus(${obj.inputs.indexOf(input)})" href="#${thisId}">Select a reason for creating the report</a>`;
-        errorSummaryList.appendChild(listItem);
-
-        hasErrors = true;
         input.performVal = false;
+
       } else if (input.id && input.isValid === true) {
         const thisId = input.id;
-        clearAccessibleError(thisId);
+
+        // Clear injected error only for report page
+        if (thisId === "report-reason") {
+          clearAccessibleError(thisId);
+        }
+
+        if (!input.radio) document.getElementById(thisId).classList.remove("govuk-input--error");
+        if (input.isConditional) document.getElementsByClassName("govuk-form-group")[obj.inputs.indexOf(input)].classList.remove("govuk-form-group--error");
 
         const field = document.getElementById(thisId);
         if (field) field.removeAttribute("aria-invalid");
-
         input.performVal = true;
       }
     }
 
-    // Toggle error summary visibility
     const errorSummary = document.querySelector(".govuk-error-summary");
     if (hasErrors) {
       errorSummary.style.display = "block";
