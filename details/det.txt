@@ -1,24 +1,22 @@
-  // 🔁 Add error ID to aria-describedby
-  const fieldset = document.querySelector(`[aria-describedby*="${id}-hint"]`);
-  if (fieldset && !fieldset.getAttribute("aria-describedby").includes(`${id}-error`)) {
-    fieldset.setAttribute(
-      "aria-describedby",
-      fieldset.getAttribute("aria-describedby") + ` ${id}-error`
-    );
-  }
+We’re currently reviewing the error handling behavior on the single report submission journey, specifically focusing on the screen reader experience and potential WCAG 2.2 violation related to:
 
-function clearAccessibleError(id) {
-  const errorNode = document.getElementById(`${id}-error`);
-  if (errorNode) errorNode.remove();
+Issue: Error message content is present in the DOM before validation is triggered, and is potentially being read out by screen readers.
 
-  // 🔁 Remove from aria-describedby
-  const fieldset = document.querySelector(`[aria-describedby*="${id}-hint"]`);
-  if (fieldset) {
-    const currentDesc = fieldset.getAttribute("aria-describedby");
-    const updatedDesc = currentDesc
-      .split(" ")
-      .filter(d => d !== `${id}-error`)
-      .join(" ");
-    fieldset.setAttribute("aria-describedby", updatedDesc);
-  }
-}
+We understand that:
+
+Elements with display: none may still be picked up by assistive technologies depending on how they're implemented.
+
+If aria-describedby points to those elements, it may cause confusion for screen reader users.
+
+✅ Request
+Could you please help us validate this behavior by:
+
+Running the pages (e.g., report reason selection page and upload page) through Speech Viewer or a screen reader,
+
+And confirm:
+
+Does the screen reader announce the error summary block (govuk-error-summary) when no validation has occurred yet?
+
+Does it read out the <p> tag linked via aria-describedby even when hidden with display: none?
+
+When validation fails, are the correct error messages read once and clearly, without redundancy?
