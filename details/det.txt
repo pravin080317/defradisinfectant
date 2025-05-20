@@ -1,30 +1,94 @@
-function showErrorMessage(inputId, message, insertBeforeSelector) {
-  const field = document.getElementById(inputId);
-  if (!field) return;
+<!-- ✅ ACCESSIBILITY FIX PLAN FOR 'Why are you creating this report?' SECTION -->
 
-  let errorElement = document.getElementById(`${inputId}-error`);
-  if (!errorElement) {
-    errorElement = document.createElement("p");
-    errorElement.className = "govuk-error-message";
-    errorElement.id = `${inputId}-error`;
-    errorElement.setAttribute("aria-live", "assertive");
-    errorElement.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${message}`;
+<!-- 1. ✅ HTML CHANGES -->
+<!-- Remove the hardcoded hidden error message from HTML -->
+<!-- BEFORE (REMOVE): -->
+<p id="report-reason-error" class="govuk-error-message" style="display:none">
+  <span class="govuk-visually-hidden">Error: </span> Select a reason for creating the report
+</p>
 
-    if (insertBeforeSelector) {
-      const referenceNode = document.querySelector(insertBeforeSelector);
-      if (referenceNode && referenceNode.parentNode) {
-        referenceNode.parentNode.insertBefore(errorElement, referenceNode);
-      } else {
-        field.parentNode.insertBefore(errorElement, field);
-      }
-    } else {
-      field.parentNode.insertBefore(errorElement, field);
+<!-- AFTER (NO ERROR MESSAGE PRESENT INITIALLY) -->
+<!-- Error message will be injected dynamically if needed -->
+
+<!-- 2. ✅ HELPER FUNCTION FOR ACCESSIBLE ERROR DISPLAY -->
+<script>
+  function injectAccessibleError({ id, message, groupSelector }) {
+    // Remove existing error message if present
+    const existingError = document.getElementById(`${id}-error`);
+    if (existingError) existingError.remove();
+
+    // Add error message below fieldset or input
+    const errorPara = document.createElement("p");
+    errorPara.id = `${id}-error`;
+    errorPara.className = "govuk-error-message";
+    errorPara.setAttribute("role", "alert");
+    errorPara.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${message}`;
+
+    // Add to group wrapper (like .govuk-form-group)
+    const parentGroup = document.querySelector(groupSelector);
+    if (parentGroup) {
+      parentGroup.prepend(errorPara);
     }
-  } else {
-    errorElement.style.display = "block";
-    errorElement.innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${message}`;
   }
 
-  field.setAttribute("aria-describedby", `${inputId}-error`);
-  field.setAttribute("aria-invalid", "true");
-}
+  function clearAccessibleError(id) {
+    const errorNode = document.getElementById(`${id}-error`);
+    if (errorNode) errorNode.remove();
+  }
+</script>
+
+<!-- 3. ✅ INTEGRATE WITH YOUR EXISTING JS LOGIC -->
+<script>
+  function errorValidation() {
+    const errorSummaryList = document.querySelector(".govuk-error-summary_list");
+    errorSummaryList.innerHTML = "";
+    let hasErrors = false;
+
+    for (const input of obj.inputs) {
+      if (input.id && input.isValid === false) {
+        const thisId = input.id;
+
+        // Inject dynamic inline error message
+        injectAccessibleError({
+          id: thisId,
+          message: "Select a reason for creating the report",
+          groupSelector: ".govuk-form-group"
+        });
+
+        // Add error styling and mark invalid
+        const field = document.getElementById(thisId);
+        if (field) field.setAttribute("aria-invalid", "true");
+
+        const listItem = document.createElement("li");
+        listItem.id = `${thisId}-error-list-item`;
+        listItem.innerHTML = `<a onclick="errorFocus(${obj.inputs.indexOf(input)})" href="#${thisId}">Select a reason for creating the report</a>`;
+        errorSummaryList.appendChild(listItem);
+
+        hasErrors = true;
+        input.performVal = false;
+      } else if (input.id && input.isValid === true) {
+        const thisId = input.id;
+        clearAccessibleError(thisId);
+
+        const field = document.getElementById(thisId);
+        if (field) field.removeAttribute("aria-invalid");
+
+        input.performVal = true;
+      }
+    }
+
+    // Toggle error summary visibility
+    const errorSummary = document.querySelector(".govuk-error-summary");
+    if (hasErrors) {
+      errorSummary.style.display = "block";
+      errorSummary.setAttribute("tabindex", "-1");
+      errorSummary.focus();
+      if (!document.title.startsWith("Error: ")) {
+        document.title = "Error: " + document.title;
+      }
+    } else {
+      errorSummary.style.display = "none";
+      document.title = document.title.replace(/^Error: /, "");
+    }
+  }
+</script>
