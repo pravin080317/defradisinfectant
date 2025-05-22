@@ -1,105 +1,87 @@
-Full HTML Markup for Warning Section
-html
-Copy
-Edit
-<!-- Live region wrapper for accessibility announcement -->
-<div aria-live="polite" class="govuk-visually-hidden" id="remove-confirmation-wrapper">
-  
-  <!-- Confirmation section (initially hidden) -->
-  <div id="remove-confirmation-section" class="govuk-form-group" tabindex="-1" style="display: none;">
-    
-    <fieldset class="govuk-fieldset" aria-describedby="remove-confirmation-hint remove-confirmation-error">
-      
-      <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
-        <h2 id="remove-confirmation-heading" class="govuk-fieldset__heading">
-          Are you sure you want to remove <span id="removal-file-name" class="govuk-!-font-weight-bold">this file</span>?
-        </h2>
-      </legend>
-
-      <!-- Hint -->
-      <div id="remove-confirmation-hint" class="govuk-hint">
-        This action will delete the report and return you to the upload step.
-      </div>
-
-      <!-- Error message (shown via JS if no selection) -->
-      <p id="remove-confirmation-error" class="govuk-error-message" style="display: none;">
-        <span class="govuk-visually-hidden">Error:</span> Select yes if you want to remove the file
-      </p>
-
-      <!-- Radio options -->
-      <div class="govuk-radios" data-module="govuk-radios">
-        <div class="govuk-radios__item">
-          <input class="govuk-radios__input" id="remove-yes" name="remove-confirm" type="radio" value="yes">
-          <label class="govuk-label govuk-radios__label" for="remove-yes">Yes</label>
-        </div>
-        <div class="govuk-radios__item">
-          <input class="govuk-radios__input" id="remove-no" name="remove-confirm" type="radio" value="no">
-          <label class="govuk-label govuk-radios__label" for="remove-no">No</label>
-        </div>
-      </div>
-
-    </fieldset>
-
-    <button id="confirm-remove-btn" class="govuk-button" type="button">
-      Continue
-    </button>
-
-  </div>
-</div>
-✅ JavaScript to Control Behavior
-Add this script to manage showing/hiding, ARIA live behavior, and validation:
-
-javascript
-Copy
-Edit
+// When user clicks "Remove"
 $("#change").on("click", function (e) {
   e.preventDefault();
 
-  const fileName = $("#file-to-upload-name").text().trim();
-  $("#removal-file-name").text(fileName);
+  history.replaceState(null, "", window.location.pathname);
+  currentEditIndex = 0;
 
-  $("#hideshow").hide();
-  $("#remove-confirmation-section").show().focus();
+  const fileName = $("#file-to-upload-name").text().trim();
+  $("#removal-file-name").text(fileName); // set the filename in confirmation text
+
+  $("#success-banner, #hideshow").hide();
+  $("#remove-confirmation-section").show();
   $("#remove-confirmation-wrapper").removeClass("govuk-visually-hidden");
 
-  // Reset previous selections/errors
+  // Scroll smoothly to the warning area
+  targetoffset = $("#remove-confirmation-section").offset().top;
+
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: targetoffset, behavior: 'smooth' });
+
+    const heading = document.getElementById("remove-confirmation-heading");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus();
+    }
+  });
+
+  // Reset radios and error
   $("input[name='remove-confirm']").prop("checked", false);
   $("#remove-confirmation-error").hide();
+
+  toggleAddButton();
+  setAriaDescribedByForInput("You are replacing a file.");
+
+  if (hide_Form_On_Upload) {
+    document.getElementsByClassName("govuk-back-link")[0].style.display = "block";
+  }
 });
 
+// When user confirms removal
 $("#confirm-remove-btn").on("click", function () {
   const choice = $("input[name='remove-confirm']:checked").val();
 
   if (!choice) {
     $("#remove-confirmation-error").show();
-    $("#remove-confirmation-section").focus();
+
+    const section = document.getElementById("remove-confirmation-section");
+    if (section) {
+      section.setAttribute("tabindex", "-1");
+      section.focus();
+    }
     return;
   }
 
   if (choice === "yes") {
-    // Remove file from UI
+    // Clear UI elements
     $("#file-to-upload-name").empty();
     $("#file-to-upload-size").empty();
     $("#fileInput").val("");
 
-    $("#hideshow").hide();
     $("#success-banner").hide();
     $("#remove-confirmation-section").hide();
     $("#remove-confirmation-wrapper").addClass("govuk-visually-hidden");
 
-    // Update screen reader message
     $("#file-input-mode").text("File removed. You can add a new one.");
     toggleAddButton();
 
-    // Focus back on file input label
-    $("#fileInputLabel").attr("tabindex", "-1").focus();
+    // Show upload section again
+    $("#hideshow").hide(); // keep hidden until file is re-added
+    const fileLabel = document.getElementById("fileInputLabel");
+    if (fileLabel) {
+      fileLabel.setAttribute("tabindex", "-1");
+      fileLabel.focus();
+    }
   } else {
-    // User selected "No"
+    // If "No" is selected, go back to upload summary
     $("#remove-confirmation-section").hide();
     $("#remove-confirmation-wrapper").addClass("govuk-visually-hidden");
     $("#hideshow").show();
 
-    // Focus back to upload page heading
-    $("#upload-reports-page-heading").attr("tabindex", "-1").focus();
+    const pageHeading = document.getElementById("upload-reports-page-heading");
+    if (pageHeading) {
+      pageHeading.setAttribute("tabindex", "-1");
+      pageHeading.focus();
+    }
   }
 });
