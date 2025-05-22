@@ -1,114 +1,65 @@
-// --- ACCESSIBILITY FIX FOR ct-references PAGE ---
+Key Issues Addressed & Agreed Fixes
+1. Dynamic aria-describedby Implementation
+Issue: Screen readers announced error messages even when validation wasn’t triggered.
 
-// ======================
-// ✅ HTML CHANGES
-// ======================
+Fix: Now, aria-describedby is dynamically injected into inputs only after validation fails.
 
-// 1. In the input fields (billing-reference and billing-report), update `aria-describedby`:
-// Replace this:
-// aria-describedby="billing-reference-error billing-reference-hint"
+Confirmed: This prevents premature error announcements and behaves correctly with VoiceOver and NVDA (once tested).
 
-// With this:
-// aria-describedby="billing-reference-hint"
-// Do the same for billing-report input:
-// aria-describedby="billing-report-hint"
+2. File Upload “Change” Behavior
+Issue: Clicking “Change” opened the file picker directly, confusing screen reader users.
 
-// 2. Keep the <p id="*-error"> element but ensure it's not referenced via aria-describedby.
+Fix: “Change” will now:
 
-// ======================
-// ✅ JAVASCRIPT CHANGES
-// ======================
+Redirect to a previous page (e.g., file upload),
 
-// 1. Helper: Add a function to conditionally inject aria-describedby AFTER validation fails
-function applyDynamicDescribedBy(inputId, hintId) {
-  const input = document.getElementById(inputId);
-  if (input) {
-    input.setAttribute("aria-describedby", `${hintId} ${inputId}-error`);
-  }
-}
+Focus on the “Choose file” input so users are in control.
 
-function removeDynamicDescribedBy(inputId, hintId) {
-  const input = document.getElementById(inputId);
-  if (input) {
-    input.setAttribute("aria-describedby", hintId);
-  }
-}
+Further Recommendation: Follow GDS pattern by replacing “Change” with “Remove” + confirmation.
 
-// 2. In validateRefAndReportNo and validateReportNo:
-// After setting isValid = false, call applyDynamicDescribedBy
-// After setting isValid = true, call removeDynamicDescribedBy
+3. Pagination Labels
+Issue: aria-label="Go to page 1" was used.
 
-// ✅ Example changes in validateRefAndReportNo()
-function validateRefAndReportNo() {
-  const refId = obj.inputs[0].id;
-  const reportId = obj.inputs[1].id;
+Fix: Changed to just "Page 1" (for simplicity and clarity).
 
-  const refVal = document.getElementById(refId).value.trim();
-  const reportVal = document.getElementById(reportId).value.trim();
+Previous/Next Buttons: Replaced aria-label with visually hidden spans (<span class="govuk-visually-hidden">Next page</span>).
 
-  if (!refVal) {
-    obj.inputs[0].isValid = false;
-    obj.inputs[0].errorMessage = "Enter a billing authority reference number";
-    applyDynamicDescribedBy(refId, "billing-reference-hint");
-  } else {
-    obj.inputs[0].isValid = true;
-    obj.inputs[0].errorMessage = "";
-    removeDynamicDescribedBy(refId, "billing-reference-hint");
-  }
+4. Text Wrapping for Long Filenames
+Issue: Filenames overflowed success banners on mobile.
 
-  if (!reportVal) {
-    obj.inputs[1].isValid = false;
-    obj.inputs[1].errorMessage = "Enter a billing authority report number";
-    applyDynamicDescribedBy(reportId, "billing-report-hint");
-  } else {
-    obj.inputs[1].isValid = true;
-    obj.inputs[1].errorMessage = "";
-    removeDynamicDescribedBy(reportId, "billing-report-hint");
-  }
+Fix: Use word-wrap: break-word; and GOV.UK class govuk-panel.
 
-  // Update error messages visually
-  document.getElementById(`${refId}-error`).innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${obj.inputs[0].errorMessage}`;
-  document.getElementById(`${reportId}-error`).innerHTML = `<span class="govuk-visually-hidden">Error:</span> ${obj.inputs[1].errorMessage}`;
+Next Step: Apply consistently across success messages.
 
-  errorValidation();
-}
+5. Heading Hierarchy & Font Classes
+Issue: Same-level headings (e.g., h2) had inconsistent font sizes.
 
-// ✅ Do the same in validateReportNo() for billing-report only
+Fix:
 
-// ======================
-// ✅ Summary
-// ======================
-// ✅ HTML: remove aria-describedby="*-error" initially
-// ✅ JS: dynamically add/remove aria-describedby after validation triggers
-// ✅ Keep govuk-error-message block but don't link until error shown
-// ✅ Ensures WCAG 2.2 compliance (prevents screen reader from reading invisible errors)
+Inner pages use .govuk-heading-m.
 
+Dashboard’s “Need help?” section uses .govuk-heading-l for visual clarity.
 
+Conclusion: Variation is acceptable if semantic structure is correct and visual hierarchy is preserved.
 
-1. HTML Updates
-Update the input fields:
+6. Error Message & Validation Fixes
+Error messages will only be:
 
-html
-Copy
-Edit
-<input ... aria-describedby="billing-reference-hint"> <!-- Remove billing-reference-error -->
-<input ... aria-describedby="billing-report-hint">    <!-- Remove billing-report-error -->
-Leave the <p id="*-error"> in the DOM, but don't connect it with aria-describedby initially.
+Added to aria-describedby after failed validation,
 
-2. JavaScript Updates
-Modify the validation methods:
+Displayed only when needed (removing use of display:none where possible),
 
-Add new helper methods:
+Set with aria-invalid="true" only for failed fields (cleared when valid).
 
-applyDynamicDescribedBy(inputId, hintId)
+7. Radio Groups & Fieldset Usage
+Confirmed: For radio buttons, aria-describedby goes on the fieldset, not individual inputs.
 
-removeDynamicDescribedBy(inputId, hintId)
+8. Feedback Form
+Fix:
 
-In validateRefAndReportNo() and validateReportNo(), update aria-describedby dynamically only when validation fails.
+Removed unnecessary fieldsets around single inputs.
 
-✅ Why It Works
-Prevents assistive tech from reading hidden/inactive messages.
+Added aria-describedby dynamically based on validation.
 
-Keeps DOM and screen reader behavior in sync with actual visual feedback.
+Limit textarea to 1200 characters using GOV.UK character count pattern.
 
-Conforms to WCAG 2.2 SC 1.3.1 (Info and Relationships).
