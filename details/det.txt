@@ -17,3 +17,92 @@ function toggleAddButton() {
     }
   }
 }
+
+
+// When user clicks "Remove"
+$("#change").on("click", function (e) {
+  e.preventDefault();
+
+  history.replaceState(null, "", window.location.pathname);
+  currentEditIndex = 0;
+
+  const fileName = $("#file-to-upload-name").text().trim();
+  $("#removal-file-name").text(fileName); // set the filename in confirmation text
+
+  $("#success-banner, #hideshow").hide();
+  $("#remove-confirmation-section").show();
+  $("#remove-confirmation-wrapper").removeClass("govuk-visually-hidden");
+
+  // Scroll smoothly to the warning area
+  targetoffset = $("#remove-confirmation-section").offset().top;
+
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: targetoffset, behavior: 'smooth' });
+
+    const heading = document.getElementById("remove-confirmation-heading");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus();
+    }
+  });
+
+  // Reset radios and error
+  $("input[name='remove-confirm']").prop("checked", false);
+  $("#remove-confirmation-error").hide();
+
+  toggleAddButton();
+  setAriaDescribedByForInput("You are replacing a file.");
+
+  if (hide_Form_On_Upload) {
+    document.getElementsByClassName("govuk-back-link")[0].style.display = "block";
+  }
+});
+
+// When user confirms removal
+$("#confirm-remove-btn").on("click", function () {
+  const choice = $("input[name='remove-confirm']:checked").val();
+
+  if (!choice) {
+    $("#remove-confirmation-error").show();
+
+    const section = document.getElementById("remove-confirmation-section");
+    if (section) {
+      section.setAttribute("tabindex", "-1");
+      section.focus();
+    }
+    return;
+  }
+
+  if (choice === "yes") {
+    // Clear UI elements
+    $("#file-to-upload-name").empty();
+    $("#file-to-upload-size").empty();
+    $("#fileInput").val("");
+
+    $("#success-banner").hide();
+    $("#remove-confirmation-section").hide();
+    $("#remove-confirmation-wrapper").addClass("govuk-visually-hidden");
+
+    $("#file-input-mode").text("File removed. You can add a new one.");
+    toggleAddButton();
+
+    // Show upload section again
+    $("#hideshow").hide(); // keep hidden until file is re-added
+    const fileLabel = document.getElementById("fileInputLabel");
+    if (fileLabel) {
+      fileLabel.setAttribute("tabindex", "-1");
+      fileLabel.focus();
+    }
+  } else {
+    // If "No" is selected, go back to upload summary
+    $("#remove-confirmation-section").hide();
+    $("#remove-confirmation-wrapper").addClass("govuk-visually-hidden");
+    $("#hideshow").show();
+
+    const pageHeading = document.getElementById("upload-reports-page-heading");
+    if (pageHeading) {
+      pageHeading.setAttribute("tabindex", "-1");
+      pageHeading.focus();
+    }
+  }
+});
