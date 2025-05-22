@@ -1,65 +1,105 @@
-Key Issues Addressed & Agreed Fixes
-1. Dynamic aria-describedby Implementation
-Issue: Screen readers announced error messages even when validation wasn’t triggered.
+Full HTML Markup for Warning Section
+html
+Copy
+Edit
+<!-- Live region wrapper for accessibility announcement -->
+<div aria-live="polite" class="govuk-visually-hidden" id="remove-confirmation-wrapper">
+  
+  <!-- Confirmation section (initially hidden) -->
+  <div id="remove-confirmation-section" class="govuk-form-group" tabindex="-1" style="display: none;">
+    
+    <fieldset class="govuk-fieldset" aria-describedby="remove-confirmation-hint remove-confirmation-error">
+      
+      <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+        <h2 id="remove-confirmation-heading" class="govuk-fieldset__heading">
+          Are you sure you want to remove <span id="removal-file-name" class="govuk-!-font-weight-bold">this file</span>?
+        </h2>
+      </legend>
 
-Fix: Now, aria-describedby is dynamically injected into inputs only after validation fails.
+      <!-- Hint -->
+      <div id="remove-confirmation-hint" class="govuk-hint">
+        This action will delete the report and return you to the upload step.
+      </div>
 
-Confirmed: This prevents premature error announcements and behaves correctly with VoiceOver and NVDA (once tested).
+      <!-- Error message (shown via JS if no selection) -->
+      <p id="remove-confirmation-error" class="govuk-error-message" style="display: none;">
+        <span class="govuk-visually-hidden">Error:</span> Select yes if you want to remove the file
+      </p>
 
-2. File Upload “Change” Behavior
-Issue: Clicking “Change” opened the file picker directly, confusing screen reader users.
+      <!-- Radio options -->
+      <div class="govuk-radios" data-module="govuk-radios">
+        <div class="govuk-radios__item">
+          <input class="govuk-radios__input" id="remove-yes" name="remove-confirm" type="radio" value="yes">
+          <label class="govuk-label govuk-radios__label" for="remove-yes">Yes</label>
+        </div>
+        <div class="govuk-radios__item">
+          <input class="govuk-radios__input" id="remove-no" name="remove-confirm" type="radio" value="no">
+          <label class="govuk-label govuk-radios__label" for="remove-no">No</label>
+        </div>
+      </div>
 
-Fix: “Change” will now:
+    </fieldset>
 
-Redirect to a previous page (e.g., file upload),
+    <button id="confirm-remove-btn" class="govuk-button" type="button">
+      Continue
+    </button>
 
-Focus on the “Choose file” input so users are in control.
+  </div>
+</div>
+✅ JavaScript to Control Behavior
+Add this script to manage showing/hiding, ARIA live behavior, and validation:
 
-Further Recommendation: Follow GDS pattern by replacing “Change” with “Remove” + confirmation.
+javascript
+Copy
+Edit
+$("#change").on("click", function (e) {
+  e.preventDefault();
 
-3. Pagination Labels
-Issue: aria-label="Go to page 1" was used.
+  const fileName = $("#file-to-upload-name").text().trim();
+  $("#removal-file-name").text(fileName);
 
-Fix: Changed to just "Page 1" (for simplicity and clarity).
+  $("#hideshow").hide();
+  $("#remove-confirmation-section").show().focus();
+  $("#remove-confirmation-wrapper").removeClass("govuk-visually-hidden");
 
-Previous/Next Buttons: Replaced aria-label with visually hidden spans (<span class="govuk-visually-hidden">Next page</span>).
+  // Reset previous selections/errors
+  $("input[name='remove-confirm']").prop("checked", false);
+  $("#remove-confirmation-error").hide();
+});
 
-4. Text Wrapping for Long Filenames
-Issue: Filenames overflowed success banners on mobile.
+$("#confirm-remove-btn").on("click", function () {
+  const choice = $("input[name='remove-confirm']:checked").val();
 
-Fix: Use word-wrap: break-word; and GOV.UK class govuk-panel.
+  if (!choice) {
+    $("#remove-confirmation-error").show();
+    $("#remove-confirmation-section").focus();
+    return;
+  }
 
-Next Step: Apply consistently across success messages.
+  if (choice === "yes") {
+    // Remove file from UI
+    $("#file-to-upload-name").empty();
+    $("#file-to-upload-size").empty();
+    $("#fileInput").val("");
 
-5. Heading Hierarchy & Font Classes
-Issue: Same-level headings (e.g., h2) had inconsistent font sizes.
+    $("#hideshow").hide();
+    $("#success-banner").hide();
+    $("#remove-confirmation-section").hide();
+    $("#remove-confirmation-wrapper").addClass("govuk-visually-hidden");
 
-Fix:
+    // Update screen reader message
+    $("#file-input-mode").text("File removed. You can add a new one.");
+    toggleAddButton();
 
-Inner pages use .govuk-heading-m.
+    // Focus back on file input label
+    $("#fileInputLabel").attr("tabindex", "-1").focus();
+  } else {
+    // User selected "No"
+    $("#remove-confirmation-section").hide();
+    $("#remove-confirmation-wrapper").addClass("govuk-visually-hidden");
+    $("#hideshow").show();
 
-Dashboard’s “Need help?” section uses .govuk-heading-l for visual clarity.
-
-Conclusion: Variation is acceptable if semantic structure is correct and visual hierarchy is preserved.
-
-6. Error Message & Validation Fixes
-Error messages will only be:
-
-Added to aria-describedby after failed validation,
-
-Displayed only when needed (removing use of display:none where possible),
-
-Set with aria-invalid="true" only for failed fields (cleared when valid).
-
-7. Radio Groups & Fieldset Usage
-Confirmed: For radio buttons, aria-describedby goes on the fieldset, not individual inputs.
-
-8. Feedback Form
-Fix:
-
-Removed unnecessary fieldsets around single inputs.
-
-Added aria-describedby dynamically based on validation.
-
-Limit textarea to 1200 characters using GOV.UK character count pattern.
-
+    // Focus back to upload page heading
+    $("#upload-reports-page-heading").attr("tabindex", "-1").focus();
+  }
+});
