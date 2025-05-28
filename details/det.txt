@@ -1,5 +1,15 @@
 customEvents
 | where name == "LAPortalTracking"
-| extend sessionId = tostring(customDimensions.sessionId), userId = tostring(customDimensions.userId)
-| summarize concurrentUsers = dcount(sessionId) by bin(timestamp, 5m)
+| extend 
+    userId = tostring(customDimensions.userId),
+    sessionId = tostring(customDimensions.sessionId)
+| summarize uniqueSessions = dcount(sessionId), uniqueUsers = dcount(userId) by bin(timestamp, 5m)
 | order by timestamp asc
+
+
+customEvents
+| where name == "LAPortalTracking"
+| extend 
+    userId = tostring(customDimensions.userId),
+    sessionId = tostring(customDimensions.sessionId)
+| summarize maxConcurrentUsers = max(dcount(sessionId))
