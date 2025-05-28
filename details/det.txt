@@ -1,15 +1,20 @@
 customEvents
 | where name == "LAPortalTracking"
-| extend 
+| extend
     userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId)
-| summarize uniqueSessions = dcount(sessionId), uniqueUsers = dcount(userId) by bin(timestamp, 5m)
-| order by timestamp asc
+    council = tostring(customDimensions.council),
+    sessionId = tostring(customDimensions.sessionId),
+    timestampDate = format_datetime(timestamp, 'yyyy-MM-dd')
+| summarize by userId, council, sessionId, timestampDate
+| summarize UniqueSessions = count(), DistinctUsers = dcount(userId) by timestampDate
 
 
 customEvents
 | where name == "LAPortalTracking"
-| extend 
+| extend
     userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId)
-| summarize maxConcurrentUsers = max(dcount(sessionId))
+    council = tostring(customDimensions.council),
+    sessionId = tostring(customDimensions.sessionId),
+    timestampDate = format_datetime(timestamp, 'yyyy-MM-dd')
+| summarize by timestampDate, userId, council
+| order by timestampDate, userId
