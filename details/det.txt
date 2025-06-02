@@ -1,20 +1,14 @@
-customEvents
-| where name == "LAPortalTracking"
-| extend
-    userId = tostring(customDimensions.userId),
-    council = tostring(customDimensions.council),
-    sessionId = tostring(customDimensions.sessionId),
-    timestampDate = format_datetime(timestamp, 'yyyy-MM-dd')
-| summarize by userId, council, sessionId, timestampDate
-| summarize UniqueSessions = count(), DistinctUsers = dcount(userId) by timestampDate
+Before applying the suggested fix, I first carried out validation to confirm whether Power Pages was indeed causing the indexing issue.
 
+I unchecked the annotation (notes) table from the Manage Search Index in the Default Solution.
 
-customEvents
-| where name == "LAPortalTracking"
-| extend
-    userId = tostring(customDimensions.userId),
-    council = tostring(customDimensions.council),
-    sessionId = tostring(customDimensions.sessionId),
-    timestampDate = format_datetime(timestamp, 'yyyy-MM-dd')
-| summarize by timestampDate, userId, council
-| order by timestampDate, userId
+Then, I navigated through various portal UI pages that interact with the notes table (e.g., file upload).
+
+After testing, I verified that the annotation table was not automatically re-enabled for indexing.
+
+This raises a question about whether Power Pages is truly triggering the re-indexing in our case—or if something else might be involved.
+
+To proceed safely, I’ve now created a temporary solution in Dev and added only the Portal Search view of the annotation table (not the entire table).
+This was done just now, after completing the above investigation, to help validate Microsoft's guidance while minimizing risk.
+
+Let me know if you’d like me to continue with the view renaming and publish the changes.
