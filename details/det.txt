@@ -12,3 +12,64 @@ To proceed safely, I’ve now created a temporary solution in Dev and added only
 This was done just now, after completing the above investigation, to help validate Microsoft's guidance while minimizing risk.
 
 Let me know if you’d like me to continue with the view renaming and publish the changes.
+
+
+Thank you for sharing the full conversation. Here's a concise summary and action points derived from your discussion with the team, formatted for documentation, ticket updates, or communication with stakeholders:
+
+---
+
+### **Summary: Relevance Search Indexing Issue – Annotation Table (Notes)**
+
+A working session was held to review and plan the approach to resolve the **Dataverse relevance search indexing issue** related to the `annotation` (notes) table, which is automatically being re-enabled after being switched off, contributing to **high storage consumption**.
+
+---
+
+### **Key Points Discussed**
+
+* **Issue**: Disabling the *notes* table (annotation) from the relevance search index does not persist – it re-enables itself automatically, even when turned off.
+* **Root Cause**: Microsoft confirmed that **Power Pages** can re-enable relevance search indexing for entities if the entity includes a view named `Portal Search`. This happens due to Power Pages querying records for search results based on that specific view name.
+* **Suggested Fix (Microsoft Article)**:
+
+  * Go to the entity (e.g., `annotation`).
+  * **Rename the `Portal Search` view** to any other name (to break the link used by Power Pages to trigger indexing).
+  * This introduces an **unmanaged customization layer**.
+  * Alternatively, implement this change via a **managed solution** to maintain consistency with deployment practices.
+
+---
+
+### **Planned Approach (as agreed in the call)**
+
+1. **Create a temporary solution** (e.g., linked to JIRA ticket number) and:
+
+   * Add only the `annotation` table and its `Portal Search` view.
+   * Rename the `Portal Search` view to something else.
+   * Publish customizations.
+
+2. **Deploy to Dev** environment:
+
+   * Uncheck the `annotation` table from **Manage Search Index** in the Default Solution.
+   * Perform portal actions (e.g., file upload) to simulate usage.
+
+3. **Observe Behavior**:
+
+   * Confirm whether the indexing for `annotation` remains **disabled** post-usage.
+   * This will validate if the **renaming workaround** prevents automatic re-enabling.
+
+4. **If successful**:
+
+   * Add this renamed view update to the **master solution**.
+   * Roll out with the next scheduled release (e.g., part of the 1.3 or next build).
+
+---
+
+### **Next Steps**
+
+* [x] Create temp solution and rename the view.
+* [x] Uncheck `annotation` from indexed tables.
+* [ ] Test via active portal usage in Dev.
+* [ ] Confirm that indexing remains disabled.
+* [ ] Escalate back to Microsoft if workaround fails.
+
+---
+
+Let me know if you'd like a JIRA comment, Teams message, or internal update written based on this.
