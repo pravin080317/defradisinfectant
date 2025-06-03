@@ -1,98 +1,68 @@
-<script type="text/javascript">
-(function () {
-    var connectionString = "{{ settings['applicationinsights/enabletracking'] }}"; // Site setting
+// Set session ID if not already set
+if (!sessionStorage.getItem("customSessionId")) {
+    sessionStorage.setItem("customSessionId", crypto.randomUUID());
+}
 
-    var sessionTTL = 30 * 60 * 1000; // 30 minutes
-    var sessionId = sessionStorage.getItem("customSessionId") || crypto.randomUUID();
-    sessionStorage.setItem("customSessionId", sessionId);
+// Add Contextual Information
+var telemetryInitializer = (envelope) => {
+    envelope.tags["ai.cloud.role"] = window.Microsoft.Dynamic365.Portal.type;
+    envelope.tags["ai.cloud.roleInstance"] = window.Microsoft.Dynamic365.Portal.version;
+    envelope.tags["ai.session.id"] = sessionStorage.getItem("customSessionId") || "AnonymousSession";
 
-    var userId = "{{ user.id | default: 'Anonymous' }}";
-    var userName = "{{ user.fullname | default: 'N/A' }}";
-    var council = "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown'}}";
-    var userStatus = "{{ user.id | default: '' }}" ? "LoggedIn" : "Guest";
+    // Add custom user properties
+    {% if user %}
+    envelope.tags["ai.user.id"] = "{{ user.id }}";
+    envelope.data.baseData.properties = envelope.data.baseData.properties || {};
+    envelope.data.baseData.properties["sessionId"] = sessionStorage.getItem("customSessionId");
+    envelope.data.baseData.properties["userId"] = "{{ user.id }}";
+    envelope.data.baseData.properties["userName"] = "{{ user.fullname }}";
+    envelope.data.baseData.properties["userStatus"] = "Logged In";
+    envelope.data.baseData.properties["userCouncil"] = "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}";
+    {% else %}
+    envelope.data.baseData.properties = envelope.data.baseData.properties || {};
+    envelope.data.baseData.properties["userId"] = "Anonymous";
+    envelope.data.baseData.properties["userStatus"] = "Guest";
+    {% endif %}
 
-    var pageTitle = document.title;
-    var pageUrl = window.location.href;
+    envelope.data.baseData.properties["PortalPageLoadTime"] = new Date().toISOString();
+};
 
-    // Load Application Insights
-    var script = document.createElement("script");
-    script.src = "https://js.monitor.azure.com/scripts/b/ai.3.gbl.min.js";
-    script.setAttribute("crossorigin", "anonymous");
-    script.onload = function () {
-        const appInsights = new Microsoft.ApplicationInsights.ApplicationInsights({
-            config: {
-                connectionString: connectionString,
-                disableCookiesUsage: true,
-                disableAjaxTracking: true,
-                disableFetchTracking: true
+appInsights.addTelemetryInitializer(telemetryInitializer);
+
+// Add User Context
+{% if user %}
+var cdsContactId = "{{ user.id }}";
+appInsights.setAuthenticatedUserContext(cdsContactId, undefined, true);
+{% endif %}
+
+var userStatus = "Anonymous";
+{% if user %}
+userStatus = "LoggedIn";
+{% endif %}
+
+// Prevent double-counting: check for session flag scoped per page
+var currentPageKey = "hasSentPageView_" + window.location.pathname;
+var sessionTTL = 15 * 60 * 1000; // 15 minutes timeout
+
+var existing = JSON.parse(sessionStorage.getItem(currentPageKey) || "{}");
+var now = Date.now();
+
+if (!existing.timestamp || (now - existing.timestamp) > sessionTTL) {
+    if (typeof appInsights !== "undefined") {
+        // CustomEvent Logging
+        appInsights.trackEvent({
+            name: "LAPortalTracking",
+            properties: {
+                type: window.Microsoft.Dynamic365.Portal.type,
+                userId: "{{ user.id | default: 'Anonymous' }}",
+                userName: "{{ user.fullname | default: 'N/A' }}",
+                status: userStatus,
+                council: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown' }}",
+                loginTime: new Date().toISOString(),
+                page: window.location.pathname
             }
         });
-        appInsights.loadAppInsights();
 
-        // Add telemetry initializer
-        appInsights.addTelemetryInitializer(function (envelope) {
-            envelope.tags["ai.cloud.role"] = window.Microsoft?.Dynamic365?.Portal?.type || "PowerPages";
-            envelope.tags["ai.cloud.roleInstance"] = window.Microsoft?.Dynamic365?.Portal?.version || "v1";
-            envelope.tags["ai.session.id"] = sessionId;
-            envelope.tags["ai.user.id"] = userId;
-
-            envelope.data.baseData.properties = envelope.data.baseData.properties || {};
-            envelope.data.baseData.properties["UserId"] = userId;
-            envelope.data.baseData.properties["UserName"] = userName;
-            envelope.data.baseData.properties["UserStatus"] = userStatus;
-            envelope.data.baseData.properties["UserCouncil"] = council;
-            envelope.data.baseData.properties["PortalPageLoadTime"] = new Date().toISOString();
-            envelope.data.baseData.properties["SessionId"] = sessionId;
-        });
-
-        // Set authenticated user context
-        {% if user %}
-        appInsights.setAuthenticatedUserContext(userId, undefined, true);
-        {% endif %}
-
-        // Login Event – fire only once per session
-        if (!sessionStorage.getItem("hasTrackedLogin")) {
-            appInsights.trackEvent({
-                name: "LoginTracking",
-                properties: {
-                    userId: userId,
-                    userName: userName,
-                    status: userStatus,
-                    council: council,
-                    loginTime: new Date().toISOString()
-                }
-            });
-            sessionStorage.setItem("hasTrackedLogin", "true");
-        }
-
-        // Page View Event – track once per TTL per page
-        var currentPageKey = "hasSentPageView_" + window.location.pathname;
-        var now = Date.now();
-        var existing = JSON.parse(sessionStorage.getItem(currentPageKey) || "{}");
-
-        if (!existing.timestamp || (now - existing.timestamp) > sessionTTL) {
-            appInsights.trackPageView({
-                name: pageTitle,
-                uri: pageUrl
-            });
-
-            appInsights.trackEvent({
-                name: "PageViewTracking",
-                properties: {
-                    userId: userId,
-                    userName: userName,
-                    status: userStatus,
-                    council: council,
-                    pageTitle: pageTitle,
-                    url: pageUrl,
-                    pageLoadTime: new Date().toISOString()
-                }
-            });
-
-            sessionStorage.setItem(currentPageKey, JSON.stringify({ timestamp: now }));
-        }
-    };
-
-    document.head.appendChild(script);
-})();
-</script>
+        sessionStorage.setItem(currentPageKey, JSON.stringify({ timestamp: now }));
+    }
+}
