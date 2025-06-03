@@ -1,36 +1,98 @@
-Steps to Remove Portal Search Indexing from Annotation Table (e.g., for Notes):
-1. Create a Temporary Solution
-Go to Power Apps > Solutions
+<script type="text/javascript">
+(function () {
+    var connectionString = "{{ settings['applicationinsights/enabletracking'] }}"; // Site setting
 
-Create a new unmanaged solution
+    var sessionTTL = 30 * 60 * 1000; // 30 minutes
+    var sessionId = sessionStorage.getItem("customSessionId") || crypto.randomUUID();
+    sessionStorage.setItem("customSessionId", sessionId);
 
-Name it based on the JIRA ticket (e.g., BST-1234_RemoveNotesIndex)
+    var userId = "{{ user.id | default: 'Anonymous' }}";
+    var userName = "{{ user.fullname | default: 'N/A' }}";
+    var council = "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown'}}";
+    var userStatus = "{{ user.id | default: '' }}" ? "LoggedIn" : "Guest";
 
-Add publisher and version info as needed
+    var pageTitle = document.title;
+    var pageUrl = window.location.href;
 
-2. Add Only the Specific View (Not the Entire Table)
-In the solution, click "Add existing" → "Table"
+    // Load Application Insights
+    var script = document.createElement("script");
+    script.src = "https://js.monitor.azure.com/scripts/b/ai.3.gbl.min.js";
+    script.setAttribute("crossorigin", "anonymous");
+    script.onload = function () {
+        const appInsights = new Microsoft.ApplicationInsights.ApplicationInsights({
+            config: {
+                connectionString: connectionString,
+                disableCookiesUsage: true,
+                disableAjaxTracking: true,
+                disableFetchTracking: true
+            }
+        });
+        appInsights.loadAppInsights();
 
-Search for annotation (Notes table)
+        // Add telemetry initializer
+        appInsights.addTelemetryInitializer(function (envelope) {
+            envelope.tags["ai.cloud.role"] = window.Microsoft?.Dynamic365?.Portal?.type || "PowerPages";
+            envelope.tags["ai.cloud.roleInstance"] = window.Microsoft?.Dynamic365?.Portal?.version || "v1";
+            envelope.tags["ai.session.id"] = sessionId;
+            envelope.tags["ai.user.id"] = userId;
 
-When prompted:
+            envelope.data.baseData.properties = envelope.data.baseData.properties || {};
+            envelope.data.baseData.properties["UserId"] = userId;
+            envelope.data.baseData.properties["UserName"] = userName;
+            envelope.data.baseData.properties["UserStatus"] = userStatus;
+            envelope.data.baseData.properties["UserCouncil"] = council;
+            envelope.data.baseData.properties["PortalPageLoadTime"] = new Date().toISOString();
+            envelope.data.baseData.properties["SessionId"] = sessionId;
+        });
 
-Uncheck everything (forms, dashboards, etc.)
+        // Set authenticated user context
+        {% if user %}
+        appInsights.setAuthenticatedUserContext(userId, undefined, true);
+        {% endif %}
 
-Only check the view named Portal Search
+        // Login Event – fire only once per session
+        if (!sessionStorage.getItem("hasTrackedLogin")) {
+            appInsights.trackEvent({
+                name: "LoginTracking",
+                properties: {
+                    userId: userId,
+                    userName: userName,
+                    status: userStatus,
+                    council: council,
+                    loginTime: new Date().toISOString()
+                }
+            });
+            sessionStorage.setItem("hasTrackedLogin", "true");
+        }
 
-✅ This ensures you’re not importing the full table—just the specific view component into your temp solution.
+        // Page View Event – track once per TTL per page
+        var currentPageKey = "hasSentPageView_" + window.location.pathname;
+        var now = Date.now();
+        var existing = JSON.parse(sessionStorage.getItem(currentPageKey) || "{}");
 
-3. Rename the View
-Still inside the temp solution:
+        if (!existing.timestamp || (now - existing.timestamp) > sessionTTL) {
+            appInsights.trackPageView({
+                name: pageTitle,
+                uri: pageUrl
+            });
 
-Click the Portal Search view of the annotation table
+            appInsights.trackEvent({
+                name: "PageViewTracking",
+                properties: {
+                    userId: userId,
+                    userName: userName,
+                    status: userStatus,
+                    council: council,
+                    pageTitle: pageTitle,
+                    url: pageUrl,
+                    pageLoadTime: new Date().toISOString()
+                }
+            });
 
-Open it in the view editor
+            sessionStorage.setItem(currentPageKey, JSON.stringify({ timestamp: now }));
+        }
+    };
 
-Rename it (e.g., Portal Search Disabled or Notes View for Portal)
-
-Save and publish the view
-
-4. Publish All Customizations
-In the solution, click Publish All Customizations
+    document.head.appendChild(script);
+})();
+</script>
