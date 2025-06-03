@@ -1,68 +1,43 @@
-// Set session ID if not already set
-if (!sessionStorage.getItem("customSessionId")) {
-    sessionStorage.setItem("customSessionId", crypto.randomUUID());
-}
+// 4. Track login event once across tabs using localStorage with 30-min TTL
+(function() {
+    const loginKey = "LAPortalLoginTracked";
+    const loginTTL = 30 * 60 * 1000; // 30 mins
+    const now = Date.now();
 
-// Add Contextual Information
-var telemetryInitializer = (envelope) => {
-    envelope.tags["ai.cloud.role"] = window.Microsoft.Dynamic365.Portal.type;
-    envelope.tags["ai.cloud.roleInstance"] = window.Microsoft.Dynamic365.Portal.version;
-    envelope.tags["ai.session.id"] = sessionStorage.getItem("customSessionId") || "AnonymousSession";
-
-    // Add custom user properties
-    {% if user %}
-    envelope.tags["ai.user.id"] = "{{ user.id }}";
-    envelope.data.baseData.properties = envelope.data.baseData.properties || {};
-    envelope.data.baseData.properties["sessionId"] = sessionStorage.getItem("customSessionId");
-    envelope.data.baseData.properties["userId"] = "{{ user.id }}";
-    envelope.data.baseData.properties["userName"] = "{{ user.fullname }}";
-    envelope.data.baseData.properties["userStatus"] = "Logged In";
-    envelope.data.baseData.properties["userCouncil"] = "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}";
-    {% else %}
-    envelope.data.baseData.properties = envelope.data.baseData.properties || {};
-    envelope.data.baseData.properties["userId"] = "Anonymous";
-    envelope.data.baseData.properties["userStatus"] = "Guest";
-    {% endif %}
-
-    envelope.data.baseData.properties["PortalPageLoadTime"] = new Date().toISOString();
-};
-
-appInsights.addTelemetryInitializer(telemetryInitializer);
-
-// Add User Context
-{% if user %}
-var cdsContactId = "{{ user.id }}";
-appInsights.setAuthenticatedUserContext(cdsContactId, undefined, true);
-{% endif %}
-
-var userStatus = "Anonymous";
-{% if user %}
-userStatus = "LoggedIn";
-{% endif %}
-
-// Prevent double-counting: check for session flag scoped per page
-var currentPageKey = "hasSentPageView_" + window.location.pathname;
-var sessionTTL = 15 * 60 * 1000; // 15 minutes timeout
-
-var existing = JSON.parse(sessionStorage.getItem(currentPageKey) || "{}");
-var now = Date.now();
-
-if (!existing.timestamp || (now - existing.timestamp) > sessionTTL) {
-    if (typeof appInsights !== "undefined") {
-        // CustomEvent Logging
-        appInsights.trackEvent({
-            name: "LAPortalTracking",
-            properties: {
-                type: window.Microsoft.Dynamic365.Portal.type,
-                userId: "{{ user.id | default: 'Anonymous' }}",
-                userName: "{{ user.fullname | default: 'N/A' }}",
-                status: userStatus,
-                council: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown' }}",
-                loginTime: new Date().toISOString(),
-                page: window.location.pathname
-            }
-        });
-
-        sessionStorage.setItem(currentPageKey, JSON.stringify({ timestamp: now }));
+    try {
+        const tracked = JSON.parse(localStorage.getItem(loginKey) || "{}");
+        if (!tracked.timestamp || (now - tracked.timestamp) > loginTTL) {
+            appInsights.trackEvent({
+                name: "LAPortalLogin",
+                properties: {
+                    type: window.Microsoft?.Dynamic365?.Portal?.type || "PowerPages",
+                    userId: "{{ user.id | default: 'Anonymous' }}",
+                    userName: "{{ user.fullname | default: 'N/A' }}",
+                    status: "{{ user ? 'LoggedIn' : 'Guest' }}",
+                    council: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown'}}",
+                    loginTime: new Date().toISOString()
+                }
+            });
+            localStorage.setItem(loginKey, JSON.stringify({ timestamp: now }));
+        }
+    } catch (e) {
+        console.error("Login event tracking failed:", e);
     }
-}
+})();
+
+// 5. Track page view once every 15 mins per page
+(function() {
+    const currentPageKey = "hasSentPageView_" + window.location.pathname;
+    const sessionTTL = 15 * 60 * 1000; // 15 minutes
+    const now = Date.now();
+
+    try {
+        const existing = JSON.parse(sessionStorage.getItem(currentPageKey) || "{}");
+        if (!existing.timestamp || (now - existing.timestamp) > sessionTTL) {
+            appInsights.trackPageView({ name: document.title });
+            sessionStorage.setItem(currentPageKey, JSON.stringify({ timestamp: now }));
+        }
+    } catch (e) {
+        console.error("Page view tracking failed:", e);
+    }
+})();
