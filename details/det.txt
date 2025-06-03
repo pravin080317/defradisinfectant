@@ -1,43 +1,99 @@
-// 4. Track login event once across tabs using localStorage with 30-min TTL
-(function() {
-    const loginKey = "LAPortalLoginTracked";
-    const loginTTL = 30 * 60 * 1000; // 30 mins
-    const now = Date.now();
+To verify that the **login** and **page view tracking** logic is working correctly in **Application Insights**, here are KQL (Kusto Query Language) queries you can use. These help validate that:
 
-    try {
-        const tracked = JSON.parse(localStorage.getItem(loginKey) || "{}");
-        if (!tracked.timestamp || (now - tracked.timestamp) > loginTTL) {
-            appInsights.trackEvent({
-                name: "LAPortalLogin",
-                properties: {
-                    type: window.Microsoft?.Dynamic365?.Portal?.type || "PowerPages",
-                    userId: "{{ user.id | default: 'Anonymous' }}",
-                    userName: "{{ user.fullname | default: 'N/A' }}",
-                    status: "{{ user ? 'LoggedIn' : 'Guest' }}",
-                    council: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown'}}",
-                    loginTime: new Date().toISOString()
-                }
-            });
-            localStorage.setItem(loginKey, JSON.stringify({ timestamp: now }));
-        }
-    } catch (e) {
-        console.error("Login event tracking failed:", e);
-    }
-})();
+1. The login event (`LAPortalLogin`) is tracked only **once per user every 30 minutes**.
+2. The page view event is tracked only **once per user per page every 15 minutes**.
 
-// 5. Track page view once every 15 mins per page
-(function() {
-    const currentPageKey = "hasSentPageView_" + window.location.pathname;
-    const sessionTTL = 15 * 60 * 1000; // 15 minutes
-    const now = Date.now();
+---
 
-    try {
-        const existing = JSON.parse(sessionStorage.getItem(currentPageKey) || "{}");
-        if (!existing.timestamp || (now - existing.timestamp) > sessionTTL) {
-            appInsights.trackPageView({ name: document.title });
-            sessionStorage.setItem(currentPageKey, JSON.stringify({ timestamp: now }));
-        }
-    } catch (e) {
-        console.error("Page view tracking failed:", e);
-    }
-})();
+### ✅ **1. Check login tracking frequency per user**
+
+```kql
+customEvents
+| where name == "LAPortalLogin"
+| extend userId = tostring(customDimensions.userId)
+| summarize LoginEvents = count(), min(timestamp), max(timestamp) by userId
+| order by LoginEvents desc
+```
+
+**What to check**:
+
+* No user should have more than 1 login every \~30 minutes.
+* `LoginEvents` should not spike for the same `userId` in a short interval.
+
+---
+
+### ✅ **2. Check distinct users and timestamps per day**
+
+```kql
+customEvents
+| where name == "LAPortalLogin"
+| extend userId = tostring(customDimensions.userId), loginTime = tostring(customDimensions.loginTime)
+| project userId, loginTime, timestamp, council = tostring(customDimensions.userCouncil)
+| summarize logins_per_day = count(), users = dcount(userId) by bin(timestamp, 1d)
+| order by timestamp desc
+```
+
+**What to check**:
+
+* Gives daily login count and unique users (matches business need for usage tracking).
+
+---
+
+### ✅ **3. Validate page view frequency per user per page**
+
+```kql
+pageViews
+| extend page = tostring(name), userId = tostring(customDimensions.userId)
+| summarize PageViews = count(), FirstSeen = min(timestamp), LastSeen = max(timestamp) by userId, page
+| order by PageViews desc
+```
+
+**What to check**:
+
+* No more than 1 view per user per page within 15 mins.
+* Use `timestamp` to verify spread.
+
+---
+
+### ✅ **4. View LAPortalTracking custom event with all custom dimensions**
+
+```kql
+customEvents
+| where name == "LAPortalTracking"
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    userStatus = tostring(customDimensions.userStatus),
+    council = tostring(customDimensions.userCouncil),
+    pageLoadTime = tostring(customDimensions.PortalPageLoadTime),
+    sessionId = tostring(customDimensions.sessionId)
+| project timestamp, userId, userName, userStatus, council, sessionId, pageLoadTime
+| order by timestamp desc
+```
+
+**What to check**:
+
+* Events show correct `userId`, `council`, and `sessionId`.
+* Verify only one sessionId reused during a session.
+
+---
+
+### ✅ **5. Find users concurrently active within a time window**
+
+```kql
+customEvents
+| where name == "LAPortalTracking"
+| extend userId = tostring(customDimensions.userId)
+| summarize by bin(timestamp, 5m), userId
+| summarize ActiveUsers = dcount(userId) by timestamp
+| order by timestamp desc
+```
+
+**What to check**:
+
+* This gives **concurrent users** per 5-minute window (you can change to `1m`, `15m` etc.).
+* Useful for showing usage trends and peak times.
+
+---
+
+Let me know if you'd like a Power BI-ready query or breakdown by council/user status (Guest vs LoggedIn).
