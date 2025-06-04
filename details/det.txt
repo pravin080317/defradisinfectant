@@ -1,37 +1,24 @@
 union 
-    pageViews
-    | extend 
-        type = "PageView",
-        timestamp = timestamp,
-        userId = tostring(customDimensions.userId),
-        userName = tostring(customDimensions.userName),
-        userCouncil = tostring(customDimensions.userCouncil),
-        userStatus = tostring(customDimensions.userStatus),
-        sessionId = tostring(customDimensions.sessionId),
-        pageTitle = name,
-        loginTime = ""
-    ,
+(
     customEvents
     | where name == "LAPortalLogin"
-    | extend 
-        type = "Login",
-        timestamp = timestamp,
+    | extend
+        eventType = "Login",
         userId = tostring(customDimensions.userId),
         userName = tostring(customDimensions.userName),
         userCouncil = tostring(customDimensions.council),
-        userStatus = tostring(customDimensions.status),
         sessionId = tostring(customDimensions.sessionId),
-        pageTitle = "",
-        loginTime = tostring(customDimensions.loginTime)
-        
-| project 
-    type, 
-    timestamp, 
-    userId, 
-    userName, 
-    userCouncil, 
-    userStatus, 
-    sessionId, 
-    pageTitle, 
-    loginTime
+        activity = "Logged in"
+),
+(
+    pageViews
+    | extend
+        eventType = "PageView",
+        userId = tostring(customDimensions.userId),
+        userName = tostring(customDimensions.userName),
+        userCouncil = tostring(customDimensions.userCouncil),
+        sessionId = tostring(customDimensions.sessionId),
+        activity = strcat("Visited page: ", name)
+)
+| project timestamp, eventType, userId, userName, userCouncil, sessionId, activity
 | order by timestamp desc
