@@ -1,72 +1,102 @@
-To verify that your custom `LAPortalLogin` event and custom session tracking are working in **Application Insights**, use the following **Kusto Query Language (KQL)** queries in the Logs tab:
+To analyze and confirm whether the **`LAPortalLogin`** events are being triggered **multiple times per user per session** in Application Insights (App Insights), and to also estimate **concurrent usage and session spans**, you can use the following **KQL queries**:
 
 ---
 
-### ✅ **1. Check if `LAPortalLogin` event is captured correctly**
+### ✅ **1. Find all `LAPortalLogin` events with timestamp and user info**
+
+This shows all login tracking events captured.
 
 ```kql
 customEvents
 | where name == "LAPortalLogin"
-| project timestamp, name, user_Id, session_Id = tostring(customDimensions.sessionId),
-          userName = tostring(customDimensions.userName),
-          userStatus = tostring(customDimensions.userStatus),
-          council = tostring(customDimensions.userCouncil),
-          loginTime = tostring(customDimensions.loginTime)
+| extend userId = tostring(customDimensions.userId)
+| extend userName = tostring(customDimensions.userName)
+| extend council = tostring(customDimensions.council)
+| extend loginTime = tostring(customDimensions.loginTime)
+| project timestamp, userId, userName, council, loginTime
+| order by userId, timestamp asc
+```
+
+---
+
+### ✅ **2. Detect repeated login events per user per short time window (potential duplicates)**
+
+```kql
+customEvents
+| where name == "LAPortalLogin"
+| extend userId = tostring(customDimensions.userId), loginTime = todatetime(customDimensions.loginTime)
+| summarize logins = count(), minTime = min(loginTime), maxTime = max(loginTime) by userId, bin(timestamp, 1h)
+| where logins > 1
+| order by logins desc
+```
+
+> 🟠 This will help detect "duplicate" logins per user in a 1-hour window — which should ideally only have **1 login per session**.
+
+---
+
+### ✅ **3. Estimate session start and end times per user**
+
+Assuming a session includes multiple events (including page views), this query gives **session time spans**:
+
+```kql
+customEvents
+| extend userId = tostring(customDimensions.userId), sessionId = tostring(customDimensions.sessionId)
+| where userId != "Anonymous"
+| summarize sessionStart = min(timestamp), sessionEnd = max(timestamp), events = count()
+  by userId, sessionId
+| extend sessionDurationMinutes = datetime_diff("minute", sessionEnd, sessionStart)
+| order by sessionStart asc
+```
+
+---
+
+### ✅ **4. Count unique users per day**
+
+```kql
+customEvents
+| where name == "LAPortalLogin"
+| extend userId = tostring(customDimensions.userId)
+| summarize dailyUsers = dcount(userId) by bin(timestamp, 1d)
 | order by timestamp desc
 ```
 
 ---
 
-### ✅ **2. Count of unique user IDs per day**
+### ✅ **5. Estimate concurrent users at a point in time (experimental)**
+
+This assumes you trust login and session data. It counts active sessions over rolling intervals:
 
 ```kql
-customEvents
-| where name == "LAPortalLogin"
-| summarize UniqueUsers = dcount(tostring(customDimensions.userId)) by bin(timestamp, 1d)
-| order by timestamp desc
+let sessions = 
+    customEvents
+    | where name == "LAPortalLogin"
+    | extend userId = tostring(customDimensions.userId), sessionId = tostring(customDimensions.sessionId), loginTime = todatetime(customDimensions.loginTime)
+    | summarize minTime = min(loginTime), maxTime = max(timestamp) by userId, sessionId;
+range interval from ago(1d) to now() step 5m
+| join kind=inner (
+    sessions
+    | project sessionId, userId, minTime, maxTime
+) on $left.interval between (minTime .. maxTime)
+| summarize concurrentUsers = dcount(sessionId) by interval
+| order by interval asc
 ```
 
 ---
 
-### ✅ **3. Find duplicate login events per user in the same session (to debug double-counting)**
+### 🔍 **Expected Results & Interpretation**
 
-```kql
-customEvents
-| where name == "LAPortalLogin"
-| summarize Count = count() by userId = tostring(customDimensions.userId), sessionId = tostring(customDimensions.sessionId), bin(timestamp, 30m)
-| where Count > 1
-| order by timestamp desc
-```
-
----
-
-### ✅ **4. Concurrent users estimate (based on login and session TTL = 30 mins)**
-
-This estimates concurrent usage by checking how many users were "active" in overlapping 5-minute bins:
-
-```kql
-customEvents
-| where name == "LAPortalLogin"
-| extend loginTime = todatetime(customDimensions.loginTime)
-| extend activeWindow = range(bin(loginTime, 5m), loginTime + 30m, 5m)
-| mv-expand activeWindow to typeof(datetime)
-| summarize ConcurrentUsers = dcount(tostring(customDimensions.userId)) by activeWindow
-| order by activeWindow
-```
+| Query # | Output                         | Interpretation                       |
+| ------- | ------------------------------ | ------------------------------------ |
+| 1       | Raw login events               | Spot duplicates, verify timestamps   |
+| 2       | Multiple login events per user | High values here = issue with logic  |
+| 3       | Session time spans             | Session duration insights, anomalies |
+| 4       | Count of unique users          | Daily engagement volume              |
+| 5       | Concurrent sessions            | Graph usage patterns by time window  |
 
 ---
 
-### ✅ **5. Validate session ID consistency across page views and login**
+### ✅ Next Step
 
-```kql
-union customEvents, pageViews
-| where name == "LAPortalLogin" or name == "Page view"
-| extend sessionId = tostring(customDimensions.sessionId)
-| summarize Events = count() by sessionId, userId = tostring(customDimensions.userId)
-| where Events > 1
-| order by Events desc
-```
+Once you run query #2 and confirm duplicates, this helps validate whether the `localStorage`-based fix (with TTL) reduced noise. Combine queries #3 and #5 to estimate concurrent usage as requested by stakeholders.
 
----
-
-Let me know if you want a **Power BI report** based on these queries or an **alert rule** to flag abnormal login counts.
+Let me know if you want these in a **Power BI model** or a **dashboard view** suggestion.
