@@ -1,63 +1,50 @@
-To track **page views** in Application Insights using **KQL**, you’ll be querying the `pageViews` table.
+You're right — the error likely means you're running into a syntax issue or the query structure isn’t recognized by the Kusto engine. Let’s clarify and provide **working, copy-paste ready KQL queries** for tracking page views from Application Insights:
 
 ---
 
-### ✅ **Basic Page Views Query**
-
-Shows all page views with URL, timestamp, and user ID.
+### ✅ 1. **Total Page Views Per Day**
 
 ```kql
 pageViews
-| extend userId = tostring(customDimensions.userId)
-| project timestamp, name, url, userId
+| summarize totalViews = count() by bin(timestamp, 1d)
 | order by timestamp desc
 ```
 
 ---
 
-### ✅ **Page Views Per Day**
+### ✅ 2. **Page Views by Page Title and URL**
 
 ```kql
 pageViews
-| summarize totalPageViews = count() by bin(timestamp, 1d)
-| order by timestamp desc
+| summarize totalViews = count() by name, url
+| order by totalViews desc
 ```
 
 ---
 
-### ✅ **Page Views by URL / Page Name**
-
-```kql
-pageViews
-| summarize views = count() by name, url
-| order by views desc
-```
-
----
-
-### ✅ **Page Views by User**
+### ✅ 3. **Page Views by User ID**
 
 ```kql
 pageViews
 | extend userId = tostring(customDimensions.userId)
-| summarize views = count() by userId
-| order by views desc
+| summarize totalViews = count() by userId
+| order by totalViews desc
 ```
 
 ---
 
-### ✅ **Page Views by User and Page**
+### ✅ 4. **Page Views by User ID and Page Name**
 
 ```kql
 pageViews
 | extend userId = tostring(customDimensions.userId)
-| summarize views = count() by userId, name
-| order by views desc
+| summarize totalViews = count() by userId, name
+| order by totalViews desc
 ```
 
 ---
 
-### ✅ **Unique Users per Page (Engagement)**
+### ✅ 5. **Unique Users per Page**
 
 ```kql
 pageViews
@@ -68,10 +55,22 @@ pageViews
 
 ---
 
-### 🔍 **Notes**
+### ✅ 6. **Page View Timeline for Specific User**
 
-* `name` → Usually the page title (passed via `trackPageView({ name })`)
-* `url` → Full page URL
-* `customDimensions.userId` → Added via telemetry initializer in your script
+```kql
+pageViews
+| extend userId = tostring(customDimensions.userId)
+| where userId == "YOUR_USER_GUID_HERE"
+| project timestamp, name, url
+| order by timestamp asc
+```
 
-Let me know if you want to visualize bounce rate or time-on-page — that needs `pageViewPerformance` or `duration` fields.
+---
+
+If your telemetry isn’t enriching `customDimensions.userId`, you can replace it with:
+
+```kql
+tostring(customDimensions["userId"])
+```
+
+Let me know if you'd like queries that also show session ID or correlate it with custom events (`customEvents` table).
