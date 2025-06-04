@@ -1,99 +1,72 @@
-To verify that the **login** and **page view tracking** logic is working correctly in **Application Insights**, here are KQL (Kusto Query Language) queries you can use. These help validate that:
-
-1. The login event (`LAPortalLogin`) is tracked only **once per user every 30 minutes**.
-2. The page view event is tracked only **once per user per page every 15 minutes**.
+To verify that your custom `LAPortalLogin` event and custom session tracking are working in **Application Insights**, use the following **Kusto Query Language (KQL)** queries in the Logs tab:
 
 ---
 
-### ✅ **1. Check login tracking frequency per user**
+### ✅ **1. Check if `LAPortalLogin` event is captured correctly**
 
 ```kql
 customEvents
 | where name == "LAPortalLogin"
-| extend userId = tostring(customDimensions.userId)
-| summarize LoginEvents = count(), min(timestamp), max(timestamp) by userId
-| order by LoginEvents desc
+| project timestamp, name, user_Id, session_Id = tostring(customDimensions.sessionId),
+          userName = tostring(customDimensions.userName),
+          userStatus = tostring(customDimensions.userStatus),
+          council = tostring(customDimensions.userCouncil),
+          loginTime = tostring(customDimensions.loginTime)
+| order by timestamp desc
 ```
-
-**What to check**:
-
-* No user should have more than 1 login every \~30 minutes.
-* `LoginEvents` should not spike for the same `userId` in a short interval.
 
 ---
 
-### ✅ **2. Check distinct users and timestamps per day**
+### ✅ **2. Count of unique user IDs per day**
 
 ```kql
 customEvents
 | where name == "LAPortalLogin"
-| extend userId = tostring(customDimensions.userId), loginTime = tostring(customDimensions.loginTime)
-| project userId, loginTime, timestamp, council = tostring(customDimensions.userCouncil)
-| summarize logins_per_day = count(), users = dcount(userId) by bin(timestamp, 1d)
+| summarize UniqueUsers = dcount(tostring(customDimensions.userId)) by bin(timestamp, 1d)
 | order by timestamp desc
 ```
 
-**What to check**:
-
-* Gives daily login count and unique users (matches business need for usage tracking).
-
 ---
 
-### ✅ **3. Validate page view frequency per user per page**
-
-```kql
-pageViews
-| extend page = tostring(name), userId = tostring(customDimensions.userId)
-| summarize PageViews = count(), FirstSeen = min(timestamp), LastSeen = max(timestamp) by userId, page
-| order by PageViews desc
-```
-
-**What to check**:
-
-* No more than 1 view per user per page within 15 mins.
-* Use `timestamp` to verify spread.
-
----
-
-### ✅ **4. View LAPortalTracking custom event with all custom dimensions**
+### ✅ **3. Find duplicate login events per user in the same session (to debug double-counting)**
 
 ```kql
 customEvents
-| where name == "LAPortalTracking"
-| extend 
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    userStatus = tostring(customDimensions.userStatus),
-    council = tostring(customDimensions.userCouncil),
-    pageLoadTime = tostring(customDimensions.PortalPageLoadTime),
-    sessionId = tostring(customDimensions.sessionId)
-| project timestamp, userId, userName, userStatus, council, sessionId, pageLoadTime
+| where name == "LAPortalLogin"
+| summarize Count = count() by userId = tostring(customDimensions.userId), sessionId = tostring(customDimensions.sessionId), bin(timestamp, 30m)
+| where Count > 1
 | order by timestamp desc
 ```
 
-**What to check**:
-
-* Events show correct `userId`, `council`, and `sessionId`.
-* Verify only one sessionId reused during a session.
-
 ---
 
-### ✅ **5. Find users concurrently active within a time window**
+### ✅ **4. Concurrent users estimate (based on login and session TTL = 30 mins)**
+
+This estimates concurrent usage by checking how many users were "active" in overlapping 5-minute bins:
 
 ```kql
 customEvents
-| where name == "LAPortalTracking"
-| extend userId = tostring(customDimensions.userId)
-| summarize by bin(timestamp, 5m), userId
-| summarize ActiveUsers = dcount(userId) by timestamp
-| order by timestamp desc
+| where name == "LAPortalLogin"
+| extend loginTime = todatetime(customDimensions.loginTime)
+| extend activeWindow = range(bin(loginTime, 5m), loginTime + 30m, 5m)
+| mv-expand activeWindow to typeof(datetime)
+| summarize ConcurrentUsers = dcount(tostring(customDimensions.userId)) by activeWindow
+| order by activeWindow
 ```
-
-**What to check**:
-
-* This gives **concurrent users** per 5-minute window (you can change to `1m`, `15m` etc.).
-* Useful for showing usage trends and peak times.
 
 ---
 
-Let me know if you'd like a Power BI-ready query or breakdown by council/user status (Guest vs LoggedIn).
+### ✅ **5. Validate session ID consistency across page views and login**
+
+```kql
+union customEvents, pageViews
+| where name == "LAPortalLogin" or name == "Page view"
+| extend sessionId = tostring(customDimensions.sessionId)
+| summarize Events = count() by sessionId, userId = tostring(customDimensions.userId)
+| where Events > 1
+| order by Events desc
+```
+
+---
+
+Let me know if you want a **Power BI report** based on these queries or an **alert rule** to flag abnormal login counts.
