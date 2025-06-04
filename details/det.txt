@@ -1,25 +1,9 @@
-(function() {
-    const currentPageKey = "hasSentPageView_" + window.location.pathname;
-    const sessionTTL = 15 * 60 * 1000; // 15 minutes
-    const now = Date.now();
-
-    try {
-        const existing = JSON.parse(sessionStorage.getItem(currentPageKey) || "{}");
-        if (!existing.timestamp || (now - existing.timestamp) > sessionTTL) {
-            appInsights.trackPageView({
-                name: document.title,
-                properties: {
-                    userId: "{{ user.id | default: 'Anonymous' }}",
-                    userName: "{{ user.fullname | default: 'N/A' }}",
-                    userStatus: "{{ user ? 'LoggedIn' : 'Guest' }}",
-                    userCouncil: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown'}}",
-                    sessionId: sessionStorage.getItem("customSessionId")
-                }
-            });
-
-            sessionStorage.setItem(currentPageKey, JSON.stringify({ timestamp: now }));
-        }
-    } catch (e) {
-        console.error("Page view tracking failed:", e);
-    }
-})();
+pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    council = tostring(customDimensions.userCouncil),
+    sessionId = tostring(customDimensions.sessionId)
+| where isnotempty(userId)
+| summarize views = count() by userId, userName, council, sessionId
+| order by views desc
