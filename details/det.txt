@@ -1,102 +1,77 @@
-To analyze and confirm whether the **`LAPortalLogin`** events are being triggered **multiple times per user per session** in Application Insights (App Insights), and to also estimate **concurrent usage and session spans**, you can use the following **KQL queries**:
+To track **page views** in Application Insights using **KQL**, you’ll be querying the `pageViews` table.
 
 ---
 
-### ✅ **1. Find all `LAPortalLogin` events with timestamp and user info**
+### ✅ **Basic Page Views Query**
 
-This shows all login tracking events captured.
+Shows all page views with URL, timestamp, and user ID.
 
 ```kql
-customEvents
-| where name == "LAPortalLogin"
+pageViews
 | extend userId = tostring(customDimensions.userId)
-| extend userName = tostring(customDimensions.userName)
-| extend council = tostring(customDimensions.council)
-| extend loginTime = tostring(customDimensions.loginTime)
-| project timestamp, userId, userName, council, loginTime
-| order by userId, timestamp asc
-```
-
----
-
-### ✅ **2. Detect repeated login events per user per short time window (potential duplicates)**
-
-```kql
-customEvents
-| where name == "LAPortalLogin"
-| extend userId = tostring(customDimensions.userId), loginTime = todatetime(customDimensions.loginTime)
-| summarize logins = count(), minTime = min(loginTime), maxTime = max(loginTime) by userId, bin(timestamp, 1h)
-| where logins > 1
-| order by logins desc
-```
-
-> 🟠 This will help detect "duplicate" logins per user in a 1-hour window — which should ideally only have **1 login per session**.
-
----
-
-### ✅ **3. Estimate session start and end times per user**
-
-Assuming a session includes multiple events (including page views), this query gives **session time spans**:
-
-```kql
-customEvents
-| extend userId = tostring(customDimensions.userId), sessionId = tostring(customDimensions.sessionId)
-| where userId != "Anonymous"
-| summarize sessionStart = min(timestamp), sessionEnd = max(timestamp), events = count()
-  by userId, sessionId
-| extend sessionDurationMinutes = datetime_diff("minute", sessionEnd, sessionStart)
-| order by sessionStart asc
-```
-
----
-
-### ✅ **4. Count unique users per day**
-
-```kql
-customEvents
-| where name == "LAPortalLogin"
-| extend userId = tostring(customDimensions.userId)
-| summarize dailyUsers = dcount(userId) by bin(timestamp, 1d)
+| project timestamp, name, url, userId
 | order by timestamp desc
 ```
 
 ---
 
-### ✅ **5. Estimate concurrent users at a point in time (experimental)**
-
-This assumes you trust login and session data. It counts active sessions over rolling intervals:
+### ✅ **Page Views Per Day**
 
 ```kql
-let sessions = 
-    customEvents
-    | where name == "LAPortalLogin"
-    | extend userId = tostring(customDimensions.userId), sessionId = tostring(customDimensions.sessionId), loginTime = todatetime(customDimensions.loginTime)
-    | summarize minTime = min(loginTime), maxTime = max(timestamp) by userId, sessionId;
-range interval from ago(1d) to now() step 5m
-| join kind=inner (
-    sessions
-    | project sessionId, userId, minTime, maxTime
-) on $left.interval between (minTime .. maxTime)
-| summarize concurrentUsers = dcount(sessionId) by interval
-| order by interval asc
+pageViews
+| summarize totalPageViews = count() by bin(timestamp, 1d)
+| order by timestamp desc
 ```
 
 ---
 
-### 🔍 **Expected Results & Interpretation**
+### ✅ **Page Views by URL / Page Name**
 
-| Query # | Output                         | Interpretation                       |
-| ------- | ------------------------------ | ------------------------------------ |
-| 1       | Raw login events               | Spot duplicates, verify timestamps   |
-| 2       | Multiple login events per user | High values here = issue with logic  |
-| 3       | Session time spans             | Session duration insights, anomalies |
-| 4       | Count of unique users          | Daily engagement volume              |
-| 5       | Concurrent sessions            | Graph usage patterns by time window  |
+```kql
+pageViews
+| summarize views = count() by name, url
+| order by views desc
+```
 
 ---
 
-### ✅ Next Step
+### ✅ **Page Views by User**
 
-Once you run query #2 and confirm duplicates, this helps validate whether the `localStorage`-based fix (with TTL) reduced noise. Combine queries #3 and #5 to estimate concurrent usage as requested by stakeholders.
+```kql
+pageViews
+| extend userId = tostring(customDimensions.userId)
+| summarize views = count() by userId
+| order by views desc
+```
 
-Let me know if you want these in a **Power BI model** or a **dashboard view** suggestion.
+---
+
+### ✅ **Page Views by User and Page**
+
+```kql
+pageViews
+| extend userId = tostring(customDimensions.userId)
+| summarize views = count() by userId, name
+| order by views desc
+```
+
+---
+
+### ✅ **Unique Users per Page (Engagement)**
+
+```kql
+pageViews
+| extend userId = tostring(customDimensions.userId)
+| summarize uniqueUsers = dcount(userId) by name
+| order by uniqueUsers desc
+```
+
+---
+
+### 🔍 **Notes**
+
+* `name` → Usually the page title (passed via `trackPageView({ name })`)
+* `url` → Full page URL
+* `customDimensions.userId` → Added via telemetry initializer in your script
+
+Let me know if you want to visualize bounce rate or time-on-page — that needs `pageViewPerformance` or `duration` fields.
