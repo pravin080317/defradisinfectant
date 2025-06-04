@@ -1,9 +1,31 @@
+union
+// Custom Login Events
+customEvents
+| where name == "LAPortalLogin"
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    userCouncil = tostring(customDimensions.userCouncil),
+    userStatus = tostring(customDimensions.status),
+    sessionId = tostring(customDimensions.sessionId),
+    eventType = "Login",
+    eventTime = timestamp,
+    page = ""
+
+,
+
+// Page Views
 pageViews
 | extend 
     userId = tostring(customDimensions.userId),
     userName = tostring(customDimensions.userName),
-    council = tostring(customDimensions.userCouncil),
-    sessionId = tostring(customDimensions.sessionId)
-| where isnotempty(userId)
-| summarize views = count() by userId, userName, council, sessionId
-| order by views desc
+    userCouncil = tostring(customDimensions.userCouncil),
+    userStatus = tostring(customDimensions.userStatus),
+    sessionId = tostring(customDimensions.sessionId),
+    eventType = "PageView",
+    eventTime = timestamp,
+    page = name
+
+// Combine and sort
+)
+| order by eventTime desc
