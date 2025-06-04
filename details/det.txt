@@ -1,33 +1,29 @@
-Here’s a **comprehensive KQL query** to retrieve all relevant fields logged by the **Application Insights telemetry script** you’ve implemented. It covers both **page views** and **custom events like LAPortalLogin**.
-
----
-
-### 🔍 **1. Combined Page Views & Login Events Summary**
-
-```kql
 union 
     pageViews
     | extend 
         type = "PageView",
+        timestamp = timestamp,
         userId = tostring(customDimensions.userId),
         userName = tostring(customDimensions.userName),
         userCouncil = tostring(customDimensions.userCouncil),
         userStatus = tostring(customDimensions.userStatus),
         sessionId = tostring(customDimensions.sessionId),
         pageTitle = name,
-        timestamp = timestamp
-,
+        loginTime = ""
+    ,
     customEvents
     | where name == "LAPortalLogin"
     | extend 
         type = "Login",
+        timestamp = timestamp,
         userId = tostring(customDimensions.userId),
         userName = tostring(customDimensions.userName),
         userCouncil = tostring(customDimensions.council),
         userStatus = tostring(customDimensions.status),
         sessionId = tostring(customDimensions.sessionId),
-        loginTime = tostring(customDimensions.loginTime),
-        pageTitle = ""
+        pageTitle = "",
+        loginTime = tostring(customDimensions.loginTime)
+        
 | project 
     type, 
     timestamp, 
@@ -39,48 +35,3 @@ union
     pageTitle, 
     loginTime
 | order by timestamp desc
-```
-
----
-
-### 📊 **2. Summary: Daily Active Users by Council**
-
-```kql
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    council = tostring(customDimensions.userCouncil)
-| where isnotempty(userId)
-| summarize uniqueUsers = dcount(userId) by bin(timestamp, 1d), council
-| order by timestamp desc
-```
-
----
-
-### 👥 **3. Concurrent Sessions Estimation**
-
-> This shows estimated active users in 15-minute time bins based on their session IDs.
-
-```kql
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId)
-| where isnotempty(userId)
-| summarize sessions = dcount(sessionId), users = dcount(userId) by bin(timestamp, 15m)
-| order by timestamp desc
-```
-
----
-
-### 🛠️ Notes
-
-* All `customDimensions` must exactly match what's being added in your script.
-* `loginTime` is a **string** in your script — for calculations, parse it using `parse_datetime()`.
-* To analyze durations or session end times, track a **"Logout"** event or calculate from last page view per session.
-
-Let me know if you want:
-
-* Session duration per user
-* Funnel/flow of pages per session
-* Filtering by specific council or username
