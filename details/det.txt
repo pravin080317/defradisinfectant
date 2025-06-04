@@ -1,24 +1,98 @@
-union 
-(
-    customEvents
-    | where name == "LAPortalLogin"
-    | extend
-        eventType = "Login",
-        userId = tostring(customDimensions.userId),
-        userName = tostring(customDimensions.userName),
-        userCouncil = tostring(customDimensions.council),
-        sessionId = tostring(customDimensions.sessionId),
-        activity = "Logged in"
-),
-(
-    pageViews
-    | extend
-        eventType = "PageView",
-        userId = tostring(customDimensions.userId),
-        userName = tostring(customDimensions.userName),
-        userCouncil = tostring(customDimensions.userCouncil),
-        sessionId = tostring(customDimensions.sessionId),
-        activity = strcat("Visited page: ", name)
-)
-| project timestamp, eventType, userId, userName, userCouncil, sessionId, activity
-| order by timestamp desc
+Here’s a structured approach using three KQL queries to address your full ask:
+
+---
+
+### ✅ 1. **Check for Duplicate Login Events**
+
+This query identifies users with multiple `LAPortalLogin` events within a short time frame (e.g., 10 minutes), which likely indicates **duplicate logins**:
+
+```kql
+customEvents
+| where name == "LAPortalLogin"
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    loginTime = todatetime(customDimensions.loginTime)
+| summarize loginCount = count(), 
+            minLoginTime = min(loginTime), 
+            maxLoginTime = max(loginTime) 
+  by userId, userName, bin(loginTime, 10m)
+| where loginCount > 1
+| order by userId, minLoginTime
+```
+
+> 🔎 This helps you detect login spikes for a user within the same 10-minute window — a strong indicator of duplicates.
+
+---
+
+### ✅ 2. **Validate Tracking Fields Are Present**
+
+This helps verify that key fields like userId, sessionId, and council are being recorded consistently in **login events**:
+
+```kql
+customEvents
+| where name == "LAPortalLogin"
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    userCouncil = tostring(customDimensions.council),
+    sessionId = tostring(customDimensions.sessionId)
+| summarize 
+    totalLogins = count(),
+    missingUserId = countif(isnull(userId) or userId == ""),
+    missingSessionId = countif(isnull(sessionId) or sessionId == ""),
+    missingCouncil = countif(isnull(userCouncil) or userCouncil == "")
+```
+
+> 🧪 This tells you if your script is capturing all the necessary fields or if something is being missed.
+
+---
+
+### ✅ 3. **Track Page Views per User Journey (with Session)**
+
+This provides a sequence of page views per user **grouped by session** so you can trace their full journey:
+
+```kql
+pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    userCouncil = tostring(customDimensions.userCouncil),
+    sessionId = tostring(customDimensions.sessionId),
+    pageTitle = name
+| project 
+    timestamp, 
+    userId, 
+    userName, 
+    userCouncil, 
+    sessionId, 
+    pageTitle
+| order by userId, sessionId, timestamp
+```
+
+> 📈 This helps you visualize the journey of each user across pages within the same session.
+
+---
+
+### ✅ Bonus (Optional):
+
+To visualize user journeys with gaps between events (useful for session timeout insight), use:
+
+```kql
+pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    sessionId = tostring(customDimensions.sessionId),
+    pageTitle = name,
+    ts = timestamp
+| order by userId, sessionId, ts
+| serialize
+| extend 
+    previousTs = prev(ts),
+    timeDiff = iff(isnull(previousTs), 0, datetime_diff("minute", ts, previousTs))
+| project userId, sessionId, ts, pageTitle, timeDiff
+```
+
+---
+
+Let me know if you want these queries visualized or filtered by a specific user or time period.
