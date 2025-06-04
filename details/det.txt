@@ -1,76 +1,25 @@
-You're right — the error likely means you're running into a syntax issue or the query structure isn’t recognized by the Kusto engine. Let’s clarify and provide **working, copy-paste ready KQL queries** for tracking page views from Application Insights:
+(function() {
+    const currentPageKey = "hasSentPageView_" + window.location.pathname;
+    const sessionTTL = 15 * 60 * 1000; // 15 minutes
+    const now = Date.now();
 
----
+    try {
+        const existing = JSON.parse(sessionStorage.getItem(currentPageKey) || "{}");
+        if (!existing.timestamp || (now - existing.timestamp) > sessionTTL) {
+            appInsights.trackPageView({
+                name: document.title,
+                properties: {
+                    userId: "{{ user.id | default: 'Anonymous' }}",
+                    userName: "{{ user.fullname | default: 'N/A' }}",
+                    userStatus: "{{ user ? 'LoggedIn' : 'Guest' }}",
+                    userCouncil: "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc | default: 'Unknown'}}",
+                    sessionId: sessionStorage.getItem("customSessionId")
+                }
+            });
 
-### ✅ 1. **Total Page Views Per Day**
-
-```kql
-pageViews
-| summarize totalViews = count() by bin(timestamp, 1d)
-| order by timestamp desc
-```
-
----
-
-### ✅ 2. **Page Views by Page Title and URL**
-
-```kql
-pageViews
-| summarize totalViews = count() by name, url
-| order by totalViews desc
-```
-
----
-
-### ✅ 3. **Page Views by User ID**
-
-```kql
-pageViews
-| extend userId = tostring(customDimensions.userId)
-| summarize totalViews = count() by userId
-| order by totalViews desc
-```
-
----
-
-### ✅ 4. **Page Views by User ID and Page Name**
-
-```kql
-pageViews
-| extend userId = tostring(customDimensions.userId)
-| summarize totalViews = count() by userId, name
-| order by totalViews desc
-```
-
----
-
-### ✅ 5. **Unique Users per Page**
-
-```kql
-pageViews
-| extend userId = tostring(customDimensions.userId)
-| summarize uniqueUsers = dcount(userId) by name
-| order by uniqueUsers desc
-```
-
----
-
-### ✅ 6. **Page View Timeline for Specific User**
-
-```kql
-pageViews
-| extend userId = tostring(customDimensions.userId)
-| where userId == "YOUR_USER_GUID_HERE"
-| project timestamp, name, url
-| order by timestamp asc
-```
-
----
-
-If your telemetry isn’t enriching `customDimensions.userId`, you can replace it with:
-
-```kql
-tostring(customDimensions["userId"])
-```
-
-Let me know if you'd like queries that also show session ID or correlate it with custom events (`customEvents` table).
+            sessionStorage.setItem(currentPageKey, JSON.stringify({ timestamp: now }));
+        }
+    } catch (e) {
+        console.error("Page view tracking failed:", e);
+    }
+})();
