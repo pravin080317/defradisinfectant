@@ -1,90 +1,97 @@
-Certainly — here is a **well-structured and Jira-ready description** summarizing the **performance degradation issue** on the `/ct-submitted-reports/` page of the LA Portal, with detailed analysis and recommended actions:
+{% assign page = request.params['page'] | default: 1 | plus: 0 %}
+{% assign pageSize = 20 %}
 
----
+<!-- Fetch submitted reports with server-side paging -->
+{% fetchxml reports %}
+<fetch version="1.0" output-format="xml-platform" mapping="logical" page="{{ page }}" count="{{ pageSize }}">
+  <entity name="voap_portalrequest">
+    <attribute name="voap_billingauthorityreportnumber" />
+    <attribute name="voap_billingauthorityreferencenumber" />
+    <attribute name="createdon" />
+    <attribute name="voap_newpropertyaddressline5postcode" />
+    <attribute name="voap_portalrequestid" />
+    <order attribute="createdon" descending="true" />
+    <filter type="and">
+      <condition attribute="statuscode" operator="in">
+        <value>400400001</value>
+        <value>564100003</value>
+      </condition>
+      <condition attribute="voap_bacode" operator="eq" value="{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}" />
+    </filter>
+  </entity>
+</fetch>
+{% endfetchxml %}
 
-### 📝 **Jira Update – Performance Analysis for `/ct-submitted-reports/` Page**
+<!-- Preload attachments in batch -->
+{% assign ids = reports.results.entities | map: 'voap_portalrequestid' | join: ',' %}
+{% fetchxml attachments %}
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="voap_portalfilemanagement">
+    <attribute name="voap_portalrequestlookup" />
+    <attribute name="voap_portalfilemanagementid" />
+    <filter>
+      <condition attribute="voap_portalrequestlookup" operator="in">
+        {% for id in ids %}<value>{{ id }}</value>{% endfor %}
+      </condition>
+    </filter>
+  </entity>
+</fetch>
+{% endfetchxml %}
 
-**Summary:**
-The `/ct-submitted-reports/` page in the LA Portal exhibits **progressive response time degradation** during performance tests. This has been confirmed through multiple test types including load, endurance, and stress tests. The issue directly impacts user experience under sustained or concurrent usage.
+<!-- Table UI -->
+<table class="govuk-table">
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th class="govuk-table__header">Billing authority report number</th>
+      <th class="govuk-table__header">Reference number</th>
+      <th class="govuk-table__header">Created on</th>
+      <th class="govuk-table__header">Postcode</th>
+      <th class="govuk-table__header">Documents</th>
+      <th class="govuk-table__header">Action</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for result in reports.results.entities %}
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">
+        <a href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}">{{ result.voap_billingauthorityreportnumber }}</a>
+      </td>
+      <td class="govuk-table__cell">{{ result.voap_billingauthorityreferencenumber }}</td>
+      <td class="govuk-table__cell">{{ result.createdon | date: 'dd MMM yyyy HH:mm' }}</td>
+      <td class="govuk-table__cell">{{ result.voap_newpropertyaddressline5postcode }}</td>
+      {% assign doccount = attachments.results.entities | where: 'voap_portalrequestlookup', result.voap_portalrequestid | size %}
+      <td class="govuk-table__cell">{{ doccount }}</td>
+      <td class="govuk-table__cell">
+        {% if doccount > 0 %}
+          <a class="govuk-link" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}#supporting-documents">View supporting documents</a>
+        {% else %}
+          <a class="govuk-link" href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ result.voap_portalrequestid }}">Add documents</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
----
-
-### ⚠️ **Issue Observed**
-
-* The page renders a table of submitted reports using data fetched from Dataverse via FetchXML.
-* The rendered content includes pagination and sorting UI elements styled using GOV.UK Design System.
-* **Performance testing results** indicate that the page:
-
-  * Starts with acceptable response times (\~7s)
-  * Gradually degrades to over 50–140 seconds under sustained load
-  * Reaches **error rates over 90%** during stress tests
-
----
-
-### 🔍 **Root Cause (Analysis)**
-
-1. **Full Dataset Loaded in One FetchXML Call (No Server-Side Pagination)**
-
-   * The current FetchXML query retrieves **all matching records** for the logged-in user's `BACode`.
-   * This is acceptable for small datasets, but scales poorly when the number of submissions grows.
-   * Every page load results in fetching **and rendering** the entire dataset into the DOM.
-
-2. **Pagination Implemented in JavaScript (Client-Side Only)**
-
-   * The GOV.UK pagination UI is present, but it only toggles row visibility via JavaScript.
-   * This means that **all records are loaded and stored in memory**, and DOM rows are hidden/shown as needed.
-   * This increases both **rendering time** and **browser memory consumption**, especially when record count is high.
-
-3. **N+1 FetchXML Pattern for Attachments**
-
-   * For each submitted report row, a separate FetchXML query is made to retrieve its supporting documents.
-   * Example: If 100 reports are returned, 100 additional queries are fired to fetch attachments.
-   * This significantly increases server load and adds latency, especially during concurrent access.
-
-4. **No Server-Side Sorting or Filtering**
-
-   * Sorting logic is handled via JavaScript on already-loaded data.
-   * This causes the entire DOM to be re-evaluated and updated on every sort operation.
-
-5. **Telemetry Noise**
-
-   * Calls to `/OneCollector/1.0/` were also noted in the NFT report, possibly due to embedded scripts.
-   * These can introduce additional latency during initial page load under stress conditions.
-
----
-
-### ✅ **What Needs to Be Done (Next Steps)**
-
-To address the root causes, the following steps are recommended:
-
-1. **Implement Server-Side Pagination**
-
-   * Update the FetchXML to retrieve only a fixed number of records per request (e.g., 20).
-   * Use `page` and `count` attributes in FetchXML to fetch specific record pages based on query parameters.
-   * This ensures the page never loads more than needed, reducing both network and DOM load.
-
-2. **Batch Attachment Retrieval**
-
-   * Instead of calling FetchXML per report row, aggregate all report IDs and retrieve matching attachments in one query.
-   * Match attachments to reports in Liquid using in-memory filters.
-
-3. **Remove Client-Side Pagination and Sorting Scripts**
-
-   * Discontinue use of JavaScript-based pagination (`displayTable()`, `generatePagination()` etc.)
-   * Optionally implement server-side sorting using `sort` and `dir` query parameters and modify FetchXML accordingly.
-
-4. **Performance Monitoring**
-
-   * Once the above changes are in place, re-run the endurance and stress tests.
-   * Monitor error rates, response time stability, and Dataverse API limits.
-
----
-
-### 📌 Current Status
-
-The issue is **not yet fixed**. Analysis is complete and a detailed remediation plan is ready.
-Implementation of server-side pagination and attachment batching is pending.
-
----
-
-Let me know if you’d like this broken down into bullet points for the Jira ticket fields like *“Cause”*, *“Impact”*, *“Proposed Fix”*, and *“ETA”*.
+<!-- Pagination -->
+{% assign totalRecords = reports.results.totalRecordCount | default: 0 %}
+{% assign totalPages = totalRecords | divided_by: pageSize | ceil %}
+<nav class="govuk-pagination" role="navigation" aria-label="Pagination">
+  <ul class="govuk-pagination__list">
+    {% if page > 1 %}
+      <li class="govuk-pagination__item govuk-pagination__item--prev">
+        <a class="govuk-link govuk-pagination__link" href="?page={{ page | minus: 1 }}">Previous</a>
+      </li>
+    {% endif %}
+    {% for p in (1..totalPages) %}
+      <li class="govuk-pagination__item {% if p == page %}govuk-pagination__item--current{% endif %}">
+        <a class="govuk-link govuk-pagination__link" href="?page={{ p }}">{{ p }}</a>
+      </li>
+    {% endfor %}
+    {% if page < totalPages %}
+      <li class="govuk-pagination__item govuk-pagination__item--next">
+        <a class="govuk-link govuk-pagination__link" href="?page={{ page | plus: 1 }}">Next</a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
