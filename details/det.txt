@@ -1,97 +1,21 @@
-{% assign page = request.params['page'] | default: 1 | plus: 0 %}
-{% assign pageSize = 20 %}
+Implement Conditional Enable/Disable Logic for Submission Buttons Across Upload Journeys
 
-<!-- Fetch submitted reports with server-side paging -->
-{% fetchxml reports %}
-<fetch version="1.0" output-format="xml-platform" mapping="logical" page="{{ page }}" count="{{ pageSize }}">
-  <entity name="voap_portalrequest">
-    <attribute name="voap_billingauthorityreportnumber" />
-    <attribute name="voap_billingauthorityreferencenumber" />
-    <attribute name="createdon" />
-    <attribute name="voap_newpropertyaddressline5postcode" />
-    <attribute name="voap_portalrequestid" />
-    <order attribute="createdon" descending="true" />
-    <filter type="and">
-      <condition attribute="statuscode" operator="in">
-        <value>400400001</value>
-        <value>564100003</value>
-      </condition>
-      <condition attribute="voap_bacode" operator="eq" value="{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}" />
-    </filter>
-  </entity>
-</fetch>
-{% endfetchxml %}
+📄 Description:
+As part of improving the user experience and submission flow consistency, we need to implement logic to conditionally enable or disable submission buttons across various upload paths. This includes:
 
-<!-- Preload attachments in batch -->
-{% assign ids = reports.results.entities | map: 'voap_portalrequestid' | join: ',' %}
-{% fetchxml attachments %}
-<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-  <entity name="voap_portalfilemanagement">
-    <attribute name="voap_portalrequestlookup" />
-    <attribute name="voap_portalfilemanagementid" />
-    <filter>
-      <condition attribute="voap_portalrequestlookup" operator="in">
-        {% for id in ids %}<value>{{ id }}</value>{% endfor %}
-      </condition>
-    </filter>
-  </entity>
-</fetch>
-{% endfetchxml %}
+Multiple Upload Reports – restrict submission until required files are uploaded
 
-<!-- Table UI -->
-<table class="govuk-table">
-  <thead class="govuk-table__head">
-    <tr class="govuk-table__row">
-      <th class="govuk-table__header">Billing authority report number</th>
-      <th class="govuk-table__header">Reference number</th>
-      <th class="govuk-table__header">Created on</th>
-      <th class="govuk-table__header">Postcode</th>
-      <th class="govuk-table__header">Documents</th>
-      <th class="govuk-table__header">Action</th>
-    </tr>
-  </thead>
-  <tbody class="govuk-table__body">
-    {% for result in reports.results.entities %}
-    <tr class="govuk-table__row">
-      <td class="govuk-table__cell">
-        <a href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}">{{ result.voap_billingauthorityreportnumber }}</a>
-      </td>
-      <td class="govuk-table__cell">{{ result.voap_billingauthorityreferencenumber }}</td>
-      <td class="govuk-table__cell">{{ result.createdon | date: 'dd MMM yyyy HH:mm' }}</td>
-      <td class="govuk-table__cell">{{ result.voap_newpropertyaddressline5postcode }}</td>
-      {% assign doccount = attachments.results.entities | where: 'voap_portalrequestlookup', result.voap_portalrequestid | size %}
-      <td class="govuk-table__cell">{{ doccount }}</td>
-      <td class="govuk-table__cell">
-        {% if doccount > 0 %}
-          <a class="govuk-link" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}#supporting-documents">View supporting documents</a>
-        {% else %}
-          <a class="govuk-link" href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ result.voap_portalrequestid }}">Add documents</a>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+Single Upload Submission – disable until the necessary fields/files are completed
 
-<!-- Pagination -->
-{% assign totalRecords = reports.results.totalRecordCount | default: 0 %}
-{% assign totalPages = totalRecords | divided_by: pageSize | ceil %}
-<nav class="govuk-pagination" role="navigation" aria-label="Pagination">
-  <ul class="govuk-pagination__list">
-    {% if page > 1 %}
-      <li class="govuk-pagination__item govuk-pagination__item--prev">
-        <a class="govuk-link govuk-pagination__link" href="?page={{ page | minus: 1 }}">Previous</a>
-      </li>
-    {% endif %}
-    {% for p in (1..totalPages) %}
-      <li class="govuk-pagination__item {% if p == page %}govuk-pagination__item--current{% endif %}">
-        <a class="govuk-link govuk-pagination__link" href="?page={{ p }}">{{ p }}</a>
-      </li>
-    {% endfor %}
-    {% if page < totalPages %}
-      <li class="govuk-pagination__item govuk-pagination__item--next">
-        <a class="govuk-link govuk-pagination__link" href="?page={{ page | plus: 1 }}">Next</a>
-      </li>
-    {% endif %}
-  </ul>
-</nav>
+Evidence Submission – prevent submission unless minimum criteria are met
+
+Scope:
+Analyse current UX behavior and backend triggers for each journey
+
+Sync with the Content and Design team to ensure messages or labels guide the user appropriately
+
+Identify common patterns or reuse options for the enable/disable logic
+
+Implement and test the changes in dev environment
+
+Include accessibility considerations (e.g., screen reader messages for disabled buttons)
