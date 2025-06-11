@@ -1,21 +1,25 @@
-Implement Conditional Enable/Disable Logic for Submission Buttons Across Upload Journeys
+Automate Scheduled Refresh of Power BI Datasets Across Data Sources
 
-📄 Description:
-As part of improving the user experience and submission flow consistency, we need to implement logic to conditionally enable or disable submission buttons across various upload paths. This includes:
+As more stakeholders depend on up-to-date data from various Power BI reports, the current manual refresh process is becoming time-consuming and unsustainable. This task aims to investigate and implement automation for refreshing the Power BI datasets that pull from multiple data sources.
 
-Multiple Upload Reports – restrict submission until required files are uploaded
+Objectives:
 
-Single Upload Submission – disable until the necessary fields/files are completed
+Identify all reports and datasets currently requiring manual refresh.
 
-Evidence Submission – prevent submission unless minimum criteria are met
+Evaluate if existing Power BI service settings (e.g., Scheduled Refresh in the Power BI Service) are sufficient.
 
-Scope:
-Analyse current UX behavior and backend triggers for each journey
+Where not sufficient, explore options such as:
 
-Sync with the Content and Design team to ensure messages or labels guide the user appropriately
+Power Automate for triggering refresh
 
-Identify common patterns or reuse options for the enable/disable logic
+Azure Data Factory or Logic Apps for more complex orchestration
 
-Implement and test the changes in dev environment
+Service principals or gateway configurations (if on-prem data sources involved)
 
-Include accessibility considerations (e.g., screen reader messages for disabled buttons)
+Define refresh intervals based on data sensitivity and stakeholder requirements.
+
+Expected Outcome:
+
+Automated, reliable dataset refresh setup with documentation.
+
+Reduced manual effort and improved data freshness across Power BI reports.
