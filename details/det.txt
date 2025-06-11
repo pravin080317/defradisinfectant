@@ -1,25 +1,46 @@
-Automate Scheduled Refresh of Power BI Datasets Across Data Sources
+RFC Title:
+LA Portal: Accessibility Fixes, Application Insights Enhancements, Multi-LA Support – Prod Deployment (v1.5.0)
 
-As more stakeholders depend on up-to-date data from various Power BI reports, the current manual refresh process is becoming time-consuming and unsustainable. This task aims to investigate and implement automation for refreshing the Power BI datasets that pull from multiple data sources.
+Change Summary:
+This RFC proposes deploying the latest LA Portal build (v1.5.0) to the production environment. The update includes:
 
-Objectives:
+Accessibility fixes following the full audit recommendations.
 
-Identify all reports and datasets currently requiring manual refresh.
+Application Insights instrumentation updates to address bug fixes and expand page-level tracking.
 
-Evaluate if existing Power BI service settings (e.g., Scheduled Refresh in the Power BI Service) are sufficient.
+Initial implementation for Multi-LA representation and user support.
 
-Where not sufficient, explore options such as:
+Deployment Components:
+Pipeline: LA Portal Azure DevOps Release Pipeline
 
-Power Automate for triggering refresh
+Build Version: 1.5.0
 
-Azure Data Factory or Logic Apps for more complex orchestration
+Previous Stable Build (for rollback): 1.1.1.001
 
-Service principals or gateway configurations (if on-prem data sources involved)
+Target Environment: Production
 
-Define refresh intervals based on data sensitivity and stakeholder requirements.
+Deployment Window: Out-of-hours (office downtime)
 
-Expected Outcome:
+Change Details:
+Accessibility Fixes: Corrected ARIA attributes, screen reader issues, and dynamic focus handling based on accessibility team’s audit feedback.
 
-Automated, reliable dataset refresh setup with documentation.
+Application Insights:
 
-Reduced manual effort and improved data freshness across Power BI reports.
+Fixed broken telemetry tracking across multiple pages
+
+Improved logging granularity for report submissions
+
+Enhanced error correlation for evidence uploads
+
+Multi-LA Representation:
+
+Backend and UI changes to support users associated with multiple Local Authorities
+
+Updated Power Automate flows and Portal User Setup tables
+
+Post-Deployment Actions:
+Clear the portal cache to ensure all updates are fully reflected on the production site.
+
+Rollback Plan:
+If any critical issues are encountered, the deployment will be rolled back by re-deploying the stable build v1.1.1.001 using the same release pipeline.
+
