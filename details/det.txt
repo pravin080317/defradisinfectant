@@ -1,46 +1,84 @@
-RFC Title:
-LA Portal: Accessibility Fixes, Application Insights Enhancements, Multi-LA Support – Prod Deployment (v1.5.0)
+Great — let’s start with **Workbook 1: Page Load Performance**.
 
-Change Summary:
-This RFC proposes deploying the latest LA Portal build (v1.5.0) to the production environment. The update includes:
+---
 
-Accessibility fixes following the full audit recommendations.
+### 📘 Workbook Name:
 
-Application Insights instrumentation updates to address bug fixes and expand page-level tracking.
+**“LA Portal – Page Load Performance”**
 
-Initial implementation for Multi-LA representation and user support.
+---
 
-Deployment Components:
-Pipeline: LA Portal Azure DevOps Release Pipeline
+### 🔧 Sections / Subtitles to Include:
 
-Build Version: 1.5.0
+| **Section Title**                  | **Purpose**                                            | **Chart Type**      | **Query Summary**                              |
+| ---------------------------------- | ------------------------------------------------------ | ------------------- | ---------------------------------------------- |
+| 🔹 **Average Page Load Time**      | Overall average load duration across pages             | Line Chart          | Duration trends over time per page             |
+| 🔹 **Slowest Pages**               | Identify slowest-loading pages by average duration     | Bar Chart           | Top 10 pages by highest average load time      |
+| 🔹 **Page Load by Browser**        | Compare load performance across browsers               | Column or Pie Chart | Browser-based load time analysis               |
+| 🔹 **Page Load by Council**        | Load experience differences by user council (BAC code) | Bar Chart           | Group by custom dimension `userCouncil`        |
+| 🔹 **Spike Detection (Load > 5s)** | Highlight any spikes in load time > 5s                 | Line Chart or Table | Visualize spikes grouped by page and timestamp |
 
-Previous Stable Build (for rollback): 1.1.1.001
+---
 
-Target Environment: Production
+### ✅ KQL Queries for Each Section
 
-Deployment Window: Out-of-hours (office downtime)
+#### **1. Average Page Load Time**
 
-Change Details:
-Accessibility Fixes: Corrected ARIA attributes, screen reader issues, and dynamic focus handling based on accessibility team’s audit feedback.
+```kql
+pageViews
+| extend pageName = name
+| summarize avgDuration = avg(duration) by pageName, bin(timestamp, 5m)
+| order by timestamp asc
+```
 
-Application Insights:
+#### **2. Slowest Pages**
 
-Fixed broken telemetry tracking across multiple pages
+```kql
+pageViews
+| summarize avgDuration = avg(duration), count_ = count() by name
+| top 10 by avgDuration desc
+```
 
-Improved logging granularity for report submissions
+#### **3. Page Load by Browser**
 
-Enhanced error correlation for evidence uploads
+```kql
+pageViews
+| summarize avgDuration = avg(duration), count_ = count() by client_Browser
+| order by avgDuration desc
+```
 
-Multi-LA Representation:
+#### **4. Page Load by Council**
 
-Backend and UI changes to support users associated with multiple Local Authorities
+```kql
+pageViews
+| extend userCouncil = tostring(customDimensions.userCouncil)
+| where userCouncil != ""
+| summarize avgDuration = avg(duration) by userCouncil
+| order by avgDuration desc
+```
 
-Updated Power Automate flows and Portal User Setup tables
+#### **5. Page Load Spikes (duration > 5s)**
 
-Post-Deployment Actions:
-Clear the portal cache to ensure all updates are fully reflected on the production site.
+```kql
+pageViews
+| where duration > 5000
+| summarize spikeCount = count() by name, bin(timestamp, 5m)
+| order by timestamp desc
+```
 
-Rollback Plan:
-If any critical issues are encountered, the deployment will be rolled back by re-deploying the stable build v1.1.1.001 using the same release pipeline.
+---
 
+### 📊 Chart Settings Example (for Avg Load Time)
+
+| **Setting**     | **Value**                          |
+| --------------- | ---------------------------------- |
+| Chart Type      | **Line Chart**                     |
+| X-axis Column   | `timestamp`                        |
+| Y-axis Column   | `avgDuration`                      |
+| Series Grouping | `pageName`                         |
+| Title           | **Average Page Load Time by Page** |
+| Threshold Line  | Optional (e.g., 5000ms)            |
+
+---
+
+Would you like me to walk you through setting this in the Azure Workbook UI or generate the workbook JSON to import directly?
