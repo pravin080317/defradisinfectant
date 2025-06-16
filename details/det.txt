@@ -1,28 +1,17 @@
-{% assign validResults = reports.results.entities | where: 'voap_portalrequestid' %}
-{% if validResults and validResults.size > 0 %}
-  {% assign ids = validResults | map: 'voap_portalrequestid' %}
-  {% if ids and ids.size > 0 %}
-    {% fetchxml attachments %}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-      <entity name="voap_portalfilemanagement">
-        <attribute name="voap_portalrequestlookup" />
-        <attribute name="voap_portalfilemanagementid" />
-        <filter>
-          <condition attribute="voap_portalrequestlookup" operator="in">
-            {% for id in ids %}
-              {% if id %}<value>{{ id }}</value>{% endif %}
-            {% endfor %}
-          </condition>
-          <condition attribute="statuscode" operator="in">
-            <value>695720002</value>
-            <value>695720010</value>
-            <value>695720003</value>
-            <value>695720011</value>
-            <value>695720007</value>
-          </condition>
-        </filter>
-      </entity>
-    </fetch>
-    {% endfetchxml %}
+{% assign ids = '' %}
+{% for item in reports.results.entities %}
+  {% if item.voap_portalrequestid != '' and item.voap_portalrequestid != null %}
+    {% assign ids = ids | append: item.voap_portalrequestid | append: ',' %}
   {% endif %}
+{% endfor %}
+{% assign ids = ids | split: ',' | uniq %}
+
+{% if ids and ids.size > 0 %}
+  <condition attribute="voap_portalrequestlookup" operator="in">
+    {% for id in ids %}
+      {% if id != '' and id != null %}
+        <value>{{ id }}</value>
+      {% endif %}
+    {% endfor %}
+  </condition>
 {% endif %}
