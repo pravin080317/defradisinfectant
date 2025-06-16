@@ -25,6 +25,29 @@
 </fetch>
 {% endfetchxml %}
 
+<!-- Optimized Attachment FetchXML using IN clause -->
+{% assign ids = reports.results.entities | map: 'voap_portalrequestid' | join: ',' %}
+{% fetchxml attachments %}
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="voap_portalfilemanagement">
+    <attribute name="voap_portalrequestlookup" />
+    <attribute name="voap_portalfilemanagementid" />
+    <filter>
+      <condition attribute="voap_portalrequestlookup" operator="in">
+        {% for id in ids %}<value>{{ id }}</value>{% endfor %}
+      </condition>
+      <condition attribute="statuscode" operator="in">
+        <value>695720002</value>
+        <value>695720010</value>
+        <value>695720003</value>
+        <value>695720011</value>
+        <value>695720007</value>
+      </condition>
+    </filter>
+  </entity>
+</fetch>
+{% endfetchxml %}
+
 <!-- Pagination controls -->
 {% assign totalRecords = reports.results.totalRecordCount | default: 0 %}
 {% assign totalPages = totalRecords | divided_by: pageSize | ceil %}
