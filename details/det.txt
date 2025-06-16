@@ -1,62 +1,49 @@
-Key Positive Observations
-Dashboard:
+{% assign page = request.params['page'] | default: 1 | plus: 0 %}
+{% assign pageSize = 20 %}
 
-Headers, links, and structure were correctly read by JAWS.
+<!-- Optimized FetchXML with paging and sorting -->
+{% assign sortField = request.params['sort'] | default: 'createdon' %}
+{% assign sortDir = request.params['dir'] | default: 'desc' %}
 
-GDS-compliant design helped with navigation and orientation.
+{% fetchxml reports %}
+<fetch version="1.0" output-format="xml-platform" mapping="logical" page="{{ page }}" count="{{ pageSize }}">
+  <entity name="voap_portalrequest">
+    <attribute name="voap_billingauthorityreportnumber" />
+    <attribute name="voap_billingauthorityreferencenumber" />
+    <attribute name="createdon" />
+    <attribute name="voap_newpropertyaddressline5postcode" />
+    <attribute name="voap_portalrequestid" />
+    <order attribute="{{ sortField }}" descending="{{ sortDir == 'desc' }}" />
+    <filter type="and">
+      <condition attribute="statuscode" operator="in">
+        <value>400400001</value>
+        <value>564100003</value>
+      </condition>
+      <condition attribute="voap_bacode" operator="eq" value="{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}" />
+    </filter>
+  </entity>
+</fetch>
+{% endfetchxml %}
 
-Used Insert + ↓ to read the whole page.
-
-Download Schedule Page:
-
-JAWS correctly recognized headers and form fields.
-
-Participant could navigate to radio buttons for file type selection.
-
-Understood options for downloading (e.g., XML, CSV).
-
-Found and activated the “Download as XML” button successfully.
-
-Table and Pagination:
-
-Table headers were announced and sortable (e.g., "Published Date").
-
-Sorting by column using keyboard was possible and accessible.
-
-Pagination links (Page 1, 2, 3…) were navigable.
-
-❗ Challenges Identified
-Overwhelming Amount of Content:
-
-JAWS reads from top-left to bottom-right; too many links and headings at once can be cognitively demanding.
-
-Participant had to re-listen multiple times to understand layout.
-
-Pagination Overload:
-
-Multiple page links (20+) clutter the JAWS links dialog box.
-
-Participant suggested a dropdown or filter/search to reduce overload.
-
-Schedule Naming Convention:
-
-File names (e.g., M011619-999-3330-Mar-2025) were cryptic and hard to distinguish.
-
-User could not infer meaning without additional context (e.g., authority name, version).
-
-Download Button Confusion:
-
-A heading titled “Download Schedule” caused confusion—it was not a button.
-
-Actual button was below, but JAWS did not distinguish them clearly.
-
-📌 Recommendations
-Shorten file names or provide clearer descriptions next to them.
-
-Clarify download button vs. heading with better semantic markup (e.g., role="button").
-
-Introduce search/filter functionality for large lists of schedules.
-
-Consider pagination alternatives like infinite scroll or dropdown selectors for keyboard users.
-
-Test across multiple assistive tech tools and provide labels or tooltips consistently.
+<!-- Pagination controls -->
+{% assign totalRecords = reports.results.totalRecordCount | default: 0 %}
+{% assign totalPages = totalRecords | divided_by: pageSize | ceil %}
+<nav class="govuk-pagination" role="navigation" aria-label="Pagination">
+  <ul class="govuk-pagination__list">
+    {% if page > 1 %}
+      <li class="govuk-pagination__item govuk-pagination__item--prev">
+        <a class="govuk-link govuk-pagination__link" href="?page={{ page | minus: 1 }}&sort={{ sortField }}&dir={{ sortDir }}">Previous</a>
+      </li>
+    {% endif %}
+    {% for p in (1..totalPages) %}
+      <li class="govuk-pagination__item {% if p == page %}govuk-pagination__item--current{% endif %}">
+        <a class="govuk-link govuk-pagination__link" href="?page={{ p }}&sort={{ sortField }}&dir={{ sortDir }}">{{ p }}</a>
+      </li>
+    {% endfor %}
+    {% if page < totalPages %}
+      <li class="govuk-pagination__item govuk-pagination__item--next">
+        <a class="govuk-link govuk-pagination__link" href="?page={{ page | plus: 1 }}&sort={{ sortField }}&dir={{ sortDir }}">Next</a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
