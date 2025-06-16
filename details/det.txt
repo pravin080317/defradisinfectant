@@ -1,84 +1,62 @@
-Great — let’s start with **Workbook 1: Page Load Performance**.
+Key Positive Observations
+Dashboard:
 
----
+Headers, links, and structure were correctly read by JAWS.
 
-### 📘 Workbook Name:
+GDS-compliant design helped with navigation and orientation.
 
-**“LA Portal – Page Load Performance”**
+Used Insert + ↓ to read the whole page.
 
----
+Download Schedule Page:
 
-### 🔧 Sections / Subtitles to Include:
+JAWS correctly recognized headers and form fields.
 
-| **Section Title**                  | **Purpose**                                            | **Chart Type**      | **Query Summary**                              |
-| ---------------------------------- | ------------------------------------------------------ | ------------------- | ---------------------------------------------- |
-| 🔹 **Average Page Load Time**      | Overall average load duration across pages             | Line Chart          | Duration trends over time per page             |
-| 🔹 **Slowest Pages**               | Identify slowest-loading pages by average duration     | Bar Chart           | Top 10 pages by highest average load time      |
-| 🔹 **Page Load by Browser**        | Compare load performance across browsers               | Column or Pie Chart | Browser-based load time analysis               |
-| 🔹 **Page Load by Council**        | Load experience differences by user council (BAC code) | Bar Chart           | Group by custom dimension `userCouncil`        |
-| 🔹 **Spike Detection (Load > 5s)** | Highlight any spikes in load time > 5s                 | Line Chart or Table | Visualize spikes grouped by page and timestamp |
+Participant could navigate to radio buttons for file type selection.
 
----
+Understood options for downloading (e.g., XML, CSV).
 
-### ✅ KQL Queries for Each Section
+Found and activated the “Download as XML” button successfully.
 
-#### **1. Average Page Load Time**
+Table and Pagination:
 
-```kql
-pageViews
-| extend pageName = name
-| summarize avgDuration = avg(duration) by pageName, bin(timestamp, 5m)
-| order by timestamp asc
-```
+Table headers were announced and sortable (e.g., "Published Date").
 
-#### **2. Slowest Pages**
+Sorting by column using keyboard was possible and accessible.
 
-```kql
-pageViews
-| summarize avgDuration = avg(duration), count_ = count() by name
-| top 10 by avgDuration desc
-```
+Pagination links (Page 1, 2, 3…) were navigable.
 
-#### **3. Page Load by Browser**
+❗ Challenges Identified
+Overwhelming Amount of Content:
 
-```kql
-pageViews
-| summarize avgDuration = avg(duration), count_ = count() by client_Browser
-| order by avgDuration desc
-```
+JAWS reads from top-left to bottom-right; too many links and headings at once can be cognitively demanding.
 
-#### **4. Page Load by Council**
+Participant had to re-listen multiple times to understand layout.
 
-```kql
-pageViews
-| extend userCouncil = tostring(customDimensions.userCouncil)
-| where userCouncil != ""
-| summarize avgDuration = avg(duration) by userCouncil
-| order by avgDuration desc
-```
+Pagination Overload:
 
-#### **5. Page Load Spikes (duration > 5s)**
+Multiple page links (20+) clutter the JAWS links dialog box.
 
-```kql
-pageViews
-| where duration > 5000
-| summarize spikeCount = count() by name, bin(timestamp, 5m)
-| order by timestamp desc
-```
+Participant suggested a dropdown or filter/search to reduce overload.
 
----
+Schedule Naming Convention:
 
-### 📊 Chart Settings Example (for Avg Load Time)
+File names (e.g., M011619-999-3330-Mar-2025) were cryptic and hard to distinguish.
 
-| **Setting**     | **Value**                          |
-| --------------- | ---------------------------------- |
-| Chart Type      | **Line Chart**                     |
-| X-axis Column   | `timestamp`                        |
-| Y-axis Column   | `avgDuration`                      |
-| Series Grouping | `pageName`                         |
-| Title           | **Average Page Load Time by Page** |
-| Threshold Line  | Optional (e.g., 5000ms)            |
+User could not infer meaning without additional context (e.g., authority name, version).
 
----
+Download Button Confusion:
 
-Would you like me to walk you through setting this in the Azure Workbook UI or generate the workbook JSON to import directly?
+A heading titled “Download Schedule” caused confusion—it was not a button.
+
+Actual button was below, but JAWS did not distinguish them clearly.
+
+📌 Recommendations
+Shorten file names or provide clearer descriptions next to them.
+
+Clarify download button vs. heading with better semantic markup (e.g., role="button").
+
+Introduce search/filter functionality for large lists of schedules.
+
+Consider pagination alternatives like infinite scroll or dropdown selectors for keyboard users.
+
+Test across multiple assistive tech tools and provide labels or tooltips consistently.
