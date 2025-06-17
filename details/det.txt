@@ -1,6 +1,35 @@
-{% assign pageNumber = request.querystring.page | default: 1 %}
-{% assign bacode     = user.voap_contact_ActiveAccount_account.voa_bacodeacc %}
+Below is the **full, end-to-end code** for your Power Pages “Submitted reports” page. It includes:
 
+1. **Filtered, paged FetchXML** (with an aggregate join to count supporting documents)
+2. A **Liquid table loop** that binds to the results
+3. Simple **Previous/Next** pagination links
+
+Paste this **entire block** into your page template (replacing your old FetchXML, table markup and pagination).
+
+```liquid
+<h1 class="govuk-heading-x1">Submitted reports</h1>
+
+<p class="govuk-body">
+  Reports will be removed from this list after they have been reviewed by the Valuation Office Agency.
+</p>
+<p class="govuk-body">
+  Changes are usually added to the schedules within 90 days. Make sure all reports contain the
+  <a class="govuk-link" href="/reason-codes-information-guidance/">required information</a>
+  and that you add any supporting information as soon as possible.
+</p>
+
+<h2 class="govuk-heading-1">All reports</h2>
+
+{%- comment -%}
+  1. Grab the user’s BA code and the current page number (default to 1)
+{%- endcomment -%}
+{% assign bacode     = user.voap_contact_ActiveAccount_account.voa_bacodeacc %}
+{% assign pageNumber = request.querystring.page | default: 1 %}
+
+{%- comment -%}
+  2. Fetch 20 records per page, filter by status + BA code,
+     and join in a count of supporting docs via an aggregate link-entity
+{%- endcomment -%}
 {% fetchxml reports %}
 <fetch
   aggregate="true"
@@ -12,26 +41,26 @@
   page="{{ pageNumber }}"
 >
   <entity name="voap_portalrequest">
-    <!-- 1. Group by the PK so each row stays unique -->
-    <attribute name="voap_portalrequestid"                       alias="requestId"              groupby="true" />
+    <!-- group on the PK so each row is unique -->
+    <attribute name="voap_portalrequestid" alias="requestId" groupby="true" />
 
-    <!-- 2. Bring back your key fields by grouping them (one-to-one with the ID) -->
-    <attribute name="voap_billingauthorityreportnumber"          alias="reportNumber"           groupby="true" />
-    <attribute name="voap_billingauthorityreferencenumber"       alias="referenceNumber"        groupby="true" />
-    <attribute name="voap_newpropertyaddressline5postcode"       alias="postcode"               groupby="true" />
+    <!-- group on one-to-one fields -->
+    <attribute name="voap_billingauthorityreportnumber"    alias="reportNumber"        groupby="true" />
+    <attribute name="voap_billingauthorityreferencenumber" alias="referenceNumber"     groupby="true" />
+    <attribute name="voap_newpropertyaddressline5postcode" alias="postcode"            groupby="true" />
 
-    <!-- 3. Aggregate the date so we don’t have to “group” on a DateTime -->
-    <attribute name="createdon"                                   alias="createdOn"              aggregate="max" />
+    <!-- aggregate the date -->
+    <attribute name="createdon"                              alias="createdOn"           aggregate="max" />
 
     <filter type="and">
       <condition attribute="statuscode" operator="in">
-        <value>400400001</value>
-        <value>564100003</value>
+        <value>400400001</value> <!-- Submitted -->
+        <value>564100003</value> <!-- Submitted w/ Address Errors -->
       </condition>
-      <condition attribute="voap_bacode"   operator="eq" value="{{ bacode }}" />
+      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
     </filter>
 
-    <!-- 4. Attachments count in one join -->
+    <!-- outer-join + count attachments -->
     <link-entity
       name="voap_portalfilemanagement"
       from="voap_portalrequestlookup"
@@ -56,8 +85,113 @@
       </filter>
     </link-entity>
 
-    <!-- 5. Sort by that aggregated date -->
+    <!-- sort by that max date -->
     <order alias="createdOn" descending="true" />
   </entity>
 </fetch>
 {% endfetchxml %}
+
+{%- comment -%}
+  3. Render the table
+{%- endcomment -%}
+<table class="govuk-table" id="submitted-reports">
+  <caption class="govuk-table_caption">
+    List of submitted reports (click a column header to sort)
+  </caption>
+  <thead class="govuk-table_head">
+    <tr class="govuk-table_row">
+      <th class="govuk-table_header">
+        <a href="#" onclick="event.preventDefault(); sortTable(0)" class="govuk-link sort-control" aria-sort="none">
+          Billing authority report number <span aria-hidden="true" class="sort-triangle"></span>
+        </a>
+      </th>
+      <th class="govuk-table_header">
+        <a href="#" onclick="event.preventDefault(); sortTable(1)" class="govuk-link sort-control" aria-sort="none">
+          Billing authority reference number <span aria-hidden="true" class="sort-triangle"></span>
+        </a>
+      </th>
+      <th class="govuk-table_header">
+        <a href="#" onclick="event.preventDefault(); sortTable(2, true)" class="govuk-link sort-control" aria-sort="none">
+          Date created <span aria-hidden="true" class="sort-triangle"></span>
+        </a>
+      </th>
+      <th class="govuk-table_header">
+        <a href="#" onclick="event.preventDefault(); sortTable(3)" class="govuk-link sort-control" aria-sort="none">
+          Postcode <span aria-hidden="true" class="sort-triangle"></span>
+        </a>
+      </th>
+      <th class="govuk-table_header">Supporting documents</th>
+      <th class="govuk-table_header">Action</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table_body">
+    {% for r in reports.results.entities %}
+      <tr class="govuk-table_row">
+        <td class="govuk-table_cell">
+          {% if r.reportNumber %}
+            <a class="govuk-link"
+               href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ r.requestId }}">
+              {{ r.reportNumber }}
+            </a>
+          {% endif %}
+        </td>
+        <td class="govuk-table_cell">{{ r.referenceNumber }}</td>
+        <td class="govuk-table_cell">
+          {{ r.createdOn | date:'dd MMM yyyy HH:mm' }}
+        </td>
+        <td class="govuk-table_cell">{{ r.postcode }}</td>
+        <td class="govuk-table_cell">{{ r.att.supportingDocumentsCount }}</td>
+        <td class="govuk-table_cell">
+          {% if r.att.supportingDocumentsCount == '0' %}
+            <a class="govuk-link"
+               href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ r.requestId }}">
+              Add documents
+              <span class="govuk-visually-hidden">
+                for report {{ r.reportNumber }}
+              </span>
+            </a>
+          {% else %}
+            <a class="govuk-link"
+               href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ r.requestId }}#supporting-documents">
+              View supporting documents
+              <span class="govuk-visually-hidden">
+                for report {{ r.reportNumber }}
+              </span>
+            </a>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{%- comment -%}
+  4. Pagination controls: only show “Prev” if page >1, “Next” if we got 20 items
+{%- endcomment -%}
+<nav class="govuk-pagination" role="navigation" aria-label="Results">
+  <div class="govuk-pagination_prev">
+    {% if pageNumber > 1 %}
+      <a class="govuk-link govuk-pagination_link" href="?page={{ pageNumber | minus: 1 }}" rel="prev">
+        Previous
+      </a>
+    {% endif %}
+  </div>
+  <div class="govuk-pagination_next">
+    {% if reports.results.entities.size == 20 %}
+      <a class="govuk-link govuk-pagination_link" href="?page={{ pageNumber | plus: 1 }}" rel="next">
+        Next
+      </a>
+    {% endif %}
+  </div>
+</nav>
+```
+
+---
+
+### Summary of what to check
+
+* **No more per-row attachment fetches** – we’re using one aggregated join.
+* **Pagination** uses `count="20"` and `page="{{ pageNumber }}"` in FetchXML plus simple `?page=` links.
+* **Sorting** still works client-side on the 20 rows you load.
+
+This should eliminate the extra round-trips and dramatically improve performance. Let me know once you’ve got data showing in the table, and we can polish any remaining styling or scripts!
