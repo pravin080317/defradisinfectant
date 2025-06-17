@@ -1,16 +1,3 @@
-<h1 class="govuk-heading-x1">Submitted reports</h1>
-
-<p class="govuk-body">
-  Reports will be removed from this list after they have been reviewed by the Valuation Office Agency.
-</p>
-<p class="govuk-body">
-  Changes are usually added to the schedules within 90 days. Make sure all reports contain the 
-  <a class="govuk-link" href="/reason-codes-information-guidance/">required information</a> 
-  and that you add any supporting information as soon as possible.
-</p>
-
-<h2 class="govuk-heading-1">All reports</h2>
-
 {% assign bacode = user.voap_contact_ActiveAccount_account.voa_bacodeacc %}
 {% assign pageNumber = request.querystring.page | default: 1 %}
 
@@ -26,20 +13,18 @@
   <entity name="voap_portalrequest">
     <filter type="and">
       <condition attribute="statuscode" operator="in">
-        <value>400400001</value> <!-- Submitted -->
-        <value>564100003</value> <!-- Submitted w/ Address Errors -->
+        <value>400400001</value>
+        <value>564100003</value>
       </condition>
       <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
     </filter>
 
-    <!-- Main fields -->
     <attribute name="voap_billingauthorityreportnumber" />
     <attribute name="voap_billingauthorityreferencenumber" />
     <attribute name="createdon" />
     <attribute name="voap_newpropertyaddressline5postcode" />
     <attribute name="voap_portalrequestid" />
 
-    <!-- Aggregate supporting-docs count -->
     <link-entity 
       name="voap_portalfilemanagement" 
       from="voap_portalrequestlookup" 
@@ -68,83 +53,3 @@
   </entity>
 </fetch>
 {% endfetchxml %}
-
-<table class="govuk-table" id="submitted-reports">
-  <caption class="govuk-table_caption">
-    List of submitted reports (click a column header to sort)
-  </caption>
-  <thead class="govuk-table_head">
-    <tr class="govuk-table_row">
-      <th class="govuk-table_header">
-        <a href="#" onclick="event.preventDefault(); sortTable(0)" class="govuk-link sort-control" aria-sort="none">
-          Billing authority report number <span aria-hidden="true" class="sort-triangle"></span>
-        </a>
-      </th>
-      <th class="govuk-table_header">
-        <a href="#" onclick="event.preventDefault(); sortTable(1)" class="govuk-link sort-control" aria-sort="none">
-          Billing authority reference number <span aria-hidden="true" class="sort-triangle"></span>
-        </a>
-      </th>
-      <th class="govuk-table_header">
-        <a href="#" onclick="event.preventDefault(); sortTable(2, true)" class="govuk-link sort-control" aria-sort="none">
-          Date created <span aria-hidden="true" class="sort-triangle"></span>
-        </a>
-      </th>
-      <th class="govuk-table_header">
-        <a href="#" onclick="event.preventDefault(); sortTable(3)" class="govuk-link sort-control" aria-sort="none">
-          Postcode <span aria-hidden="true" class="sort-triangle"></span>
-        </a>
-      </th>
-      <th class="govuk-table_header">Supporting documents</th>
-      <th class="govuk-table_header">Action</th>
-    </tr>
-  </thead>
-  <tbody class="govuk-table_body">
-    {% for result in reports.results.entities %}
-      <tr class="govuk-table_row">
-        <td class="govuk-table_cell">
-          {% if result.voap_billingauthorityreportnumber %}
-            <a class="govuk-link" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}">
-              {{ result.voap_billingauthorityreportnumber }}
-            </a>
-          {% endif %}
-        </td>
-        <td class="govuk-table_cell">{{ result.voap_billingauthorityreferencenumber }}</td>
-        <td class="govuk-table_cell">{{ result.createdon | date:'dd MMM yyyy HH:mm' }}</td>
-        <td class="govuk-table_cell">{{ result.voap_newpropertyaddressline5postcode }}</td>
-        <td class="govuk-table_cell">{{ result.att.supportingDocumentsCount }}</td>
-        <td class="govuk-table_cell">
-          {% if result.att.supportingDocumentsCount == '0' %}
-            <a class="govuk-link" href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ result.voap_portalrequestid }}">
-              Add documents<span class="govuk-visually-hidden"> for report {{ result.voap_billingauthorityreportnumber }}</span>
-            </a>
-          {% else %}
-            <a class="govuk-link" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}#supporting-documents">
-              View supporting documents<span class="govuk-visually-hidden"> for report {{ result.voap_billingauthorityreportnumber }}</span>
-            </a>
-          {% endif %}
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<nav class="govuk-pagination" role="navigation" aria-label="results">
-  <div class="govuk-pagination_prev">
-    {% if pageNumber > 1 %}
-      <a class="govuk-link govuk-pagination_link" href="?page={{ pageNumber | minus: 1 }}" rel="prev">
-        Previous
-      </a>
-    {% endif %}
-  </div>
-  <div class="govuk-pagination_next">
-    {%- comment -%}
-      Only show “Next” if we got a full page’s worth of data
-    {%- endcomment -%}
-    {% if reports.results.entities.size == 20 %}
-      <a class="govuk-link govuk-pagination_link" href="?page={{ pageNumber | plus: 1 }}" rel="next">
-        Next
-      </a>
-    {% endif %}
-  </div>
-</nav>
