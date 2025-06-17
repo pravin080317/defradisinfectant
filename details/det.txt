@@ -1,64 +1,17 @@
-{% assign bacode     = user.voap_contact_ActiveAccount_account.voa_bacodeacc %}
-{% assign pageNumber = request.querystring.page | default: 1 %}
-{% assign pageSize   = 20 %}
+<td class="govuk-table_cell">{{ result.supportingDocumentsCount }}</td>
 
-{% fetchxml reports %}
-<fetch
-  aggregate="true"
-  version="1.0"
-  output-format="xml-platform"
-  mapping="logical"
-  distinct="false"
-  count="{{ pageSize }}"
-  page="{{ pageNumber }}"
->
-  <entity name="voap_portalrequest">
-    <!-- group by the PK -->
-    <attribute name="voap_portalrequestid"                       alias="requestId"              groupby="true" />
-
-    <!-- group on one-to-one fields -->
-    <attribute name="voap_billingauthorityreportnumber"          alias="reportNumber"           groupby="true" />
-    <attribute name="voap_billingauthorityreferencenumber"       alias="referenceNumber"        groupby="true" />
-    <attribute name="voap_newpropertyaddressline5postcode"       alias="postcode"               groupby="true" />
-
-    <!-- aggregate the date so we don’t have to group on a DateTime -->
-    <attribute name="createdon"                                   alias="createdOn"              aggregate="max" />
-
-    <filter type="and">
-      <condition attribute="statuscode" operator="in">
-        <value>400400001</value> <!-- Submitted -->
-        <value>564100003</value> <!-- Submitted w/ Address Errors -->
-      </condition>
-      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
-    </filter>
-
-    <!-- outer‐join + count attachments in allowed statuses -->
-    <link-entity
-      name="voap_portalfilemanagement"
-      from="voap_portalrequestlookup"
-      to="voap_portalrequestid"
-      alias="att"
-      link-type="outer"
-      aggregate="true"
-    >
-      <attribute
-        name="voap_portalfilemanagementid"
-        alias="supportingDocumentsCount"
-        aggregate="countcolumn"
-      />
-      <filter type="and">
-        <condition attribute="statuscode" operator="in">
-          <value>695720002</value>
-          <value>695720010</value>
-          <value>695720003</value>
-          <value>695720011</value>
-          <value>695720007</value>
-        </condition>
-      </filter>
-    </link-entity>
-
-    <!-- order by the rolled‐up date -->
-    <order alias="createdOn" descending="true" />
-  </entity>
-</fetch>
-{% endfetchxml %}
+<td class="govuk-table_cell">
+  {% if result.supportingDocumentsCount == '0' %}
+    <a class="govuk-link"
+       href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ result.requestId }}">
+      Add documents
+      <span class="govuk-visually-hidden"> for report {{ result.reportNumber }}</span>
+    </a>
+  {% else %}
+    <a class="govuk-link"
+       href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.requestId }}#supporting-documents">
+      View supporting documents
+      <span class="govuk-visually-hidden"> for report {{ result.reportNumber }}</span>
+    </a>
+  {% endif %}
+</td>
