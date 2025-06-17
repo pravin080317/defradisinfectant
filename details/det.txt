@@ -12,12 +12,16 @@
   page="{{ pageNumber }}"
 >
   <entity name="voap_portalrequest">
-    <!-- only groupable attributes when aggregate=true -->
-    <attribute name="voap_portalrequestid"                     alias="requestId"              groupby="true" />
-    <attribute name="voap_billingauthorityreportnumber"        alias="reportNumber"           groupby="true" />
-    <attribute name="voap_billingauthorityreferencenumber"     alias="referenceNumber"        groupby="true" />
-    <attribute name="createdon"                                 alias="createdOn"              groupby="true" />
-    <attribute name="voap_newpropertyaddressline5postcode"     alias="postcode"               groupby="true" />
+    <!-- 1. Group by the PK so each row stays unique -->
+    <attribute name="voap_portalrequestid"                       alias="requestId"              groupby="true" />
+
+    <!-- 2. Bring back your key fields by grouping them (one-to-one with the ID) -->
+    <attribute name="voap_billingauthorityreportnumber"          alias="reportNumber"           groupby="true" />
+    <attribute name="voap_billingauthorityreferencenumber"       alias="referenceNumber"        groupby="true" />
+    <attribute name="voap_newpropertyaddressline5postcode"       alias="postcode"               groupby="true" />
+
+    <!-- 3. Aggregate the date so we don’t have to “group” on a DateTime -->
+    <attribute name="createdon"                                   alias="createdOn"              aggregate="max" />
 
     <filter type="and">
       <condition attribute="statuscode" operator="in">
@@ -27,7 +31,7 @@
       <condition attribute="voap_bacode"   operator="eq" value="{{ bacode }}" />
     </filter>
 
-    <!-- join & count attachments in one go -->
+    <!-- 4. Attachments count in one join -->
     <link-entity
       name="voap_portalfilemanagement"
       from="voap_portalrequestlookup"
@@ -52,7 +56,8 @@
       </filter>
     </link-entity>
 
-    <order attribute="createdon" descending="true" />
+    <!-- 5. Sort by that aggregated date -->
+    <order alias="createdOn" descending="true" />
   </entity>
 </fetch>
 {% endfetchxml %}
