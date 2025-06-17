@@ -1,17 +1,12 @@
-{% assign ids = '' %}
-{% for item in reports.results.entities %}
-  {% if item.voap_portalrequestid != '' and item.voap_portalrequestid != null %}
-    {% assign ids = ids | append: item.voap_portalrequestid | append: ',' %}
-  {% endif %}
-{% endfor %}
-{% assign ids = ids | split: ',' | uniq %}
+function getLowercaseExtensionFilename(file) {
+    const nameParts = file.name.split('.');
+    
+    // If no extension or hidden file (e.g., .gitignore), return as-is
+    if (nameParts.length < 2) return file.name;
 
-{% if ids and ids.size > 0 %}
-  <condition attribute="voap_portalrequestlookup" operator="in">
-    {% for id in ids %}
-      {% if id != '' and id != null %}
-        <value>{{ id }}</value>
-      {% endif %}
-    {% endfor %}
-  </condition>
-{% endif %}
+    const ext = nameParts.pop().toLowerCase(); // lowercase the extension
+    const baseName = nameParts.join('.');      // rejoin rest of filename
+
+    return `${baseName}.${ext}`;
+}
+let filenameUpdated = getLowercaseExtensionFilename(file);
