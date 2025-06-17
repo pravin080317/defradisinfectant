@@ -1,42 +1,45 @@
-{% assign bacode = user.voap_contact_ActiveAccount_account.voa_bacodeacc %}
 {% assign pageNumber = request.querystring.page | default: 1 %}
+{% assign bacode     = user.voap_contact_ActiveAccount_account.voa_bacodeacc %}
 
 {% fetchxml reports %}
-<fetch 
-  version="1.0" 
-  output-format="xml-platform" 
-  mapping="logical" 
+<fetch
+  aggregate="true"
+  version="1.0"
+  output-format="xml-platform"
+  mapping="logical"
   distinct="false"
-  count="20" 
+  count="20"
   page="{{ pageNumber }}"
 >
   <entity name="voap_portalrequest">
+    <!-- only groupable attributes when aggregate=true -->
+    <attribute name="voap_portalrequestid"                     alias="requestId"              groupby="true" />
+    <attribute name="voap_billingauthorityreportnumber"        alias="reportNumber"           groupby="true" />
+    <attribute name="voap_billingauthorityreferencenumber"     alias="referenceNumber"        groupby="true" />
+    <attribute name="createdon"                                 alias="createdOn"              groupby="true" />
+    <attribute name="voap_newpropertyaddressline5postcode"     alias="postcode"               groupby="true" />
+
     <filter type="and">
       <condition attribute="statuscode" operator="in">
         <value>400400001</value>
         <value>564100003</value>
       </condition>
-      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
+      <condition attribute="voap_bacode"   operator="eq" value="{{ bacode }}" />
     </filter>
 
-    <attribute name="voap_billingauthorityreportnumber" />
-    <attribute name="voap_billingauthorityreferencenumber" />
-    <attribute name="createdon" />
-    <attribute name="voap_newpropertyaddressline5postcode" />
-    <attribute name="voap_portalrequestid" />
-
-    <link-entity 
-      name="voap_portalfilemanagement" 
-      from="voap_portalrequestlookup" 
-      to="voap_portalrequestid" 
-      alias="att" 
-      link-type="outer" 
+    <!-- join & count attachments in one go -->
+    <link-entity
+      name="voap_portalfilemanagement"
+      from="voap_portalrequestlookup"
+      to="voap_portalrequestid"
+      alias="att"
+      link-type="outer"
       aggregate="true"
     >
-      <attribute 
-        name="voap_portalfilemanagementid" 
-        alias="supportingDocumentsCount" 
-        aggregate="countcolumn" 
+      <attribute
+        name="voap_portalfilemanagementid"
+        alias="supportingDocumentsCount"
+        aggregate="countcolumn"
       />
       <filter type="and">
         <condition attribute="statuscode" operator="in">
