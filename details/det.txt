@@ -1,161 +1,85 @@
-Below is the **full, end-to-end code** for your Power Pages “Submitted reports” page. It includes:
-
-1. **Filtered, paged FetchXML** (with an aggregate join to count supporting documents)
-2. A **Liquid table loop** that binds to the results
-3. Simple **Previous/Next** pagination links
-
-Paste this **entire block** into your page template (replacing your old FetchXML, table markup and pagination).
-
-```liquid
-<h1 class="govuk-heading-x1">Submitted reports</h1>
-
-<p class="govuk-body">
-  Reports will be removed from this list after they have been reviewed by the Valuation Office Agency.
-</p>
-<p class="govuk-body">
-  Changes are usually added to the schedules within 90 days. Make sure all reports contain the
-  <a class="govuk-link" href="/reason-codes-information-guidance/">required information</a>
-  and that you add any supporting information as soon as possible.
-</p>
-
-<h2 class="govuk-heading-1">All reports</h2>
-
-{%- comment -%}
-  1. Grab the user’s BA code and the current page number (default to 1)
-{%- endcomment -%}
-{% assign bacode     = user.voap_contact_ActiveAccount_account.voa_bacodeacc %}
-{% assign pageNumber = request.querystring.page | default: 1 %}
-
-{%- comment -%}
-  2. Fetch 20 records per page, filter by status + BA code,
-     and join in a count of supporting docs via an aggregate link-entity
-{%- endcomment -%}
-{% fetchxml reports %}
-<fetch
-  aggregate="true"
-  version="1.0"
-  output-format="xml-platform"
-  mapping="logical"
-  distinct="false"
-  count="20"
-  page="{{ pageNumber }}"
->
-  <entity name="voap_portalrequest">
-    <!-- group on the PK so each row is unique -->
-    <attribute name="voap_portalrequestid" alias="requestId" groupby="true" />
-
-    <!-- group on one-to-one fields -->
-    <attribute name="voap_billingauthorityreportnumber"    alias="reportNumber"        groupby="true" />
-    <attribute name="voap_billingauthorityreferencenumber" alias="referenceNumber"     groupby="true" />
-    <attribute name="voap_newpropertyaddressline5postcode" alias="postcode"            groupby="true" />
-
-    <!-- aggregate the date -->
-    <attribute name="createdon"                              alias="createdOn"           aggregate="max" />
-
-    <filter type="and">
-      <condition attribute="statuscode" operator="in">
-        <value>400400001</value> <!-- Submitted -->
-        <value>564100003</value> <!-- Submitted w/ Address Errors -->
-      </condition>
-      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
-    </filter>
-
-    <!-- outer-join + count attachments -->
-    <link-entity
-      name="voap_portalfilemanagement"
-      from="voap_portalrequestlookup"
-      to="voap_portalrequestid"
-      alias="att"
-      link-type="outer"
-      aggregate="true"
-    >
-      <attribute
-        name="voap_portalfilemanagementid"
-        alias="supportingDocumentsCount"
-        aggregate="countcolumn"
-      />
-      <filter type="and">
-        <condition attribute="statuscode" operator="in">
-          <value>695720002</value>
-          <value>695720010</value>
-          <value>695720003</value>
-          <value>695720011</value>
-          <value>695720007</value>
-        </condition>
-      </filter>
-    </link-entity>
-
-    <!-- sort by that max date -->
-    <order alias="createdOn" descending="true" />
-  </entity>
-</fetch>
-{% endfetchxml %}
-
-{%- comment -%}
-  3. Render the table
-{%- endcomment -%}
-<table class="govuk-table" id="submitted-reports">
+<table class="govuk-table" id="{{ tableid }}">
   <caption class="govuk-table_caption">
     List of submitted reports (click a column header to sort)
   </caption>
   <thead class="govuk-table_head">
     <tr class="govuk-table_row">
-      <th class="govuk-table_header">
-        <a href="#" onclick="event.preventDefault(); sortTable(0)" class="govuk-link sort-control" aria-sort="none">
-          Billing authority report number <span aria-hidden="true" class="sort-triangle"></span>
+      <th scope="col" class="govuk-table_header">
+        <a href="#" onclick="event.preventDefault(); sortTable(0)" class="govuk-link sort-control"
+           style="color: #005ea5"
+           aria-sort="none"
+           aria-label="Billing authority report number, not sorted. Activate to sort ascending.">
+          Billing authority report number
+          <span aria-hidden="true" class="sort-triangle"></span>
         </a>
       </th>
-      <th class="govuk-table_header">
-        <a href="#" onclick="event.preventDefault(); sortTable(1)" class="govuk-link sort-control" aria-sort="none">
-          Billing authority reference number <span aria-hidden="true" class="sort-triangle"></span>
+      <th scope="col" class="govuk-table_header">
+        <a href="#" onclick="event.preventDefault(); sortTable(1)" class="govuk-link sort-control"
+           style="color:#005ea5; white-space: nowrap;"
+           aria-sort="none"
+           aria-label="Billing authority reference number, not sorted. Activate to sort ascending.">
+          Billing authority reference number
+          <span aria-hidden="true" class="sort-triangle"></span>
         </a>
       </th>
-      <th class="govuk-table_header">
-        <a href="#" onclick="event.preventDefault(); sortTable(2, true)" class="govuk-link sort-control" aria-sort="none">
-          Date created <span aria-hidden="true" class="sort-triangle"></span>
+      <th scope="col" class="govuk-table_header">
+        <a href="#" onclick="event.preventDefault(); sortTable(2, true)" class="govuk-link sort-control"
+           style="color: #005ea5; white-space: nowrap;"
+           aria-sort="none"
+           aria-label="Date created, not sorted. Activate to sort ascending.">
+          Date created
+          <span aria-hidden="true" class="sort-triangle"></span>
         </a>
       </th>
-      <th class="govuk-table_header">
-        <a href="#" onclick="event.preventDefault(); sortTable(3)" class="govuk-link sort-control" aria-sort="none">
-          Postcode <span aria-hidden="true" class="sort-triangle"></span>
+      <th scope="col" class="govuk-table_header">
+        <a href="#" onclick="event.preventDefault(); sortTable(3)" class="govuk-link sort-control"
+           style="color:#005ea5; white-space: nowrap;"
+           aria-sort="none"
+           aria-label="Postcode, not sorted. Activate to sort ascending.">
+          Postcode
+          <span aria-hidden="true" class="sort-triangle"></span>
         </a>
       </th>
-      <th class="govuk-table_header">Supporting documents</th>
-      <th class="govuk-table_header">Action</th>
+      <th scope="col" class="govuk-table_header" style="color:#005ea5">
+        Supporting documents
+      </th>
+      <th scope="col" class="govuk-table_header" style="color:#005ea5">
+        Action
+      </th>
     </tr>
   </thead>
   <tbody class="govuk-table_body">
-    {% for r in reports.results.entities %}
+    {% for result in reports.results.entities %}
       <tr class="govuk-table_row">
         <td class="govuk-table_cell">
-          {% if r.reportNumber %}
-            <a class="govuk-link"
-               href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ r.requestId }}">
-              {{ r.reportNumber }}
+          {% if result.reportNumber %}
+            <a class="govuk-link" tabindex="0"
+               href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.requestId }}">
+              {{ result.reportNumber }}
             </a>
           {% endif %}
         </td>
-        <td class="govuk-table_cell">{{ r.referenceNumber }}</td>
+        <td class="govuk-table_cell">{{ result.referenceNumber }}</td>
         <td class="govuk-table_cell">
-          {{ r.createdOn | date:'dd MMM yyyy HH:mm' }}
+          {{ result.createdOn | date: 'dd MMM yyyy HH:mm' }}
         </td>
-        <td class="govuk-table_cell">{{ r.postcode }}</td>
-        <td class="govuk-table_cell">{{ r.att.supportingDocumentsCount }}</td>
+        <td class="govuk-table_cell">{{ result.postcode }}</td>
+        <td class="govuk-table_cell">{{ result.att.supportingDocumentsCount }}</td>
         <td class="govuk-table_cell">
-          {% if r.att.supportingDocumentsCount == '0' %}
-            <a class="govuk-link"
-               href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ r.requestId }}">
+          {% if result.att.supportingDocumentsCount == '0' %}
+            <a class="govuk-link" tabindex="0"
+               href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ result.requestId }}">
               Add documents
               <span class="govuk-visually-hidden">
-                for report {{ r.reportNumber }}
+                for report {{ result.reportNumber }}
               </span>
             </a>
           {% else %}
-            <a class="govuk-link"
-               href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ r.requestId }}#supporting-documents">
+            <a class="govuk-link" tabindex="0"
+               href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.requestId }}#supporting-documents">
               View supporting documents
               <span class="govuk-visually-hidden">
-                for report {{ r.reportNumber }}
+                for report {{ result.reportNumber }}
               </span>
             </a>
           {% endif %}
@@ -165,33 +89,21 @@ Paste this **entire block** into your page template (replacing your old FetchXML
   </tbody>
 </table>
 
-{%- comment -%}
-  4. Pagination controls: only show “Prev” if page >1, “Next” if we got 20 items
-{%- endcomment -%}
-<nav class="govuk-pagination" role="navigation" aria-label="Results">
+<nav class="govuk-pagination" role="navigation" aria-label="results">
   <div class="govuk-pagination_prev">
     {% if pageNumber > 1 %}
-      <a class="govuk-link govuk-pagination_link" href="?page={{ pageNumber | minus: 1 }}" rel="prev">
+      <a class="govuk-link govuk-pagination_link"
+         href="?page={{ pageNumber | minus: 1 }}" rel="prev">
         Previous
       </a>
     {% endif %}
   </div>
   <div class="govuk-pagination_next">
     {% if reports.results.entities.size == 20 %}
-      <a class="govuk-link govuk-pagination_link" href="?page={{ pageNumber | plus: 1 }}" rel="next">
+      <a class="govuk-link govuk-pagination_link"
+         href="?page={{ pageNumber | plus: 1 }}" rel="next">
         Next
       </a>
     {% endif %}
   </div>
 </nav>
-```
-
----
-
-### Summary of what to check
-
-* **No more per-row attachment fetches** – we’re using one aggregated join.
-* **Pagination** uses `count="20"` and `page="{{ pageNumber }}"` in FetchXML plus simple `?page=` links.
-* **Sorting** still works client-side on the 20 rows you load.
-
-This should eliminate the extra round-trips and dramatically improve performance. Let me know once you’ve got data showing in the table, and we can polish any remaining styling or scripts!
