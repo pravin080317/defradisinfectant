@@ -1,24 +1,3 @@
-{% assign bacode = user.voap_contact_ActiveAccount_account.voa_bacodeacc %}
-
-{% fetchxml totalCount %}
-<fetch aggregate="true" mapping="logical" distinct="false">
-  <entity name="voap_portalrequest">
-    <attribute name="voap_portalrequestid" alias="totalCount" aggregate="count" />
-    <filter type="and">
-      <condition attribute="statuscode" operator="in">
-        <value>400400001</value>
-        <value>564100003</value>
-      </condition>
-      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
-    </filter>
-  </entity>
-</fetch>
-{% endfetchxml %}
-
-{% assign totalRecords = totalCount.results.entities[0].totalCount | default: 0 %}
-{% assign totalPages = totalRecords | divided_by: pageSize | ceil %}
-
-
 <nav class="govuk-pagination" role="navigation" aria-label="Pagination">
   <div class="govuk-pagination_prev">
     {% if pageNumber > 1 %}
@@ -29,26 +8,27 @@
   </div>
 
   <ul class="govuk-pagination_list" id="pagination-container">
-    {% assign maxLinks = 5 %}
-    {% assign start = pageNumber | minus: 2 %}
-    {% assign end = pageNumber | plus: 2 %}
+    {% assign maxVisible = 5 %}
+    {% assign startPage = pageNumber | minus: 2 %}
+    {% assign endPage = pageNumber | plus: 2 %}
 
-    {% if start < 1 %}
-      {% assign end = end | plus: 1 | minus: start %}
-      {% assign start = 1 %}
+    {% if startPage < 1 %}
+      {% assign endPage = endPage | plus: 1 | minus: startPage %}
+      {% assign startPage = 1 %}
     {% endif %}
 
-    {% if end > totalPages %}
-      {% assign start = start | minus: (end | minus: totalPages) %}
-      {% assign end = totalPages %}
-      {% if start < 1 %}
-        {% assign start = 1 %}
+    {% if endPage > totalPages %}
+      {% assign startPage = startPage | minus: endPage | plus: totalPages %}
+      {% assign endPage = totalPages %}
+      {% if startPage < 1 %}
+        {% assign startPage = 1 %}
       {% endif %}
     {% endif %}
 
-    {% for i in (start..end) %}
+    {% for i in (startPage..endPage) %}
       <li class="govuk-pagination_item{% if i == pageNumber %} govuk-pagination_item--current{% endif %}">
-        <a class="govuk-link govuk-pagination_link" href="?page={{ i }}" aria-label="Page {{ i }}">
+        <a class="govuk-link govuk-pagination_link" href="?page={{ i }}"
+           aria-label="Page {{ i }}"{% if i == pageNumber %} aria-current="page"{% endif %}>
           {{ i }}
         </a>
       </li>
