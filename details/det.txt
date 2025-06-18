@@ -1,15 +1,54 @@
-Title:
-Access Request: Permissions to View la-reports Folder in bstiazstprdreports Storage Container (PROD)
+Here are the end-to-end steps to get your Application Insights–backed Power BI report set up with a scheduled refresh in the Power BI Service—no manual portal clicks needed once it’s in your pipeline:
 
-Description:
-Requesting access to the la-reports container located in the bstiazstprdreports storage account in the PROD environment.
+1. **Publish your report to Power BI Service**
+   In Power BI Desktop, click **Publish** on the Home ribbon and choose the workspace you want. This uploads your .pbix (including the Power Query that pulls from App Insights) into the Service as a dataset plus report. ([help.precoro.com][1])
 
-When attempting to access the container, the following error is encountered:
+2. **Verify or update your data-source credentials**
 
-“You do not have permissions to use the access key to list data.”
+   * In the Power BI Service, go to the workspace and click the **⚙️ Settings** gear, then choose the **Datasets + dataflows** tab.
+   * Under **Data source credentials**, find your Application Insights entry and click **Edit credentials**. Sign in via Azure AD (OAuth) or paste in your App Insights API key as you did in Desktop.
+   * Because App Insights is a cloud service, you do **not** need an on-premises gateway—your credentials carry over from Desktop. ([learn.microsoft.com][2], [learn.microsoft.com][3])
 
-We require this access to view and verify files in the schedules folder under this container as part of post-deployment validation and operational monitoring.
+3. **Turn on and configure Scheduled Refresh**
 
-Please grant appropriate RBAC/role permissions or provide alternate access guidance.
+   * Still in your dataset’s settings, scroll to the **Scheduled refresh** section and flip **Keep your data up to date** to **On**.
+   * Choose your frequency (e.g. daily or weekly) and the time slots you want. Pro workspaces let you pick up to **8** refreshes per day; Premium up to **48** per day. ([velosio.com][4], [learn.microsoft.com][3])
 
-Let me know if you want to add the object ID or subscription/resource group details from the error for clarity.
+4. **Save settings and (optionally) trigger a manual refresh**
+
+   * Click **Apply** or **Save** at the bottom.
+   * You can always hit **Refresh now** to pull data on-demand—this does **not** count against your scheduled-refresh quota. ([learn.microsoft.com][3])
+
+5. **Monitor Refresh History**
+
+   * Right-click your dataset in the workspace list (or click the **…** menu) and choose **Schedule Refresh**.
+   * In that panel, click **Refresh history** to see successes, failures, and any error details. ([stackoverflow.com][5])
+
+---
+
+Once this is in place, your App Insights data will flow into Power BI on the cadence you defined—no more manual trips into the portal required.
+
+[1]: https://help.precoro.com/how-to-set-up-a-scheduled-refresh-for-power-bi-1?utm_source=chatgpt.com "How to Set Up a Scheduled Refresh in Power BI - Knowledge Base"
+[2]: https://learn.microsoft.com/en-us/power-bi/connect-data/refresh-scheduled-refresh?utm_source=chatgpt.com "Configure scheduled refresh - Power BI | Microsoft Learn"
+[3]: https://learn.microsoft.com/en-us/power-bi/connect-data/refresh-data?utm_source=chatgpt.com "Data refresh in Power BI - Learn Microsoft"
+[4]: https://www.velosio.com/blog/getting-started-with-scheduled-refresh-in-power-bi/?utm_source=chatgpt.com "How to Set Up Scheduled Refresh in Microsoft Power BI | Velosio"
+[5]: https://stackoverflow.com/questions/36146941/the-data-is-not-getting-updated-when-integrating-application-insight-with-power?utm_source=chatgpt.com "The data is not getting updated when integrating application insight ..."
+
+
+
+When you import Application Insights data via Power Query into Power BI, it doesn’t auto-refresh in the service—you must configure a **scheduled refresh** on the dataset.  The limits are:
+
+* **Power BI Pro (shared capacity):** up to **8 scheduled refreshes** per 24-hour period ([learn.microsoft.com][1]).
+* **Power BI Premium (dedicated capacity):** up to **48 scheduled refreshes** per day (i.e. roughly every 30 minutes) ([learn.microsoft.com][1]).
+
+Some other things to know:
+
+* You choose fixed time slots (in the UI you can only pick the top or bottom of the hour—that is, :00 or :30) ([sqlservercentral.com][2]).
+* The service will attempt to kick off your refresh within 15 minutes before or after each scheduled slot ([learn.microsoft.com][3]).
+* **On-demand (“Refresh now”)** does not count against your scheduled-refresh quota.
+
+If you need more real-time data, you can switch to **DirectQuery** with **Automatic page refresh** (Premium only), or build a Power Automate flow / use the REST API to trigger refreshes beyond the UI limits.
+
+[1]: https://learn.microsoft.com/en-us/power-bi/connect-data/refresh-data?utm_source=chatgpt.com "Data refresh in Power BI - Learn Microsoft"
+[2]: https://www.sqlservercentral.com/forums/topic/schedule-a-powerbi-dataset-refresh-on-the-quarter-hour?utm_source=chatgpt.com "Schedule a PowerBI dataset refresh on the \"quarter\" hour"
+[3]: https://learn.microsoft.com/en-us/power-bi/connect-data/refresh-scheduled-refresh?utm_source=chatgpt.com "Configure scheduled refresh - Power BI | Microsoft Learn"
