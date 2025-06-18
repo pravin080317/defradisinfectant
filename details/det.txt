@@ -1,93 +1,81 @@
-Great! Let’s now work on **Point 3: User Journey Analysis** under the performance monitoring workbook.
-
-Here’s how you can structure this section with **KQL queries** and suggested **chart types** for each subtitle:
+Here’s a **structured summary** of the accessibility issues and guidance discussed during the call, focusing on HTML semantics, structure, and ARIA usage:
 
 ---
 
-## 📘 **User Journey Analysis**
+## ✅ **Summary of Accessibility Issues and Fixes**
 
-### 🧭 1. **Page Navigation Flow**
+### 🆗 1. **Issue #9297 – Address Lookup (Redundant Text / Heading Nesting)**
 
-*Track the sequence of pages users navigate through.*
+* **Problem:**
 
-```kql
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId),
-    page = name,
-    timestamp = timestamp
-| where isnotempty(userId) and userId != "Anonymous"
-| project userId, sessionId, page, timestamp
-| order by sessionId asc, timestamp asc
-```
+  * `H1` contained a **nested `label`**, causing redundant content and an invalid structure.
+  * Postcode field had a label **and** heading combined improperly.
 
-🔷 **Recommended Visual**:
+* **Fix Required:**
 
-* **Table** (for debugging or simple review)
-* Optional: Export this and generate Sankey-style navigation flow in Power BI
+  * Follow **GOV.UK Design System** pattern:
+
+    * Use **`<h1>`** for the **page heading only**.
+    * Follow it with a **`<label>`** for the input, **not nested** inside the `h1`.
+  * Use hint text and input separately, as per standard GOV.UK form layout.
 
 ---
 
-### ⏱ 2. **User Session Timelines**
+### ⚠️ 2. **Misuse of `h2` Headings Across Pages**
 
-*Visualize session duration and page sequence.*
+* **Problem:**
 
-```kql
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId),
-    page = name,
-    timestamp = timestamp
-| where isnotempty(userId) and userId != "Anonymous"
-| summarize sessionStart = min(timestamp), sessionEnd = max(timestamp), pagesVisited = make_list(page) by userId, sessionId
-| extend sessionDuration = datetime_diff("minute", sessionEnd, sessionStart)
-```
+  * Pages were using `h2` headings **unnecessarily**, even when only a single form/question exists.
+  * Introduces unnecessary "subsections", confusing for screen reader users.
 
-🔷 **Recommended Visual**:
+* **Guidance:**
 
-* **Grid/Table** with:
-
-  * `sessionId`
-  * `userId`
-  * `sessionStart`
-  * `sessionEnd`
-  * `sessionDuration`
-  * `pagesVisited`
-* Optionally use **Timeline** if visualizing trends over time
+  * **Only use `h2`** when the content truly **has a subsection** under the main `h1`.
+  * For **simple forms or single questions**, use **labels only**, **not headings**.
+  * **Feedback page** is a key example where `h2` should be **removed** and replaced with just `label`.
 
 ---
 
-### ❌ 3. **Drop-off Analysis**
+### ⚠️ 3. **Use of `role="alert"` on Individual Field Errors**
 
-*Identify which page is the last in the session.*
+* **Problem:**
 
-```kql
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId),
-    page = name,
-    timestamp = timestamp
-| where isnotempty(userId) and userId != "Anonymous"
-| summarize lastPageTime = max(timestamp) by sessionId
-| join kind=inner (
-    pageViews
-    | extend 
-        userId = tostring(customDimensions.userId),
-        sessionId = tostring(customDimensions.sessionId),
-        page = name,
-        timestamp = timestamp
-) on sessionId, $left.lastPageTime == $right.timestamp
-| summarize dropOffCount = count() by page
-| order by dropOffCount desc
-```
+  * `role="alert"` was used on individual error messages (e.g., inline field validation).
+  * Creates **redundant announcements** and **overlaps** with the main error summary.
 
-🔷 **Recommended Visual**:
+* **Fix Required:**
 
-* **Bar chart** showing `page` vs `dropOffCount`
+  * **Remove `role="alert"`** from inline error messages.
+  * Let the **error summary box (at top)** with `role="alert"` handle the announcement.
 
 ---
 
-Would you like to continue with **Crash Monitoring (Point 4)** or should I help you start building the workbook now in the Azure Portal UI?
+### 🟡 4. **General Recommendations & Action Points**
+
+| Area                     | Action                                                                                                |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `h1` and `label` nesting | Ensure **labels are not inside headings**                                                             |
+| Heading hierarchy        | **Remove `h2`** from simple forms unless a logical section is present                                 |
+| `role="alert"` misuse    | Use **only on the error summary**, not on inline field errors                                         |
+| Design System compliance | **Strictly follow GOV.UK Design System** structure to avoid extra `aria-describedby` or ID attributes |
+| Rollout caution          | Fix only where necessary — avoid over-applying global structural changes (like h2s) blindly           |
+| UAT rollout              | Apply scoped fixes → deploy → review with accessibility team                                          |
+
+---
+
+### 📅 **Next Steps**
+
+* Team to:
+
+  * Audit where unnecessary `h2`s have been applied.
+  * Remove `role="alert"` from inline errors.
+  * Restructure form pages per design system.
+* A follow-up call is scheduled (Friday suggested) to:
+
+  * Review updated pages.
+  * Validate consistent application of GOV.UK patterns.
+  * Identify any missed issues.
+
+---
+
+Let me know if you’d like this formatted into a dev Jira ticket summary or change log.
