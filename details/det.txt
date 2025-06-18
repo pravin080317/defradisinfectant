@@ -1,45 +1,15 @@
-<nav class="govuk-pagination" role="navigation" aria-label="Pagination">
-  <div class="govuk-pagination_prev">
-    {% if pageNumber > 1 %}
-      <a class="govuk-link govuk-pagination_link" href="?page={{ pageNumber | minus: 1 }}" rel="prev">
-        Previous<span class="govuk-visually-hidden"> page</span>
-      </a>
-    {% endif %}
-  </div>
+Title:
+Access Request: Permissions to View la-reports Folder in bstiazstprdreports Storage Container (PROD)
 
-  <ul class="govuk-pagination_list" id="pagination-container">
-    {% assign maxVisible = 5 %}
-    {% assign startPage = pageNumber | minus: 2 %}
-    {% assign endPage = pageNumber | plus: 2 %}
+Description:
+Requesting access to the la-reports container located in the bstiazstprdreports storage account in the PROD environment.
 
-    {% if startPage < 1 %}
-      {% assign endPage = endPage | plus: 1 | minus: startPage %}
-      {% assign startPage = 1 %}
-    {% endif %}
+When attempting to access the container, the following error is encountered:
 
-    {% if endPage > totalPages %}
-      {% assign startPage = startPage | minus: endPage | plus: totalPages %}
-      {% assign endPage = totalPages %}
-      {% if startPage < 1 %}
-        {% assign startPage = 1 %}
-      {% endif %}
-    {% endif %}
+“You do not have permissions to use the access key to list data.”
 
-    {% for i in (startPage..endPage) %}
-      <li class="govuk-pagination_item{% if i == pageNumber %} govuk-pagination_item--current{% endif %}">
-        <a class="govuk-link govuk-pagination_link" href="?page={{ i }}"
-           aria-label="Page {{ i }}"{% if i == pageNumber %} aria-current="page"{% endif %}>
-          {{ i }}
-        </a>
-      </li>
-    {% endfor %}
-  </ul>
+We require this access to view and verify files in the schedules folder under this container as part of post-deployment validation and operational monitoring.
 
-  <div class="govuk-pagination_next">
-    {% if pageNumber < totalPages %}
-      <a class="govuk-link govuk-pagination_link" href="?page={{ pageNumber | plus: 1 }}" rel="next">
-        Next<span class="govuk-visually-hidden"> page</span>
-      </a>
-    {% endif %}
-  </div>
-</nav>
+Please grant appropriate RBAC/role permissions or provide alternate access guidance.
+
+Let me know if you want to add the object ID or subscription/resource group details from the error for clarity.
