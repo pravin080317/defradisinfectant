@@ -1,71 +1,93 @@
-Here are the **KQL queries for Point 2 – Sessions Per User**, under the **Concurrent User Tracking** workbook.
+Great! Let’s now work on **Point 3: User Journey Analysis** under the performance monitoring workbook.
+
+Here’s how you can structure this section with **KQL queries** and suggested **chart types** for each subtitle:
 
 ---
 
-### 🧾 **1. Sessions Per User**
+## 📘 **User Journey Analysis**
 
-This query gives the **count of sessions per user** using `customDimensions.userId` and `customDimensions.sessionId`.
+### 🧭 1. **Page Navigation Flow**
 
-```kql
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId)
-| where isnotempty(userId) and userId != "Anonymous"
-| summarize sessionCount = dcount(sessionId) by userId
-| order by sessionCount desc
-```
-
----
-
-### 🧾 **2. Sessions Per User with Council Info**
-
-This helps correlate user activity with their **respective councils**:
-
-```kql
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    userCouncil = tostring(customDimensions.userCouncil),
-    sessionId = tostring(customDimensions.sessionId)
-| where isnotempty(userId) and userId != "Anonymous"
-| summarize sessionCount = dcount(sessionId) by userId, userCouncil
-| order by sessionCount desc
-```
-
----
-
-### 🧾 **3. Daily Sessions Per User Over Time**
-
-This version shows how many sessions a user had **per day**, useful for time-series visualizations:
+*Track the sequence of pages users navigate through.*
 
 ```kql
 pageViews
 | extend 
     userId = tostring(customDimensions.userId),
     sessionId = tostring(customDimensions.sessionId),
-    day = bin(timestamp, 1d)
+    page = name,
+    timestamp = timestamp
 | where isnotempty(userId) and userId != "Anonymous"
-| summarize sessionCount = dcount(sessionId) by day, userId
-| order by day asc
+| project userId, sessionId, page, timestamp
+| order by sessionId asc, timestamp asc
 ```
+
+🔷 **Recommended Visual**:
+
+* **Table** (for debugging or simple review)
+* Optional: Export this and generate Sankey-style navigation flow in Power BI
 
 ---
 
-### 🧾 **4. Average Sessions Per User**
+### ⏱ 2. **User Session Timelines**
 
-To measure engagement: how often each user returns (on average).
+*Visualize session duration and page sequence.*
 
 ```kql
 pageViews
 | extend 
     userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId)
+    sessionId = tostring(customDimensions.sessionId),
+    page = name,
+    timestamp = timestamp
 | where isnotempty(userId) and userId != "Anonymous"
-| summarize totalSessions = dcount(sessionId), totalUsers = dcount(userId)
-| extend avgSessionsPerUser = todouble(totalSessions) / totalUsers
+| summarize sessionStart = min(timestamp), sessionEnd = max(timestamp), pagesVisited = make_list(page) by userId, sessionId
+| extend sessionDuration = datetime_diff("minute", sessionEnd, sessionStart)
 ```
+
+🔷 **Recommended Visual**:
+
+* **Grid/Table** with:
+
+  * `sessionId`
+  * `userId`
+  * `sessionStart`
+  * `sessionEnd`
+  * `sessionDuration`
+  * `pagesVisited`
+* Optionally use **Timeline** if visualizing trends over time
 
 ---
 
-Would you like chart recommendations for each query in your Azure Workbook too?
+### ❌ 3. **Drop-off Analysis**
+
+*Identify which page is the last in the session.*
+
+```kql
+pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    sessionId = tostring(customDimensions.sessionId),
+    page = name,
+    timestamp = timestamp
+| where isnotempty(userId) and userId != "Anonymous"
+| summarize lastPageTime = max(timestamp) by sessionId
+| join kind=inner (
+    pageViews
+    | extend 
+        userId = tostring(customDimensions.userId),
+        sessionId = tostring(customDimensions.sessionId),
+        page = name,
+        timestamp = timestamp
+) on sessionId, $left.lastPageTime == $right.timestamp
+| summarize dropOffCount = count() by page
+| order by dropOffCount desc
+```
+
+🔷 **Recommended Visual**:
+
+* **Bar chart** showing `page` vs `dropOffCount`
+
+---
+
+Would you like to continue with **Crash Monitoring (Point 4)** or should I help you start building the workbook now in the Azure Portal UI?
