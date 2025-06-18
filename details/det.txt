@@ -1,11 +1,71 @@
-customEvents
-| extend fileName = tostring(customDimensions.fileName)
-| where isnotempty(fileName)
+Here are the **KQL queries for Point 2 – Sessions Per User**, under the **Concurrent User Tracking** workbook.
+
+---
+
+### 🧾 **1. Sessions Per User**
+
+This query gives the **count of sessions per user** using `customDimensions.userId` and `customDimensions.sessionId`.
+
+```kql
+pageViews
 | extend 
-    firstChar = substring(fileName, 0, 1),
-    extension = extract(@"\.([a-zA-Z0-9]+)$", 1, fileName)
-| where 
-    firstChar == toUpper(firstChar) 
-    or extension != tolower(extension)
-| project timestamp, name, fileName, firstChar, extension
-| order by timestamp desc
+    userId = tostring(customDimensions.userId),
+    sessionId = tostring(customDimensions.sessionId)
+| where isnotempty(userId) and userId != "Anonymous"
+| summarize sessionCount = dcount(sessionId) by userId
+| order by sessionCount desc
+```
+
+---
+
+### 🧾 **2. Sessions Per User with Council Info**
+
+This helps correlate user activity with their **respective councils**:
+
+```kql
+pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    userCouncil = tostring(customDimensions.userCouncil),
+    sessionId = tostring(customDimensions.sessionId)
+| where isnotempty(userId) and userId != "Anonymous"
+| summarize sessionCount = dcount(sessionId) by userId, userCouncil
+| order by sessionCount desc
+```
+
+---
+
+### 🧾 **3. Daily Sessions Per User Over Time**
+
+This version shows how many sessions a user had **per day**, useful for time-series visualizations:
+
+```kql
+pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    sessionId = tostring(customDimensions.sessionId),
+    day = bin(timestamp, 1d)
+| where isnotempty(userId) and userId != "Anonymous"
+| summarize sessionCount = dcount(sessionId) by day, userId
+| order by day asc
+```
+
+---
+
+### 🧾 **4. Average Sessions Per User**
+
+To measure engagement: how often each user returns (on average).
+
+```kql
+pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    sessionId = tostring(customDimensions.sessionId)
+| where isnotempty(userId) and userId != "Anonymous"
+| summarize totalSessions = dcount(sessionId), totalUsers = dcount(userId)
+| extend avgSessionsPerUser = todouble(totalSessions) / totalUsers
+```
+
+---
+
+Would you like chart recommendations for each query in your Azure Workbook too?
