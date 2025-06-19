@@ -1,4 +1,4 @@
-const fileStatus = document.getElementById("file-add-status");
-fileStatus.innerText = fileData.filename + " added. You still need to click ‘Continue to upload’ to finish.";
+const fileStatus = document.getElementById("file-remove-status");
+fileStatus.innerText = `"${fileName}" removed. It will not be uploaded.`;
 fileStatus.style.display = "block";
-fileStatus.focus(); // assistive tech announces it
+fileStatus.focus(); // ensure screen readers + magnifier see this
