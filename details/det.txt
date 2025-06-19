@@ -1,4 +1,57 @@
-const fileStatus = document.getElementById("file-remove-status");
-fileStatus.innerText = `"${fileName}" removed. It will not be uploaded.`;
-fileStatus.style.display = "block";
-fileStatus.focus(); // ensure screen readers + magnifier see this
+<!-- ✅ PLACE BELOW THE <h1> HEADER: Only visible when all files removed -->
+<div id="upload-status-summary" class="govuk-inset-text govuk-!-margin-top-4" role="status" aria-live="polite" style="display: none;">
+  All supporting documents have been removed. You can add more files using the form below.
+</div>
+
+<!-- ✅ PLACE INSIDE THE TABLE SECTION for file additions/removals -->
+<div id="upload-feedback-message" class="govuk-inset-text govuk-!-margin-bottom-4" role="status" aria-live="polite" style="display: none;"></div>
+
+<script>
+  // ✅ Call this function to display message globally (below H1)
+  function showGlobalUploadStatusMessage(message) {
+    const summaryEl = document.getElementById("upload-status-summary");
+    summaryEl.textContent = message;
+    summaryEl.style.display = "block";
+    summaryEl.setAttribute("tabindex", "-1");
+    summaryEl.focus();
+  }
+
+  // ✅ Call this function to show feedback within table section
+  function showInlineUploadFeedback(message) {
+    const messageEl = document.getElementById("upload-feedback-message");
+    messageEl.textContent = message;
+    messageEl.style.display = "block";
+    messageEl.setAttribute("tabindex", "-1");
+    messageEl.focus();
+  }
+
+  // ✅ Update title for accessibility on add/remove
+  function updatePageTitleWithContext(contextText) {
+    const titleEl = document.getElementsByTagName("title")[0];
+    const baseTitle = "Add supporting documents";
+    titleEl.innerText = contextText ? `Document update: ${contextText} - GOV.UK` : `${baseTitle} - GOV.UK`;
+  }
+
+  // ✅ Example hook for Add scenario
+  function handleFileAdded(filename) {
+    const message = `${filename} was added.`;
+    showInlineUploadFeedback(message);
+    updatePageTitleWithContext(`${filename} added`);
+  }
+
+  // ✅ Example hook for Remove scenario
+  function handleFileRemoved(filename, isLastFile) {
+    if (isLastFile) {
+      showGlobalUploadStatusMessage("All supporting documents have been removed. You can add more files using the form below.");
+    } else {
+      showInlineUploadFeedback(`${filename} was removed.`);
+    }
+    updatePageTitleWithContext(`${filename} removed`);
+  }
+
+  // Clear messages (optional utility)
+  function clearUploadMessages() {
+    document.getElementById("upload-status-summary").style.display = "none";
+    document.getElementById("upload-feedback-message").style.display = "none";
+  }
+</script>
