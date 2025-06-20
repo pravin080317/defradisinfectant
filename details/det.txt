@@ -1,57 +1,48 @@
-<!-- ✅ PLACE BELOW THE <h1> HEADER: Only visible when all files removed -->
-<div id="upload-status-summary" class="govuk-inset-text govuk-!-margin-top-4" role="status" aria-live="polite" style="display: none;">
-  All supporting documents have been removed. You can add more files using the form below.
-</div>
+You're absolutely right. Here's the **corrected and finalized summary** with that clarification:
 
-<!-- ✅ PLACE INSIDE THE TABLE SECTION for file additions/removals -->
-<div id="upload-feedback-message" class="govuk-inset-text govuk-!-margin-bottom-4" role="status" aria-live="polite" style="display: none;"></div>
+---
 
-<script>
-  // ✅ Call this function to display message globally (below H1)
-  function showGlobalUploadStatusMessage(message) {
-    const summaryEl = document.getElementById("upload-status-summary");
-    summaryEl.textContent = message;
-    summaryEl.style.display = "block";
-    summaryEl.setAttribute("tabindex", "-1");
-    summaryEl.focus();
-  }
+### ✅ Accessibility Issues & Fixes Summary (Evidence Page)
 
-  // ✅ Call this function to show feedback within table section
-  function showInlineUploadFeedback(message) {
-    const messageEl = document.getElementById("upload-feedback-message");
-    messageEl.textContent = message;
-    messageEl.style.display = "block";
-    messageEl.setAttribute("tabindex", "-1");
-    messageEl.focus();
-  }
+| **Issue Reported**                                                            | **Compliant Fix Implemented**                                                                 |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **1. Error summary focus not set**<br>Fails WCAG 2.4.3 (Focus Order)          | Focus now moves to `#error-summary` using `focus()` and `tabindex="-1"` for screen readers.   |
+| **2. Page title doesn’t update after error or action**                        | Title is **prefixed with "Error:" only when validation fails**, ensuring screen reader alert. |
+| **3. Heading and title mismatch**                                             | `<h1>` is now consistent with the `<title>` in all page states (upload, remove, etc.).        |
+| **4. Notification banner above `<h1>` not visible with magnification**        | Removed banner. Replaced with GOV.UK compliant `inset-text` messages for feedback.            |
+| **5. Screen reader not alerted when upload section appears**                  | Added `aria-live="polite"` and focus to the upload table section (`#hideshow`) dynamically.   |
+| **6. Users unclear about next steps after clicking "Add"**                    | Added `inset-text` for guidance: “File added. Select ‘Continue to upload’ to proceed.”        |
+| **7. After removing last file, user left without context**                    | When last file is removed, inset appears **below `<h1>`** and focus returns to file input.    |
+| **8. “Change” functionality resets focus (reported but not applicable here)** | Not applicable – no “Change” button on the Evidence page.                                     |
 
-  // ✅ Update title for accessibility on add/remove
-  function updatePageTitleWithContext(contextText) {
-    const titleEl = document.getElementsByTagName("title")[0];
-    const baseTitle = "Add supporting documents";
-    titleEl.innerText = contextText ? `Document update: ${contextText} - GOV.UK` : `${baseTitle} - GOV.UK`;
-  }
+---
 
-  // ✅ Example hook for Add scenario
-  function handleFileAdded(filename) {
-    const message = `${filename} was added.`;
-    showInlineUploadFeedback(message);
-    updatePageTitleWithContext(`${filename} added`);
-  }
+### ✅ Summary of Enhancements
 
-  // ✅ Example hook for Remove scenario
-  function handleFileRemoved(filename, isLastFile) {
-    if (isLastFile) {
-      showGlobalUploadStatusMessage("All supporting documents have been removed. You can add more files using the form below.");
-    } else {
-      showInlineUploadFeedback(`${filename} was removed.`);
-    }
-    updatePageTitleWithContext(`${filename} removed`);
-  }
+* **Inset text used in three cases**:
 
-  // Clear messages (optional utility)
-  function clearUploadMessages() {
-    document.getElementById("upload-status-summary").style.display = "none";
-    document.getElementById("upload-feedback-message").style.display = "none";
-  }
-</script>
+  * Below `<h1>` when all files are removed.
+  * Within table section on file addition.
+  * Focus is managed for each message.
+* **Banners removed** to reduce clutter and align with GOV.UK guidelines.
+* **File input remains the primary focus target** post-action (esp. on remove).
+* **ARIA & screen reader improvements**: clear roles, live regions, and labels.
+
+Let me know if you'd like this formatted for stakeholder comms or documentation.
+
+
+Certainly. Here's a **short and clear explanation** to defend the decision:
+
+---
+
+### 🔹 Page Title Not Updating After Action – Clarification
+
+* The **page title is updated with `Error:` prefix only during validation failures**.
+* This aligns with **WCAG 3.3.1 (Error Identification)** to clearly signal an error state to screen reader users and support assistive technologies.
+* **For successful actions** (like add or remove), we **retain the original page title** to avoid unnecessary page noise or confusion, as the heading and context remain the same.
+* User feedback for successful actions is provided via **inset text**, which is screen-reader and magnifier friendly, ensuring clear next-step guidance without altering the page identity.
+
+---
+
+Let me know if you'd like this added to a summary doc or slide.
+
