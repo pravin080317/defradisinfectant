@@ -1,48 +1,73 @@
-You're absolutely right. Here's the **corrected and finalized summary** with that clarification:
+Here is a draft of the **updated RFC** based on your inputs, incorporating the **external user onboarding** and **code changes**:
 
 ---
 
-### ✅ Accessibility Issues & Fixes Summary (Evidence Page)
+### **RFC Title:**
 
-| **Issue Reported**                                                            | **Compliant Fix Implemented**                                                                 |
-| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **1. Error summary focus not set**<br>Fails WCAG 2.4.3 (Focus Order)          | Focus now moves to `#error-summary` using `focus()` and `tabindex="-1"` for screen readers.   |
-| **2. Page title doesn’t update after error or action**                        | Title is **prefixed with "Error:" only when validation fails**, ensuring screen reader alert. |
-| **3. Heading and title mismatch**                                             | `<h1>` is now consistent with the `<title>` in all page states (upload, remove, etc.).        |
-| **4. Notification banner above `<h1>` not visible with magnification**        | Removed banner. Replaced with GOV.UK compliant `inset-text` messages for feedback.            |
-| **5. Screen reader not alerted when upload section appears**                  | Added `aria-live="polite"` and focus to the upload table section (`#hideshow`) dynamically.   |
-| **6. Users unclear about next steps after clicking "Add"**                    | Added `inset-text` for guidance: “File added. Select ‘Continue to upload’ to proceed.”        |
-| **7. After removing last file, user left without context**                    | When last file is removed, inset appears **below `<h1>`** and focus returns to file input.    |
-| **8. “Change” functionality resets focus (reported but not applicable here)** | Not applicable – no “Change” button on the Evidence page.                                     |
+External User Onboarding & Portal Code Updates Deployment – 09/07/2025
 
 ---
 
-### ✅ Summary of Enhancements
+### **Change Description:**
 
-* **Inset text used in three cases**:
-
-  * Below `<h1>` when all files are removed.
-  * Within table section on file addition.
-  * Focus is managed for each message.
-* **Banners removed** to reduce clutter and align with GOV.UK guidelines.
-* **File input remains the primary focus target** post-action (esp. on remove).
-* **ARIA & screen reader improvements**: clear roles, live regions, and labels.
-
-Let me know if you'd like this formatted for stakeholder comms or documentation.
-
-
-Certainly. Here's a **short and clear explanation** to defend the decision:
+This RFC covers the onboarding of external users into the LA Portal and deployment of minor code changes. The change involves uploading user data, configuring portal access, and deploying fixes to improve usability and accessibility.
 
 ---
 
-### 🔹 Page Title Not Updating After Action – Clarification
+### **Scope of Change:**
 
-* The **page title is updated with `Error:` prefix only during validation failures**.
-* This aligns with **WCAG 3.3.1 (Error Identification)** to clearly signal an error state to screen reader users and support assistive technologies.
-* **For successful actions** (like add or remove), we **retain the original page title** to avoid unnecessary page noise or confusion, as the heading and context remain the same.
-* User feedback for successful actions is provided via **inset text**, which is screen-reader and magnifier friendly, ensuring clear next-step guidance without altering the page identity.
+#### **User Onboarding Activities (16:00–18:00):**
+
+1. **User Provisioning (16:00–17:00):**
+
+   * Import the finalized Excel into the Portal User Setup Table.
+   * Re-import the same records with status change to trigger Power Automate flow and complete setup.
+
+2. **Verification Steps (17:00–18:00):**
+
+   * Use Advanced Find to confirm user status in the setup table.
+   * Validate Contact creation and access roles in the Portal.
+   * Perform any remediation if issues are observed.
+
+3. **Excel Columns to be Populated by Portal Dev Team:**
+
+   * Comments
+   * Portal Status
+   * Council ID
+   * Web Role ID
+
+#### **Code Changes Included in This Deployment:**
+
+* Update UI labels: Change the word **“Private”** to **“Public”** in applicable portal views.
+* **Enable/Disable Submit and Upload buttons**: Add logic to restrict re-submission or re-uploads once submitted.
+* **Normalize file extension**: Automatically convert uploaded file extensions to lowercase for consistency.
+* **Minor Accessibility Fixes**: Improve screen reader compatibility and label associations.
 
 ---
 
-Let me know if you'd like this added to a summary doc or slide.
+### **Implementation Plan:**
 
+* **Pre-requisites Complete**: Guest users created and access packages assigned.
+
+* **Dev Team**: Will test code changes in lower environments before deploying to Production.
+
+* **Deployment Window**:
+
+  * Scheduled: 09/07/2025 (16:00–18:00 BST)
+  * Monitoring & Validation: 03/06
+  * **Contingency Day**: 04/06 reserved for forward fixes.
+
+* **Post Deployment**:
+
+  * Portal cache will be cleared to reflect changes.
+  * Code deployment validation will be done via the Portal Management app in Power Pages.
+
+---
+
+### **Worst-Case Scenario Risk:**
+
+Minimal. If there are any pipeline or deployment errors, the release will **not proceed**. Previous build (v1.1.1.001) will be redeployed in case of rollback.
+
+---
+
+Let me know if you want this in Word or email format too.
