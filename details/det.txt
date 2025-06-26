@@ -1,22 +1,49 @@
-$(".govuk-back-link").on("click", function (e) {
-  // Check if user is on the Remove section
-  if ($("#removefile").is(":visible")) {
-    e.preventDefault();
+Here are the **Narrator notes (screen reader output)** from your session, cleaned up and listed **line by line** for clarity:
 
-    // Hide remove section and show main upload section
-    $("#removefile").hide();
-    $("#mainsection").show();
+---
 
-    // Restore focus to table heading or file input
-    setTimeout(() => {
-      const returnFocus = document.getElementById("tableHeadingSection") || document.getElementById("fileInputLabel");
-      if (returnFocus) {
-        returnFocus.setAttribute("tabindex", "-1");
-        returnFocus.focus();
-      }
-    }, 100);
-  } else {
-    // In other sections, use normal browser back
-    window.history.back();
-  }
-});
+### ✅ **Narrator Output (Evidence Upload Journey)**
+
+1. *Add supporting documents for report BA\_new\_011116, local authority portal, GOV.UK*
+2. *Link: Back*
+3. *Link: Home*
+4. *Link: Sign out*
+5. *Beta: This is a new service. Your feedback will help us improve it.*
+6. *Heading level 1: Add supporting documents for report BA\_new\_011116*
+7. *Button collapsed: How to add supporting documents*
+8. *Heading level 2: Upload a file*
+9. *Document description (optional)*
+10. *Edit: Document description*
+11. *You have 500 characters remaining*
+12. *Button: Add*
+13. *Button: Cancel*
+14. *Heading level 2: Need help?*
+15. *Open dialog: File name – add supporting document*
+16. *Heading level 2: Documents ready for upload*
+17. *Status: "doc evidence testing.doc has been added. Select ‘Choose file’ to add another document or choose ‘Continue to upload’."*
+18. *Non-uniform table with 2 rows, 3 columns*
+19. *Group: Document (header), File size (header), Action (header)*
+20. *Row: doc evidence testing.doc, 55 KB, Remove link*
+21. *Continue to upload button group*
+
+---
+
+### 🔁 **After clicking Remove:**
+
+22. *Heading level 1: Remove document section loaded. Choose Yes to confirm removal or No to return*
+23. *Heading level 1: Remove supporting document*
+24. *Radio button: Yes (not selected), one of two*
+25. *Radio button: No (not selected), two of two*
+
+---
+
+### 🔁 **After clicking No or removing a file and returning:**
+
+26. *Heading level 1: Add supporting documents for report BA\_new\_011116*
+27. *Heading level 2: Documents ready for upload*
+28. *Non-uniform table with 2 rows, 3 columns*
+29. *Row: testimage.png, 9 KB, Remove link*
+
+---
+
+Let me know if you want this exported into a doc, test case, or matched with WCAG success criteria.
