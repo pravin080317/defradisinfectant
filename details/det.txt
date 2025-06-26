@@ -1,49 +1,35 @@
-Here are the **Narrator notes (screen reader output)** from your session, cleaned up and listed **line by line** for clarity:
+if ($("#removefile").is(":hidden")) {
+  history.pushState({ section: "remove" }, "", "#removefile");
+  $("#mainsection").hide().attr("aria-hidden", "true");
+  $("#removefile").show().attr("aria-hidden", "false");
 
----
+  setTimeout(() => {
+    const h = document.getElementById("removeFileHeading");
+    if (h) {
+      h.setAttribute("tabindex", "-1");
+      h.focus();
+    }
+  }, 100);
+}
 
-### ✅ **Narrator Output (Evidence Upload Journey)**
 
-1. *Add supporting documents for report BA\_new\_011116, local authority portal, GOV.UK*
-2. *Link: Back*
-3. *Link: Home*
-4. *Link: Sign out*
-5. *Beta: This is a new service. Your feedback will help us improve it.*
-6. *Heading level 1: Add supporting documents for report BA\_new\_011116*
-7. *Button collapsed: How to add supporting documents*
-8. *Heading level 2: Upload a file*
-9. *Document description (optional)*
-10. *Edit: Document description*
-11. *You have 500 characters remaining*
-12. *Button: Add*
-13. *Button: Cancel*
-14. *Heading level 2: Need help?*
-15. *Open dialog: File name – add supporting document*
-16. *Heading level 2: Documents ready for upload*
-17. *Status: "doc evidence testing.doc has been added. Select ‘Choose file’ to add another document or choose ‘Continue to upload’."*
-18. *Non-uniform table with 2 rows, 3 columns*
-19. *Group: Document (header), File size (header), Action (header)*
-20. *Row: doc evidence testing.doc, 55 KB, Remove link*
-21. *Continue to upload button group*
 
----
+window.addEventListener("popstate", function (event) {
+  if (event.state && event.state.section === "remove") {
+    // Going forward into remove section
+    $("#mainsection").hide().attr("aria-hidden", "true");
+    $("#removefile").show().attr("aria-hidden", "false");
+  } else {
+    // Going back to main upload section
+    $("#removefile").hide().attr("aria-hidden", "true");
+    $("#mainsection").show().attr("aria-hidden", "false");
 
-### 🔁 **After clicking Remove:**
-
-22. *Heading level 1: Remove document section loaded. Choose Yes to confirm removal or No to return*
-23. *Heading level 1: Remove supporting document*
-24. *Radio button: Yes (not selected), one of two*
-25. *Radio button: No (not selected), two of two*
-
----
-
-### 🔁 **After clicking No or removing a file and returning:**
-
-26. *Heading level 1: Add supporting documents for report BA\_new\_011116*
-27. *Heading level 2: Documents ready for upload*
-28. *Non-uniform table with 2 rows, 3 columns*
-29. *Row: testimage.png, 9 KB, Remove link*
-
----
-
-Let me know if you want this exported into a doc, test case, or matched with WCAG success criteria.
+    setTimeout(() => {
+      const h = document.getElementById("supportingDocumentsHeading") || document.getElementById("fileInputLabel");
+      if (h) {
+        h.setAttribute("tabindex", "-1");
+        h.focus();
+      }
+    }, 100);
+  }
+});
