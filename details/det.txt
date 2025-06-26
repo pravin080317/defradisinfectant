@@ -1,103 +1,22 @@
-Here’s a clear, structured **test steps guide** for your team to validate the **“Upload Multiple Reports”** page accessibility fixes based on the reported issues and implemented solutions.
+$(".govuk-back-link").on("click", function (e) {
+  // Check if user is on the Remove section
+  if ($("#removefile").is(":visible")) {
+    e.preventDefault();
 
----
+    // Hide remove section and show main upload section
+    $("#removefile").hide();
+    $("#mainsection").show();
 
-## ✅ **Test Plan: Accessibility & Usability – Upload Multiple Reports Page**
-
-### 🔧 **Context:**
-
-The page supports uploading bulk reports (CSV/XLS/XML) and dynamically transitions between:
-
-* “Upload multiple reports” (initial screen)
-* “Report ready for upload” (post file add)
-* File removal and re-upload
-
-### 📋 **Key Fixes Addressed:**
-
-1. Back link now navigates correctly to "Upload multiple reports" screen.
-2. Page transition message (“Report ready for upload…”) is announced by screen reader.
-3. Visible `<h1>` heading is updated and focused.
-4. ARIA live region added to announce state changes like "report removed."
-5. File input does not override screen reader message (focus delay added).
-
----
-
-## 🧪 **Test Scenarios and Steps**
-
-### ✅ Scenario 1: Initial Page Load
-
-| Step | Action                            | Expected Outcome                                                                                     |
-| ---- | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 1    | Open `ct-upload-bulk-reports/`    | Page loads with heading **“Upload multiple reports”**                                                |
-| 2    | Use screen reader (Narrator/NVDA) | Announces: `heading level 1, Upload multiple reports`                                                |
-| 3    | Tab through page                  | Focus moves in logical order: Back link → Change billing authority → Templates → File upload control |
-
----
-
-### ✅ Scenario 2: Upload a Valid File
-
-| Step | Action                                    | Expected Outcome                                                                                   |
-| ---- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| 1    | Upload valid CSV/XLSX/XML file under 25MB | Page transitions to **“Report ready for upload”**                                                  |
-| 2    | Screen reader reads live update           | Announces: **“Report ready for upload page loaded. Use the Confirm and send button to continue.”** |
-| 3    | Focus lands on new `<h1>`                 | Announces: `heading level 1, Report ready for upload`                                              |
-| 4    | Tab navigation                            | Moves to report table → “Change” link → Confirm and send button                                    |
-
----
-
-### ✅ Scenario 3: Remove File via “Change”
-
-| Step | Action                                                     | Expected Outcome                                                                            |
-| ---- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| 1    | Click “Change” link                                        | File is removed, upload form is shown again                                                 |
-| 2    | Screen reader announces change                             | Announces: **“Report removed. You can upload a different file.”** before file input is read |
-| 3    | Focus lands on file input                                  | Narrator reads: `Upload a file. No file chosen.`                                            |
-| 4    | Confirm heading is now back to **Upload multiple reports** | Announces correct updated heading                                                           |
-
----
-
-### ✅ Scenario 4: Invalid File Type / Size
-
-| Step | Action                            | Expected Outcome                                                            |
-| ---- | --------------------------------- | --------------------------------------------------------------------------- |
-| 1    | Upload `.pdf` or unsupported file | Error summary appears with appropriate message                              |
-| 2    | Screen reader reads error         | Announces: `There is a problem. File format must be XML, XLS, XLSX or CSV.` |
-| 3    | Focus moves to file input         | Error message associated using `aria-describedby`                           |
-| 4    | Try oversized file (>25MB)        | Similar behavior; error about file size is read aloud                       |
-
----
-
-### ✅ Scenario 5: Back Link Navigation
-
-| Step | Action                                              | Expected Outcome                                 |
-| ---- | --------------------------------------------------- | ------------------------------------------------ |
-| 1    | From “Report ready for upload” page, click **Back** | Returns to “Upload multiple reports”             |
-| 2    | URL remains same (query string may differ)          | Heading updates to initial state                 |
-| 3    | Screen reader confirms page change                  | Reads: `Upload multiple reports heading level 1` |
-
----
-
-## ✅ Devices and Tools to Use
-
-| Tool                                  | Purpose                                                  |
-| ------------------------------------- | -------------------------------------------------------- |
-| Narrator (Windows)                    | Default screen reader                                    |
-| NVDA (optional)                       | Enhanced keyboard/screen reader testing                  |
-| Keyboard only (Tab, Shift+Tab, Enter) | Ensure full keyboard navigation                          |
-| Chrome or Edge                        | Confirm expected browser behavior                        |
-| Mobile VoiceOver (optional)           | Optional test for mobile users (if portal is responsive) |
-
----
-
-## ✅ Acceptance Criteria Summary
-
-* [ ] Only one `<h1>` is visible and correctly updated per screen state.
-* [ ] ARIA live region announces content transitions and errors.
-* [ ] File removal message is read **before** file input focus.
-* [ ] Back link navigates correctly and maintains heading context.
-* [ ] Errors are announced and associated with file input.
-* [ ] No accessibility violations in heading structure, focus, or navigation.
-
----
-
-Let me know if you want this converted into a markdown checklist, Excel QA tracker format, or an Azure DevOps test case template.
+    // Restore focus to table heading or file input
+    setTimeout(() => {
+      const returnFocus = document.getElementById("tableHeadingSection") || document.getElementById("fileInputLabel");
+      if (returnFocus) {
+        returnFocus.setAttribute("tabindex", "-1");
+        returnFocus.focus();
+      }
+    }, 100);
+  } else {
+    // In other sections, use normal browser back
+    window.history.back();
+  }
+});
