@@ -1,35 +1,14 @@
-if ($("#removefile").is(":hidden")) {
-  history.pushState({ section: "remove" }, "", "#removefile");
-  $("#mainsection").hide().attr("aria-hidden", "true");
-  $("#removefile").show().attr("aria-hidden", "false");
-
-  setTimeout(() => {
-    const h = document.getElementById("removeFileHeading");
-    if (h) {
-      h.setAttribute("tabindex", "-1");
-      h.focus();
-    }
-  }, 100);
-}
-
-
-
-window.addEventListener("popstate", function (event) {
-  if (event.state && event.state.section === "remove") {
-    // Going forward into remove section
-    $("#mainsection").hide().attr("aria-hidden", "true");
-    $("#removefile").show().attr("aria-hidden", "false");
-  } else {
-    // Going back to main upload section
-    $("#removefile").hide().attr("aria-hidden", "true");
-    $("#mainsection").show().attr("aria-hidden", "false");
-
-    setTimeout(() => {
-      const h = document.getElementById("supportingDocumentsHeading") || document.getElementById("fileInputLabel");
-      if (h) {
-        h.setAttribute("tabindex", "-1");
-        h.focus();
-      }
-    }, 100);
-  }
-});
+SELECT 
+    a.Name AS AccountName,
+    c.FullName AS ContactName,
+    c.ContactId AS ContactId,
+    p.Email AS PortalUserEmail,
+    p.new_portalusersetupid AS PortalUserId
+FROM 
+    Contact c
+INNER JOIN 
+    new_portalusersetup p ON c.EmailAddress1 = p.Email
+INNER JOIN 
+    Account a ON a.AccountId = c.ParentCustomerId
+WHERE 
+    p.Email IN ('user1@example.com', 'user2@example.com') -- Add your imported users' emails here
