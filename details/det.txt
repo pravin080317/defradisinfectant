@@ -1,19 +1,15 @@
-SELECT *
-FROM (
-    SELECT
-        pfm.voap_filename AS [FileName],
-        pfm.voap_filesizeinkb AS [FileSizeKB],
-        pfm.createdon AS [DateUploaded],
-        pfm.voap_loggedinuser AS [UserName],
-        pfm.voap_billingauthority AS [BANumber],
-        RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1) AS [Extension]
-    FROM dbo.voap_portalfilemanagement pfm
-    WHERE
-        pfm.voap_uploadtypename = 'Evidence'
-        AND pfm.statuscodename != 'Complete'
-        AND pfm.voap_filename LIKE '%.%'
-) AS Derived
+SELECT
+    pfm.voap_filename AS FileName,
+    pfm.statuscodename AS Status,
+    pfm.createdon AS DateUploaded,
+    pfm.voap_loggedinuser AS UserName,
+    pfm.voap_billingauthority AS BACode,
+    RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1) AS Extension
+FROM dbo.voap_portalfilemanagement pfm
 WHERE
-    LOWER([Extension]) != 'jpeg'
-    AND PATINDEX('%[A-Z]%', [Extension]) > 0
-ORDER BY [DateUploaded] DESC;
+    pfm.voap_filename LIKE '%.%' -- ensure file has extension
+    AND pfm.voap_uploadtypename = 'Evidence' -- filter for evidence uploads
+    AND pfm.statuscodename IS NOT NULL -- ensure status exists
+    AND PATINDEX('%[A-Z]%', RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) > 0 -- extension has uppercase
+    AND LOWER(RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) != 'jpeg' -- exclude jpeg
+ORDER BY pfm.createdon DESC;
