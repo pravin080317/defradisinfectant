@@ -13,10 +13,7 @@ LEFT JOIN dbo.voap_portalrequest pr
 WHERE 
     pfm.voap_uploadtypename = 'Evidence'
     AND pfm.statuscodename != 'Complete'
-    AND (
-        pfm.voap_filename LIKE '%.DOCX' OR
-        pfm.voap_filename LIKE '%.Docx' OR
-        pfm.voap_filename LIKE '%.docx' OR
-        pfm.voap_filename LIKE '%.DOC'
-    )
+    AND pfm.voap_filename LIKE '%.%'
+    AND RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1) COLLATE Latin1_General_CS_AS 
+        LIKE '%[A-Z]%'
 ORDER BY pfm.createdon DESC;
