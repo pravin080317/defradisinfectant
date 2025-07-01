@@ -1,21 +1,21 @@
-SELECT 
+SELECT
     pfm.voap_filename AS [File Name],
-    pfm.voap_filesize AS [File Size (KB)],
+    pfm.voap_filesizeinkb AS [File Size (KB)],
     pfm.createdon AS [Date Uploaded],
     RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1) AS [Extension]
 FROM dbo.voap_portalfilemanagement pfm
-WHERE 
+WHERE
     pfm.voap_uploadtypename = 'Evidence'
     AND pfm.statuscodename != 'Complete'
-    AND pfm.voap_filename LIKE '%.%'  -- ensure there's a dot
-    AND 
-    (
-        -- Extract extension
-        PATINDEX('%[A-Z]%', RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) > 0
-    )
-    AND 
-    (
-        -- Exclude jpeg (in any case)
-        LOWER(RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) <> 'jpeg'
+    AND pfm.voap_filename LIKE '%.%'
+    AND (
+        -- Extracted extension
+        (
+            -- Extension is NOT 'jpeg' (case-insensitive)
+            LOWER(RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) != 'jpeg'
+            AND
+            -- Extension contains at least one uppercase letter
+            PATINDEX('%[A-Z]%', RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) > 0
+        )
     )
 ORDER BY pfm.createdon DESC;
