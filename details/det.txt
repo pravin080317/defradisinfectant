@@ -1,21 +1,21 @@
-SELECT
-    pfm.voap_filename AS [File Name],
-    pfm.voap_filesizeinkb AS [File Size (KB)],
-    pfm.createdon AS [Date Uploaded],
-    RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1) AS [Extension]
-FROM dbo.voap_portalfilemanagement pfm
+WITH FileExtensions AS (
+    SELECT
+        pfm.voap_filename AS [FileName],
+        pfm.voap_filesizeinkb AS [FileSizeKB],
+        pfm.createdon AS [DateUploaded],
+        pfm.voap_loggedinuser AS [UserName],
+        pfm.voap_billingauthority AS [BANumber],
+        RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1) AS [Extension]
+    FROM dbo.voap_portalfilemanagement pfm
+    WHERE
+        pfm.voap_uploadtypename = 'Evidence'
+        AND pfm.statuscodename != 'Complete'
+        AND pfm.voap_filename LIKE '%.%'
+)
+
+SELECT *
+FROM FileExtensions
 WHERE
-    pfm.voap_uploadtypename = 'Evidence'
-    AND pfm.statuscodename != 'Complete'
-    AND pfm.voap_filename LIKE '%.%'
-    AND (
-        -- Extracted extension
-        (
-            -- Extension is NOT 'jpeg' (case-insensitive)
-            LOWER(RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) != 'jpeg'
-            AND
-            -- Extension contains at least one uppercase letter
-            PATINDEX('%[A-Z]%', RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) > 0
-        )
-    )
-ORDER BY pfm.createdon DESC;
+    LOWER([Extension]) != 'jpeg'
+    AND PATINDEX('%[A-Z]%', [Extension]) > 0
+ORDER BY [DateUploaded] DESC;
