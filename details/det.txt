@@ -1,14 +1,22 @@
 SELECT 
-    a.Name AS AccountName,
-    c.FullName AS ContactName,
-    c.ContactId AS ContactId,
-    p.Email AS PortalUserEmail,
-    p.new_portalusersetupid AS PortalUserId
-FROM 
-    Contact c
-INNER JOIN 
-    new_portalusersetup p ON c.EmailAddress1 = p.Email
-INNER JOIN 
-    Account a ON a.AccountId = c.ParentCustomerId
+    pfm.voap_filename AS [File Name],
+    pfm.voap_filesizeinkb AS [File Size (KB)],
+    pfm.createdon AS [Date Uploaded],
+    pfm.voap_relatedbillingauthorityname AS [Billing Authority Name],
+    pr.voap_billingauthorityreportnumber AS [BA Report Number],
+    pfm.createdbyname AS [Uploaded By (Username)],
+    pfm.statuscodename AS [Status Reason],
+    pfm.voap_uploadtypename AS [Upload Type]
+FROM dbo.voap_portalfilemanagement pfm
+LEFT JOIN dbo.voap_portalrequest pr
+    ON pfm.voap_relatedportalrequest = pr.voap_portalrequestid
 WHERE 
-    p.Email IN ('user1@example.com', 'user2@example.com') -- Add your imported users' emails here
+    pfm.voap_uploadtypename = 'Evidence'
+    AND pfm.statuscodename != 'Complete'
+    AND (
+        pfm.voap_filename LIKE '%.DOCX' OR
+        pfm.voap_filename LIKE '%.Docx' OR
+        pfm.voap_filename LIKE '%.docx' OR
+        pfm.voap_filename LIKE '%.DOC'
+    )
+ORDER BY pfm.createdon DESC;
