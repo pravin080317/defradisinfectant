@@ -4,21 +4,21 @@ SELECT
     pfm.createdon AS [Date Uploaded],
     pfm.voap_relatedbillingauthorityname AS [LA Name],
     pfm.createdbyname AS [User],
-    pr.voap_billingauthorityreportnumber AS [BA Report Number]
+    pr.voap_billingauthorityreportnumber AS [BA Report Number],
+    RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1) AS [Extension]
 FROM dbo.voap_portalfilemanagement pfm
 LEFT JOIN dbo.voap_portalrequest pr
     ON pfm.voap_relatedportalrequest = pr.voap_portalrequestid
 WHERE 
     pfm.voap_uploadtypename = 'Evidence'
     AND pfm.statuscodename != 'Complete'
-    AND pfm.voap_filename LIKE '%.%'
-    AND (
-        -- Condition 1: Extension contains at least one uppercase letter
+    AND pfm.voap_filename LIKE '%.%'  -- has an extension
+    AND 
+    (
+        -- Extension has at least one uppercase letter
         PATINDEX('%[A-Z]%', RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) > 0
         
-        OR
-        
-        -- Condition 2: Extension is 'jpeg' (case-insensitive)
-        LOWER(RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) = 'jpeg'
+        -- AND it's not JPEG (in any case)
+        AND LOWER(RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) != 'jpeg'
     )
 ORDER BY pfm.createdon DESC;
