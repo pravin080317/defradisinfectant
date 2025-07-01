@@ -1,4 +1,5 @@
-WITH FileExtensions AS (
+SELECT *
+FROM (
     SELECT
         pfm.voap_filename AS [FileName],
         pfm.voap_filesizeinkb AS [FileSizeKB],
@@ -11,10 +12,7 @@ WITH FileExtensions AS (
         pfm.voap_uploadtypename = 'Evidence'
         AND pfm.statuscodename != 'Complete'
         AND pfm.voap_filename LIKE '%.%'
-)
-
-SELECT *
-FROM FileExtensions
+) AS Derived
 WHERE
     LOWER([Extension]) != 'jpeg'
     AND PATINDEX('%[A-Z]%', [Extension]) > 0
