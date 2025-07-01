@@ -1,29 +1,24 @@
 SELECT 
     pfm.voap_filename AS [File Name],
-    pfm.voap_filesizeinkb AS [File Size (KB)],
+    pfm.voap_filesize AS [File Size (KB)],
     pfm.createdon AS [Date Uploaded],
-    pfm.voap_relatedbillingauthorityname AS [Billing Authority Name],
-    pr.voap_billingauthorityreportnumber AS [BA Report Number],
-    pfm.createdbyname AS [Uploaded By (Username)],
-    pfm.statuscodename AS [Status Reason],
-    pfm.voap_uploadtypename AS [Upload Type]
+    pfm.voap_relatedbillingauthorityname AS [LA Name],
+    pfm.createdbyname AS [User],
+    pr.voap_billingauthorityreportnumber AS [BA Report Number]
 FROM dbo.voap_portalfilemanagement pfm
 LEFT JOIN dbo.voap_portalrequest pr
     ON pfm.voap_relatedportalrequest = pr.voap_portalrequestid
 WHERE 
     pfm.voap_uploadtypename = 'Evidence'
     AND pfm.statuscodename != 'Complete'
-    AND pfm.voap_filename LIKE '%.%' -- has an extension
+    AND pfm.voap_filename LIKE '%.%'
     AND (
-        -- Extract extension
-        (
-            -- Match if extension has at least one uppercase letter
-            RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1) COLLATE Latin1_General_CS_AS LIKE '%[A-Z]%'
-        )
+        -- Condition 1: Extension contains at least one uppercase letter
+        PATINDEX('%[A-Z]%', RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) > 0
+        
         OR
-        (
-            -- OR if extension is 'jpeg' in any case
-            LOWER(RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) = 'jpeg'
-        )
+        
+        -- Condition 2: Extension is 'jpeg' (case-insensitive)
+        LOWER(RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) = 'jpeg'
     )
 ORDER BY pfm.createdon DESC;
