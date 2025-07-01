@@ -13,12 +13,12 @@ LEFT JOIN dbo.voap_portalrequest pr
 WHERE 
     pfm.voap_uploadtypename = 'Evidence'
     AND pfm.statuscodename != 'Complete'
-    AND pfm.voap_filename LIKE '%.%' -- has an extension
+    AND pfm.voap_filename LIKE '%.%' -- filename must have extension
     AND (
-        -- Get the extension and match if it contains any uppercase letter
-        RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1) COLLATE Latin1_General_CS_AS LIKE '%[A-Z]%'
+        -- Extract extension and test if it contains any UPPERCASE character
+        PATINDEX('%[A-Z]%', RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) > 0
         OR
-        -- OR allow if extension is jpeg (case-insensitive)
+        -- OR extension is jpeg (case-insensitive)
         LOWER(RIGHT(pfm.voap_filename, CHARINDEX('.', REVERSE(pfm.voap_filename)) - 1)) = 'jpeg'
     )
 ORDER BY pfm.createdon DESC;
