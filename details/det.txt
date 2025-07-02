@@ -1,19 +1,34 @@
-customEvents
-| where name == "VOAListScheduleDownload"
-| extend 
-    fileName = tostring(customDimensions.fileName),
-    fileType = tostring(customDimensions.fileType),
-    fileSize = toint(customDimensions.fileSize),
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    council = tostring(customDimensions.council),
-    eventTime = timestamp
-| project 
-    eventTime,
-    fileName,
-    fileType,
-    fileSize,
-    userId,
-    userName,
-    council
-| order by eventTime desc
+Certainly. Here's the revised response, combining your points 4 and 5 into a complete and clear answer for **Question 3**:
+
+---
+
+### **3. Does the Front Door validate or reconcile uploaded address data (e.g., for LA–VOA postcode mismatches)?**
+
+* **No automatic reconciliation or validation occurs** between Local Authority (LA) and VOA data at the upload stage.
+* **Front Door does not correct or pre-identify addresses** from uploaded data.
+* If address lookup fails, the system:
+
+  * **Still creates** a *Portal Request Submission* and a *Request* using the **original user-provided address**.
+  * **Does not map the address to a hereditament** automatically.
+* **During case processing**, users must **manually match the address to the correct hereditament** (VOA property).
+* Without this manual selection, **the process cannot proceed further**.
+
+Let me know if you'd like this formatted for a stakeholder report or response deck.
+
+
+
+1. What data source does the portal validate against — VOA or Royal Mail?
+Answer: The portal currently uses the Gazetteer Ordnance Survey Address Lookup API, which is believed to be an internal endpoint.
+
+Action: It needs confirmation with the DAW (Data & Address Warehouse) team to be sure of the exact backing data source behind the API.
+
+Note: It does not use Royal Mail PAF.
+
+2. What happens if a postcode fails validation in the new portal?
+If the postcode/address match fails, the system:
+
+Marks the record as “Address Match Failed”.
+
+Still proceeds to create the Portal Request Submission and Request.
+
+However, user must manually select the hereditament (VOA property/address) later in the case journey to continue processing.
