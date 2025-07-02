@@ -1,3 +1,56 @@
+Here’s a clear summary of the conversation above, structured to help you document it for wider clarification or stakeholder communication:
+
+---
+
+### 🔍 **Portal Address Lookup & Validation – Summary of Discussion**
+
+#### 1. **What data source does the portal validate against — VOA or Royal Mail?**
+
+* **Answer:** The portal **currently uses the Gazetteer Ordnance Survey Address Lookup API**, which is **believed to be an internal endpoint**.
+* **Action:** It needs confirmation with the **DAW (Data & Address Warehouse) team** to be sure of the exact backing data source behind the API.
+* **Note:** It does **not use Royal Mail PAF**.
+
+---
+
+#### 2. **What happens if a postcode fails validation in the new portal?**
+
+* If the **postcode/address match fails**, the system:
+
+  * Marks the record as **“Address Match Failed”**.
+  * Still proceeds to create the **Portal Request Submission** and **Request**.
+  * However, **user must manually select the hereditament** (VOA property/address) later in the case journey to continue processing.
+
+---
+
+#### 3. **Is there reconciliation for LA–VOA postcode mismatches?**
+
+* **Answer:** Currently, **no automatic reconciliation exists**.
+* Users can manually fix the address if it's incorrect.
+* In the **case processing stage**, users **must select the correct hereditament** to move forward.
+
+---
+
+#### 4. **Does Front Door validate or correct uploaded address data (e.g., from bulk)?**
+
+* Front Door **does not automatically correct address data**.
+* If address lookup fails, it:
+
+  * Still **creates a Portal Request Submission** and **Request** using the **original uploaded data**.
+  * Requires users to **manually match the address to a hereditament** during case processing.
+* Without selecting a hereditament, the **process cannot proceed further**.
+
+---
+
+#### 5. **Is address data pre-identified in Portal Request Submission?**
+
+* **No.** The **Portal Request Submission stores string-based address lines** from the user.
+* The address is only mapped when the user later selects the correct hereditament.
+
+---
+
+Let me know if you want this turned into a slide, email, or FAQ-style page.
+
+
 Certainly. Here's the revised response, combining your points 4 and 5 into a complete and clear answer for **Question 3**:
 
 ---
@@ -14,21 +67,3 @@ Certainly. Here's the revised response, combining your points 4 and 5 into a com
 * Without this manual selection, **the process cannot proceed further**.
 
 Let me know if you'd like this formatted for a stakeholder report or response deck.
-
-
-
-1. What data source does the portal validate against — VOA or Royal Mail?
-Answer: The portal currently uses the Gazetteer Ordnance Survey Address Lookup API, which is believed to be an internal endpoint.
-
-Action: It needs confirmation with the DAW (Data & Address Warehouse) team to be sure of the exact backing data source behind the API.
-
-Note: It does not use Royal Mail PAF.
-
-2. What happens if a postcode fails validation in the new portal?
-If the postcode/address match fails, the system:
-
-Marks the record as “Address Match Failed”.
-
-Still proceeds to create the Portal Request Submission and Request.
-
-However, user must manually select the hereditament (VOA property/address) later in the case journey to continue processing.
