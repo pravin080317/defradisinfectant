@@ -1,69 +1,114 @@
-Here’s a clear summary of the conversation above, structured to help you document it for wider clarification or stakeholder communication:
+<section class="govuk-width-container">
+  <h1 class="govuk-heading-xl">Accessibility statement for the local authority portal</h1>
 
----
+  <p class="govuk-body">
+    The Valuation Office Agency (VOA) is committed to making its websites accessible, in accordance with the Public Sector Bodies (Websites and Mobile Applications) (No. 2) Accessibility Regulations 2018.
+  </p>
 
-### 🔍 **Portal Address Lookup & Validation – Summary of Discussion**
+  <p class="govuk-body">
+    This accessibility statement applies to 
+    <a href="https://voabsportaluat.powerappsportals.com" class="govuk-link">https://voabsportaluat.powerappsportals.com</a>.
+  </p>
 
-#### 1. **What data source does the portal validate against — VOA or Royal Mail?**
+  <h2 class="govuk-heading-l">Using this service</h2>
 
-* **Answer:** The portal **currently uses the Gazetteer Ordnance Survey Address Lookup API**, which is **believed to be an internal endpoint**.
-* **Action:** It needs confirmation with the **DAW (Data & Address Warehouse) team** to be sure of the exact backing data source behind the API.
-* **Note:** It does **not use Royal Mail PAF**.
+  <p class="govuk-body">
+    This service allows billing authorities and local authorities to exchange property information with the VOA.
+  </p>
 
----
+  <p class="govuk-body">
+    We want as many people as possible to be able to use this service. For example, that means you should be able to:
+  </p>
 
-#### 2. **What happens if a postcode fails validation in the new portal?**
+  <ul class="govuk-list govuk-list--bullet">
+    <li>change colours, contrast levels and fonts using browser or device settings</li>
+    <li>zoom in up to 400% without the text spilling off the screen</li>
+    <li>navigate most of the website using a keyboard, including tabbing through links and form fields</li>
+    <li>interact with all page elements using assistive technologies such as screen readers (JAWS, NVDA, VoiceOver)</li>
+    <li>submit forms and access buttons without using a mouse</li>
+    <li>use voice input and speech recognition software for navigation and data entry</li>
+  </ul>
 
-* If the **postcode/address match fails**, the system:
+  <p class="govuk-body">
+    We’ve also made the website text as simple as possible to understand.
+  </p>
 
-  * Marks the record as **“Address Match Failed”**.
-  * Still proceeds to create the **Portal Request Submission** and **Request**.
-  * However, **user must manually select the hereditament** (VOA property/address) later in the case journey to continue processing.
+  <p class="govuk-body">
+    <a href="https://mcmw.abilitynet.org.uk/" class="govuk-link" rel="noreferrer noopener" target="_blank">
+      AbilityNet has advice
+    </a> on making your device easier to use if you have a disability.
+  </p>
 
----
+  <h2 class="govuk-heading-l">Accessibility standards and compatibility</h2>
 
-#### 3. **Is there reconciliation for LA–VOA postcode mismatches?**
+  <p class="govuk-body">
+    This site is designed to meet the <strong>WCAG 2.2 AA standard</strong> and works with the following assistive technologies:
+  </p>
 
-* **Answer:** Currently, **no automatic reconciliation exists**.
-* Users can manually fix the address if it's incorrect.
-* In the **case processing stage**, users **must select the correct hereditament** to move forward.
+  <ul class="govuk-list govuk-list--bullet">
+    <li>Screen readers: JAWS, NVDA, and VoiceOver</li>
+    <li>Screen magnifiers and browser zoom tools</li>
+    <li>Keyboard-only navigation</li>
+    <li>Voice control tools such as Dragon NaturallySpeaking</li>
+    <li>Browser accessibility features (e.g., tab order, skip links, ARIA labels)</li>
+  </ul>
 
----
+  <h2 class="govuk-heading-l">Compliance status</h2>
 
-#### 4. **Does Front Door validate or correct uploaded address data (e.g., from bulk)?**
+  <p class="govuk-body">
+    This website is fully compliant with the Web Content Accessibility Guidelines (WCAG) version 2.2 AA standard.
+  </p>
 
-* Front Door **does not automatically correct address data**.
-* If address lookup fails, it:
+  <h2 class="govuk-heading-l">Preparation of this accessibility statement</h2>
 
-  * Still **creates a Portal Request Submission** and **Request** using the **original uploaded data**.
-  * Requires users to **manually match the address to a hereditament** during case processing.
-* Without selecting a hereditament, the **process cannot proceed further**.
+  <p class="govuk-body">
+    This statement was prepared on 30 June 2025.
+  </p>
 
----
+  <p class="govuk-body">
+    The Digital Inclusion and Accessibility Standards team conducted a WCAG 2.2 AA accessibility audit retest of the VOA Local Authority (LA) portal during the week commencing Monday 23 June 2025.
+  </p>
 
-#### 5. **Is address data pre-identified in Portal Request Submission?**
+  <p class="govuk-body">
+    All previously reported WCAG 2.2 issues have been fixed and verified as fixed during this retest. Two new WCAG issues were also identified but they were fixed and verified as fixed during this retest.
+  </p>
 
-* **No.** The **Portal Request Submission stores string-based address lines** from the user.
-* The address is only mapped when the user later selects the correct hereditament.
+  <p class="govuk-body">
+    Under the 
+    <a href="https://www.legislation.gov.uk/uksi/2018/952/contents/made" class="govuk-link" target="_blank">
+      Regulations to make public sector websites and mobile applications accessible
+    </a> 
+    this service can publish a fully compliant WCAG 2.2 AA accessibility statement.
+  </p>
 
----
+  <p class="govuk-body">
+    The statement was last reviewed on 30 June 2025.
+  </p>
 
-Let me know if you want this turned into a slide, email, or FAQ-style page.
+  <h2 class="govuk-heading-l">Feedback and contact information</h2>
 
+  <p class="govuk-body">
+    If you find any problems not listed on this page or think we’re not meeting accessibility requirements, contact:
+  </p>
+  <ul class="govuk-list govuk-list--bullet">
+    <li>Email: <strong>[provide contact email]</strong></li>
+    <li>Phone: <strong>03000 501 501</strong> (text relay prefix 18001)</li>
+  </ul>
 
-Certainly. Here's the revised response, combining your points 4 and 5 into a complete and clear answer for **Question 3**:
+  <p class="govuk-body">
+    We’ll consider your request and get back to you in <strong>[number]</strong> days.
+  </p>
 
----
+  <h2 class="govuk-heading-l">Enforcement procedure</h2>
 
-### **3. Does the Front Door validate or reconcile uploaded address data (e.g., for LA–VOA postcode mismatches)?**
+  <p class="govuk-body">
+    The Equality and Human Rights Commission (EHRC) is responsible for enforcing the Public Sector Bodies (Websites and Mobile Applications) (No. 2) Accessibility Regulations 2018 (the ‘accessibility regulations’).
+  </p>
 
-* **No automatic reconciliation or validation occurs** between Local Authority (LA) and VOA data at the upload stage.
-* **Front Door does not correct or pre-identify addresses** from uploaded data.
-* If address lookup fails, the system:
-
-  * **Still creates** a *Portal Request Submission* and a *Request* using the **original user-provided address**.
-  * **Does not map the address to a hereditament** automatically.
-* **During case processing**, users must **manually match the address to the correct hereditament** (VOA property).
-* Without this manual selection, **the process cannot proceed further**.
-
-Let me know if you'd like this formatted for a stakeholder report or response deck.
+  <p class="govuk-body">
+    If you’re not happy with how we respond to your complaint, contact the 
+    <a href="https://www.equalityadvisoryservice.com/" class="govuk-link" target="_blank">
+      Equality Advisory and Support Service (EASS)
+    </a>.
+  </p>
+</section>
