@@ -123,7 +123,7 @@ This epic covers performance, usability, and accessibility improvements to the â
 ---
 
 Let me know if you want:
-
+ 
 * Tasks grouped into a story/epic
 * Linked sub-tasks or estimated effort
 * Excel/CSV exportable format
