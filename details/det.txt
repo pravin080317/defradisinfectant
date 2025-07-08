@@ -1,132 +1,70 @@
-Absolutely — here's a breakdown of the **entire effort** from start to finish as **JIRA tasks**, grouped logically and written in proper JIRA format.
+Here are two Jira task entries that capture the required analysis for both scenarios described in the **Fix Errors** functionality for bulk upload:
 
 ---
 
-## 🔧 JIRA Task Breakdown for "Submitted Reports – Performance Optimization & Pagination"
-
----
-
-### **Task 1: Refactor FetchXML to Implement Server-Side Paging**
+### ✅ **JIRA Task 1:**
 
 **Title:**
-Implement paged FetchXML for submitted reports listing
+🔍 **Analyse Fix Errors Workflow – Editable and Deletable Reports for Validation Errors**
 
 **Description:**
-Refactor the `voap_portalrequest` FetchXML query to support server-side paging using the `count` and `page` attributes.
+Conduct a detailed analysis of the **Fix Errors** functionality where the **Front Door** identifies **data validation rule violations** in uploaded bulk reports (e.g., from Excel).
 
-* Set `count=20`
-* Use `page={{ request.querystring.page }}`
-* Ensure ordering is applied on `createdon`
-* Confirm results are paged correctly in portal
-* Drop client-side filtering logic if any
+* Confirm that if validation fails on specific rows (e.g., 2 out of 5), only those entries appear as errors.
+* Validate that the portal displays:
+
+  * The 2 erroneous reports with inline **Edit** options.
+  * The remaining 3 valid reports under **"No errors"** section.
+  * A **“Delete All Reports”** button at the bottom.
+* Analyse feasibility and impact of **introducing a “Delete” option per individual report row**.
+* Confirm all table dependencies, especially around:
+
+  * `voap_portalrequestsubmission`
+  * `voap_portalrequest`
+  * `voap_portalfilemanagement`
+  * Validation result tables (e.g., error summary or error logs if present).
+* Note that all deletions must continue to follow the **soft delete** approach (status update, not hard delete).
+
+Deliverables:
+
+* End-to-end flow diagram
+* List of impacted tables and status flags
+* UI/UX suggestion for per-report delete
+* List of rule sources (e.g., Front Door validation rules)
 
 ---
 
-### **Task 2: Remove Per-Row FetchXML for Supporting Documents**
+### ✅ **JIRA Task 2:**
 
 **Title:**
-Eliminate per-row attachment FetchXML and use aggregate count in main query
+🚫 **Analyse Fix Errors Behaviour – Processing Error with No Rule Match**
 
 **Description:**
-Improve performance by removing the nested FetchXML that ran per row to count `voap_portalfilemanagement` records.
-Instead, include a `link-entity` in the main `voap_portalrequest` FetchXML using `aggregate="countcolumn"` to retrieve the supporting documents count.
+Analyse the system behaviour for bulk uploads where the **Front Door fails to match any validation rules** to the error.
 
-* Add `link-entity` with filter on required `statuscode` values
-* Alias the count result as `supportingDocumentsCount`
-* Confirm correct values are returned in FetchXML Builder
+* Confirm that such reports are shown with **Processing Error** in the Fix Errors screen.
+* Verify that in this case:
+
+  * **No Edit/Delete buttons** are shown for individual reports.
+  * **Only status messages** (e.g., "Report cannot be processed") are shown to the user.
+* Identify the backend reason for uneditable state:
+
+  * No matched validation rule?
+  * Blob file unreadable?
+  * Error type not mapped?
+* Trace data lineage across tables:
+
+  * `voap_portalfilemanagement` (for status: Processing Error)
+  * `voa_frontdoorheader` and `voa_frontdoorerror`
+  * Any error mapping or rule engine table
+* Validate if retry/resubmission path exists or needs to be implemented.
+
+Deliverables:
+
+* Root cause mapping for Processing Error without rule match
+* List of involved entities and their error status
+* Recommendation on user guidance (tooltip, error reason display)
 
 ---
 
-### **Task 3: Update Liquid Code to Display Attachment Count**
-
-**Title:**
-Update Liquid table rendering logic to use supportingDocumentsCount
-
-**Description:**
-Update the table rendering logic to use the new `supportingDocumentsCount` value from the paged aggregate query.
-
-* Replace references to `attachments.results.entities.size` with `result.supportingDocumentsCount`
-* Adjust "Add documents" or "View supporting documents" link logic accordingly
-* Test edge cases (0 vs 1+ docs)
-
----
-
-### **Task 4: Add Total Count FetchXML for Pagination Logic**
-
-**Title:**
-Add total count FetchXML to support pagination calculation
-
-**Description:**
-Introduce a lightweight `aggregate="count"` FetchXML to get the total number of submitted reports for the logged-in user's BA code.
-
-* Add alias `totalCount`
-* Use it in Liquid to calculate total pages
-* Store as `totalRecords`, compute `totalPages = totalRecords / pageSize`
-
----
-
-### **Task 5: Implement GOV.UK Style Numbered Pagination UI**
-
-**Title:**
-Implement numbered pagination component in GOV.UK format
-
-**Description:**
-Build pagination controls using GOV.UK Design System styles, including:
-
-* `Previous` and `Next` buttons
-* Current page highlighting
-* Max of 5 numbered links
-* `?page=N` parameter for navigation
-* Conditional logic to disable prev/next on edges
-
----
-
-### **Task 6: Validate Pagination Behavior Across Pages**
-
-**Title:**
-Test pagination and data consistency across multiple pages
-
-**Description:**
-Manually test pagination behavior to confirm:
-
-* Records change correctly across pages
-* Attachment count is accurate per row
-* Sorting works within the current page
-* Accessibility remains intact (ARIA labels, visible focus)
-* Links open correct report detail or upload pages
-
----
-
-### **Task 7: Review Accessibility and ARIA Compliance**
-
-**Title:**
-Review pagination component for accessibility compliance
-
-**Description:**
-Ensure the pagination controls follow WCAG and GOV.UK guidelines:
-
-* `aria-label` for nav and links
-* `aria-current="page"` for selected page
-* Logical tab order
-* Sufficient contrast and keyboard accessibility
-
----
-
-## 📝 Optional Story (Epic/Parent)
-
-**Title:**
-Improve performance and accessibility of "Submitted Reports" page
-
-**Description:**
-This epic covers performance, usability, and accessibility improvements to the “Submitted Reports” table in the Power Pages portal. The enhancements include server-side paging, document count optimization, and a compliant GOV.UK-style pagination interface.
-
----
-
-Let me know if you want:
- 
-* Tasks grouped into a story/epic
-* Linked sub-tasks or estimated effort
-* Excel/CSV exportable format
-* Uploadable JIRA JSON format
-
-Happy to tailor based on your JIRA setup.
+Let me know if you want to link these to EPICs or add acceptance criteria.
