@@ -1,55 +1,11 @@
-{% comment %}Retrieve total record count for pagination{% endcomment %}
-{% fetchxml reports_count %}
-<fetch mapping="logical" aggregate="true">
-  <entity name="voap_portalrequest">
-    <attribute name="voap_portalrequestid" aggregate="count" alias="total" />
-    <filter type="and">
-      <condition attribute="statuscode" operator="in">
-        <value>400400001</value>
-        <value>564100003</value>
-      </condition>
-      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
-    </filter>
-  </entity>
-</fetch>
-{% endfetchxml %}
-{% assign totalItemCount = reports_count.results.entities[0].total.value | plus: 0 %}
-
-<script>
-  var totalItemCount = {{ totalItemCount }};
-</script>
-
-
-var totalItemCount = parseInt('{{ totalItemCount }}', 10);
-
-REMOVE
-const totalRows = document.querySelectorAll('#{{ tableid }} tbody tr').length;
-const totalPages = Math.ceil(totalRows / recordsPerPage);
-ADD
-const totalPages = Math.ceil(totalItemCount / recordsPerPage);
-
- var totalPages = Math.ceil(totalItemCount / recordsPerPage);
-
-
-var totalPages = Math.ceil(totalItemCount / recordsPerPage);
-
-var totalPages = Math.ceil(totalItemCount / recordsPerPage);
-
-
-
-
-if (table.id === 'schedules') {
-
-var startIndex = ((currentPage 1) recordsPerPage);
-
-var startIndex = ((currentPage - 1) * recordsPerPage);
-var endIndex = Math.min(startIndex + recordsPerPage, totalRows);
-
-var paginationSummary document.getElementById('pagination-summary');
-
-paginationSummary.innerHTML = Showing <strong>${startIndex + 1}</strong> to <strong>${endIndex}</strong>
-
-of <strong>${totalRows)</strong> schedules"; }
-var paginationSummary = document.getElementById('pagination-summary');
-paginationSummary.innerHTML = 'Showing <strong>' + (startIndex + 1) + '</strong> to <strong>' + endIndex + '</strong> of <strong>' + totalItemCount + '</strong> schedules';
-}
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('#pagination-container li a').forEach(function (a) {
+    var page = parseInt(a.textContent.trim(), 10);
+    if (!isNaN(page)) {
+      a.href = '?page=' + page;
+      a.addEventListener('click', function (e) {
+        // allow default navigation
+      });
+    }
+  });
+});
