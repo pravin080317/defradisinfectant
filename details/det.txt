@@ -2,9 +2,9 @@ VOA/GDS Table Sorting Pagination JS V2
 
 <script>
 
-var currentPage = {{ pageNumber }};
+var currentPage = parseInt('{{ pageNumber }}', 10);
 
-var recordsPerPage = {{ pageSize }};
+var recordsPerPage = parseInt('{{ pageSize }}', 10);
 
 var lastNextButtonClickTime = 0;
 
@@ -12,21 +12,13 @@ var lastPreviousButtonClickTime = 0;
 
 var sorted = false;
 
-function sortTable (colIndex, isDate) {
-
-const table =document.getElementById('{{tableid)}');
-
-const tbody table.tBodies[0];
-
-const rows Array.from(tbody.rows);
-
-const headers table.querySelectorAll(
-
-); govuk-table header button, govuk-table header a.govuk-link"
-
-const btn headers[colIndex];
-
-const name btn.textContent.trim();
+function sortTable(colIndex, isDate) {
+  const table = document.getElementById('{{ tableid }}');
+  const tbody = table.tBodies[0];
+  const rows = Array.from(tbody.rows);
+  const headers = table.querySelectorAll('.govuk-table__header button, .govuk-table__header a.govuk-link');
+  const btn = headers[colIndex];
+  const name = btn.textContent.trim();
 
 // 1) Capture old state
 
@@ -100,16 +92,9 @@ rows.forEach(r => tbody.appendChild(r));
 btn.setAttribute('aria-sort', newState);
 
 btn.setAttribute(
-
-'aria-label',
-
-newState === 'ascending'
-
+  "aria-label",
+  newState === "ascending" ? `${name}, sorted ascending. Activate to sort descending.` : `${name}, sorted descending. Activate to sort ascending.`
 );
-
-?${name}, sorted ascending. Activate to sort descending. : ${name}, sorted descending. Activate to sort ascending.
-
-I
 
 const arrow = document.createElement('span');
 
@@ -136,18 +121,12 @@ return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
 (ascending?1: -1);
 }
 function sortSchedulesfilename(n) {
-
-var table document.getElementById('{{ tableid }}');
-
-var rows table.tBodies[0].rows;
-
-var startIndex = 0;
-
-var endIndex = rows.length - 1;
-
-var switching = true;
-
-var dirasc';
+  var table = document.getElementById('{{ tableid }}');
+  var rows = table.tBodies[0].rows;
+  var startIndex = 0;
+  var endIndex = rows.length - 1;
+  var switching = true;
+  var dir = 'asc';
 
 var switchcount = 0;
 
@@ -220,12 +199,9 @@ generatePagination();
 function updatePageTitle() {
 
 const baseTitle = document.title.split('- Page')[0].trim(); // Remove existing pagination if present
-
 const totalRows = document.querySelectorAll('#{{ tableid }} tbody tr').length;
-
 const totalPages = Math.ceil(totalRows / recordsPerPage);
-
-document.title = ${baseTitle} Page ${currentPage) of ${totalPages}';
+document.title = `${baseTitle} Page ${currentPage} of ${totalPages}`;
 
 function resetSortArrows() {
 
@@ -241,15 +217,11 @@ columns[i].setAttribute('aria-sort', 'none');
 
 function displayTable() {
 
-var table document.getElementById('{{ tableid }}');
-
-le todi var rows= table.tBodies[0].rows;
-
-var totalRows = rows.length;
-
-var startIndex = (currentPage 1) recordsPerPage;
-
-var endIndex = Math.min(startIndex + recordsPerPage, totalRows);
+  var table = document.getElementById('{{ tableid }}');
+  var rows = table.tBodies[0].rows;
+  var totalRows = rows.length;
+  var startIndex = (currentPage - 1) * recordsPerPage;
+  var endIndex = Math.min(startIndex + recordsPerPage, totalRows);
 
 for (var i = 0; i < totalRows; i++) {
 
@@ -263,25 +235,18 @@ rows[i].style.display = 'none';
 
 }
 
-I
 
 }
 
 }
 
 function generatePagination() {
-
-var table document.getElementById('{{ tableid }}');
-
-var rows= table.tBodies[0].rows;
-
-var totalRows = rows.length;
-
-var totalPages = Math.ceil(totalRows / recordsPerPage);
-
-var paginationContainer = document.getElementById('pagination-container');
-
-paginationContainer.innerHTML = ";
+  var table = document.getElementById('{{ tableid }}');
+  var rows = table.tBodies[0].rows;
+  var totalRows = rows.length;
+  var totalPages = Math.ceil(totalRows / recordsPerPage);
+  var paginationContainer = document.getElementById('pagination-container');
+  paginationContainer.innerHTML = '';
 
 var maxVisibleLinks = 5;
 
@@ -314,7 +279,6 @@ generatePagination();
 
 updatePageTitle();
 
-I
 
 }
 
