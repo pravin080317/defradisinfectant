@@ -1,70 +1,574 @@
-Here are two Jira task entries that capture the required analysis for both scenarios described in the **Fix Errors** functionality for bulk upload:
+VOA/GDS Table Sorting Pagination JS V2
 
----
+<script>
 
-### ✅ **JIRA Task 1:**
+var currentPage = {{ pageNumber }};
 
-**Title:**
-🔍 **Analyse Fix Errors Workflow – Editable and Deletable Reports for Validation Errors**
+var recordsPerPage = {{ pageSize }};
 
-**Description:**
-Conduct a detailed analysis of the **Fix Errors** functionality where the **Front Door** identifies **data validation rule violations** in uploaded bulk reports (e.g., from Excel).
+var lastNextButtonClickTime = 0;
 
-* Confirm that if validation fails on specific rows (e.g., 2 out of 5), only those entries appear as errors.
-* Validate that the portal displays:
+var lastPreviousButtonClickTime = 0;
 
-  * The 2 erroneous reports with inline **Edit** options.
-  * The remaining 3 valid reports under **"No errors"** section.
-  * A **“Delete All Reports”** button at the bottom.
-* Analyse feasibility and impact of **introducing a “Delete” option per individual report row**.
-* Confirm all table dependencies, especially around:
+var sorted = false;
 
-  * `voap_portalrequestsubmission`
-  * `voap_portalrequest`
-  * `voap_portalfilemanagement`
-  * Validation result tables (e.g., error summary or error logs if present).
-* Note that all deletions must continue to follow the **soft delete** approach (status update, not hard delete).
+function sortTable (colIndex, isDate) {
 
-Deliverables:
+const table =document.getElementById('{{tableid)}');
 
-* End-to-end flow diagram
-* List of impacted tables and status flags
-* UI/UX suggestion for per-report delete
-* List of rule sources (e.g., Front Door validation rules)
+const tbody table.tBodies[0];
 
----
+const rows Array.from(tbody.rows);
 
-### ✅ **JIRA Task 2:**
+const headers table.querySelectorAll(
 
-**Title:**
-🚫 **Analyse Fix Errors Behaviour – Processing Error with No Rule Match**
+); govuk-table header button, govuk-table header a.govuk-link"
 
-**Description:**
-Analyse the system behaviour for bulk uploads where the **Front Door fails to match any validation rules** to the error.
+const btn headers[colIndex];
 
-* Confirm that such reports are shown with **Processing Error** in the Fix Errors screen.
-* Verify that in this case:
+const name btn.textContent.trim();
 
-  * **No Edit/Delete buttons** are shown for individual reports.
-  * **Only status messages** (e.g., "Report cannot be processed") are shown to the user.
-* Identify the backend reason for uneditable state:
+// 1) Capture old state
 
-  * No matched validation rule?
-  * Blob file unreadable?
-  * Error type not mapped?
-* Trace data lineage across tables:
+const prevState = btn.getAttribute('aria-sort') || 'none';
+// 2) Reset all headers (aria + remove old arrows)
 
-  * `voap_portalfilemanagement` (for status: Processing Error)
-  * `voa_frontdoorheader` and `voa_frontdoorerror`
-  * Any error mapping or rule engine table
-* Validate if retry/resubmission path exists or needs to be implemented.
+headers.forEach(h => {
 
-Deliverables:
+const col = h.textContent.trim();
 
-* Root cause mapping for Processing Error without rule match
-* List of involved entities and their error status
-* Recommendation on user guidance (tooltip, error reason display)
+h.setAttribute('aria-sort', 'none');
 
----
+h.setAttribute(
 
-Let me know if you want to link these to EPICs or add acceptance criteria.
+'aria-label',
+
+*${col), not sorted. Activate to sort ascending."
+
+);
+
+const oldArrow = h.querySelector('.sort-indicator');
+
+if (oldArrow) oldArrow.remove();
+
+});
+
+//3) Determine new direction
+
+const newState = prevState === 'ascending'? 'descending': 'ascending';
+
+//4) Sort rows in one pass
+
+rows.sort((aRow, brow) => {
+
+const acellaRow.cells[colIndex];
+
+const bCell brow.cells[colIndex];
+
+let va (aCell.querySelector('label') || aCell).innerText.trim();
+
+let yb (bCell.querySelector('label') || bCell).innerText.trim();
+
+if (isDate && isDate!==undefined) {
+
+va= new Date(va);
+
+vb new Date(vb);
+
+return newState === 'ascending'? va vb vb-va;
+
+} else {
+
+vava.toLowerCase();
+
+vbyb.toLowerCase();
+
+return naturalSort(va,vb, newState === 'ascending');
+
+}
+
+});
+
+//5) Re-attach in order
+
+tbody.innerHTML = '';
+
+rows.forEach(r => tbody.appendChild(r));
+
+// 6) Update clicked header's ARIA & add arrow
+
+btn.setAttribute('aria-sort', newState);
+
+btn.setAttribute(
+
+'aria-label',
+
+newState === 'ascending'
+
+);
+
+?${name}, sorted ascending. Activate to sort descending. : ${name}, sorted descending. Activate to sort ascending.
+
+I
+
+const arrow = document.createElement('span');
+
+arrow.className = 'sort-indicator';
+
+arrow.setAttribute('aria-hidden', 'true');
+
+arrow.textContent = newState === 'ascending'? '':'';
+
+btn.appendChild(arrow);
+
+currentPage = 1;
+
+displayTable();
+
+generatePagination();
+
+}
+
+function naturalSort(a, b, ascending = true) {
+
+return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+
+(ascending?1: -1);
+}
+function sortSchedulesfilename(n) {
+
+var table document.getElementById('{{ tableid }}');
+
+var rows table.tBodies[0].rows;
+
+var startIndex = 0;
+
+var endIndex = rows.length - 1;
+
+var switching = true;
+
+var dirasc';
+
+var switchcount = 0;
+
+resetSortArrows();
+
+while (switching) {
+
+switching = false;
+
+for (var i= startIndex; i < endIndex; i++) {
+
+var shouldSwitch = false;
+
+var x = rows[i].getElementsByTagName('td')[n].getElementsByTagName('label')[n];
+
+var y = rows[i + 1].getElementsByTagName('td')[n].getElementsByTagName('label') [n];
+
+if (dir === 'asc') {
+
+document.getElementsByClassName('govuk-table header') [n].setAttribute('aria-sort', 'ascending');
+
+if (x.innerText.toLowerCase() > y.innerText.toLowerCase()) {
+
+shouldSwitch true;
+
+break;
+
+}
+
+} else if (dir === 'desc') {
+
+document.getElementsByClassName('govuk-table header') [n].setAttribute('aria-sort', 'descending');
+
+if (x.innerText.toLowerCase() <y.innerText.toLowerCase()) {
+
+shouldSwitch = true;
+
+break;
+}}}
+if (shouldSwitch) {
+
+rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+
+switching = true;
+
+switchcount++;
+
+} else {
+
+if (switchcount === 0 && dir === 'asc') {
+
+dir = 'desc';
+
+switching = true;
+
+}
+
+}
+
+}
+
+currentPage = 1;
+
+displayTable();
+
+generatePagination();
+
+}
+
+function updatePageTitle() {
+
+const baseTitle = document.title.split('- Page')[0].trim(); // Remove existing pagination if present
+
+const totalRows = document.querySelectorAll('#{{ tableid }} tbody tr').length;
+
+const totalPages = Math.ceil(totalRows / recordsPerPage);
+
+document.title = ${baseTitle} Page ${currentPage) of ${totalPages}';
+
+function resetSortArrows() {
+
+let columns = document.getElementsByClassName('govuk-table header');
+
+for (i = 0; i < columns.length; i++) {
+
+columns[i].setAttribute('aria-sort', 'none');
+
+}
+
+}
+
+function displayTable() {
+
+var table document.getElementById('{{ tableid }}');
+
+le todi var rows= table.tBodies[0].rows;
+
+var totalRows = rows.length;
+
+var startIndex = (currentPage 1) recordsPerPage;
+
+var endIndex = Math.min(startIndex + recordsPerPage, totalRows);
+
+for (var i = 0; i < totalRows; i++) {
+
+if (i >= startIndex && i < endIndex) {
+
+rows[i].style.display = 'table-row';
+
+} else {
+
+rows[i].style.display = 'none';
+
+}
+
+I
+
+}
+
+}
+
+function generatePagination() {
+
+var table document.getElementById('{{ tableid }}');
+
+var rows= table.tBodies[0].rows;
+
+var totalRows = rows.length;
+
+var totalPages = Math.ceil(totalRows / recordsPerPage);
+
+var paginationContainer = document.getElementById('pagination-container');
+
+paginationContainer.innerHTML = ";
+
+var maxVisibleLinks = 5;
+
+var previousButton = document.getElementsByClassName('govuk-pagination_prev')[0];
+
+previousButton.style.display = currentPage > 1? 'inline': 'none';
+
+if (currentPage>1)
+
+/*{
+
+previousButton.querySelector('a').setAttribute('aria-label, Page $(currentPage 1}');
+
+previousButton.querySelector('a').rel="nofollow";
+previousButton.addEventListener('click', function (event) {
+
+var currentTime = new Date().getTime();
+
+if (currentTime lastPreviousButtonClickTime > 500 && currentPage > 1) {
+
+lastPreviousButtonClickTime = currentTime;
+
+currentPage--;
+
+displayTable();
+
+updatePaginationLinks();
+
+generatePagination();
+
+updatePageTitle();
+
+I
+
+}
+
+});
+
+if (totalPages <= maxVisibleLinks) {
+
+for (var i = 1; i <= totalPages; i++) {
+
+addPaginationLink(i);
+
+}
+
+} else {
+
+var startlink, endLink;
+
+var ellipsisStart = false;
+
+var ellipsisEnd = false;
+
+if (currentPage <= Math.ceil(maxVisibleLinks / 2)) {
+
+startLink = 1;
+
+endLink = maxVisibleLinks;
+
+ellipsisEnd = true;
+
+}else if (currentPage >= totalPages Math.floor(maxVisibleLinks / 2)) {
+
+startLink totalPages maxVisibleLinks + 1;
+
+endLink totalPages;
+
+ellipsisStart = true;
+
+} else {
+
+startLink currentPage Math.floor(maxVisibleLinks / 2);
+
+endLink = currentPage + Math.ceil(maxVisibleLinks / 2);
+ellipsisStart = true;
+
+ellipsisEnd = true;
+
+}
+
+if (startlink > 1) {
+
+addPaginationLink(1);
+
+if (startLink > 2) {
+
+var firstEllipsis = document.createElement('li');
+
+firstEllipsis.classList.add('govuk-pagination item');
+
+firstEllipsis.classList.add('govuk-pagination item--ellipses');
+
+firstEllipsis.textContent = '...';
+
+paginationContainer.appendChild(firstEllipsis);
+
+}
+
+}
+
+for (var i startlink; i <= endLink; i++) {
+
+addPaginationLink(i);
+
+}
+
+if (endLink < totalPages) {
+
+if (endLink < totalPages 1) {
+
+var lastEllipsis = document.createElement('li');
+
+lastEllipsis.classList.add('govuk-pagination item');
+
+lastEllipsis.classList.add('govuk-pagination item--ellipses');
+
+lastEllipsis.textContent = '...';
+
+paginationContainer.appendChild(lastEllipsis);
+
+}
+
+addPaginationlink(totalPages);
+ }
+}
+var nextButton = document.getElementsByClassName('govuk-pagination next')[0];
+
+nextButton.style.display = currentPage < totalPages? 'inline': 'none';
+
+/*nextButton.querySelector('a').setAttribute('aria-label', Page ${currentPage + 1});*/
+
+nextButton.querySelector('a').rel = "nofollow";
+
+nextButton.addEventListener('click', function (event) {
+
+var currentTime = new Date().getTime();
+
+var totalPages Math.ceil(rows.length/ recordsPerPage);
+
+if (currentTime lastNextButtonClickTime > 500 && currentPage < totalPages) {
+
+lastNextButtonClickTime currentTime;
+
+currentPage++;
+
+displayTable();
+
+updatePaginationLinks();
+
+generatePagination();
+
+updatePageTitle();
+
+}
+
+});
+
+// Adjust pagination start and end links if they fall outside the valid range
+
+var paginationStartLink = document.getElementsByClassName('govuk-pagination_link')[0];
+
+var paginationEndLink = document.getElementsByClassName('govuk-pagination link') [maxVisibleLinks 1];
+
+var totalPages = Math.ceil(rows.length/ recordsPerPage);
+
+if (paginationStartLink && parseInt(paginationStartLink.textContent) < 1) {
+
+var diff1 parseInt(paginationStartLink.textContent);
+
+var paginationLinks = document.getElementsByClassName('govuk-pagination link');
+
+for (var i = 0; i < paginationLinks.length; i++) {
+
+var link = paginationLinks[i];
+
+link.textContent = parseInt(link.textContent) + diff;
+
+}
+
+}
+
+if (paginationEndLink && parseInt(paginationEndLink.textContent) > totalPages) {
+var diff = parseInt(paginationEndLink.textContent) totalPages;
+
+var paginationLinks = document.getElementsByClassName('govuk-pagination link');
+
+for (var i = paginationLinks.length - 1; i >= 0; i--) {
+
+var link paginationLinks[i];
+
+link.textContent = parseInt(link.textContent) diff;
+
+}
+
+}
+
+// Update and display pagination summary
+
+if (table.id === 'schedules') {
+
+var startIndex = ((currentPage 1) recordsPerPage);
+
+var endIndex = Math.min(startIndex + recordsPerPage, totalRows);
+
+var paginationSummary document.getElementById('pagination-summary');
+
+paginationSummary.innerHTML = Showing <strong>${startIndex + 1}</strong> to <strong>${endIndex}</strong>
+
+of <strong>${totalRows)</strong> schedules"; }
+
+}
+
+function addPaginationLink(i) {
+
+var paginationContainer = document.getElementById('pagination-container');
+
+var list document.createElement('li');
+
+list.classList.add("govuk-pagination item');
+
+var link document.createElement('a');
+
+link.classList.add('govuk-link');
+
+link.classList.add("govuk-pagination link');
+
+link.href;
+
+link.textContent = 1;
+
+link.setAttribute('aria-label', 'Page ${i}');
+
+list.append(link);
+
+if (i === currentPage) {
+
+list.clesslist.add('govuk-pagination item--current');
+}
+
+list.addEventListener('click', function (event) {
+
+currentPage = i;
+
+displayTable();
+
+updatePaginationLinks();
+
+generatePagination();
+
+updatePageTitle();
+
+});
+
+paginationContainer.appendChild(list);
+
+}
+
+function updatePaginationLinks() {
+
+var links document.getElementsByClassName('govuk-pagination item');
+
+for (var i = 0; i < links.length; i++) {
+
+var link links[i];
+
+if (parseInt(link.textContent) === currentPage) {
+
+link.classList.add('govuk-pagination item--current');
+
+link.setAttribute('aria-current', 'page');
+
+} else {
+
+link.classList.remove('govuk-pagination item--current');
+
+link.removeAttribute('aria-current');
+
+}
+
+}
+
+}
+displayTable();
+
+generatePagination();
+
+updatePageTitle();
+
+</script>
