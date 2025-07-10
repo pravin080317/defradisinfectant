@@ -1,10 +1,11 @@
-{% assign pagingcookie = request.querystring.pagingcookie | xml_escape %}
-{% assign prevcookie = request.querystring.prevcookie | xml_escape %}
+  const totalItemCount = parseInt('{{ totalItemCount }}', 10) || 0;
+  const pageSize = parseInt('{{ pageSize }}', 10) || 0;
+  const currentPage = parseInt('{{ pageNumber }}', 10) || 1;
+  const totalPages = pageSize ? Math.ceil(totalItemCount / pageSize) : 0;
 
-<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false" count="{{ pageSize }}" page="{{ pageNumber }}"{% if pagingcookie %} paging-cookie="{{ pagingcookie }}"{% endif %}>
 
-{% assign totalItemCount = reports_count.results.entities[0].attributes.total.value | plus: 0 %}
-
-<a class="govuk-link govuk-pagination__link" href="?page={{ previousPage }}{% if prevcookie %}&pagingcookie={{ prevcookie }}{% endif %}" rel="prev">
-
-<a class="govuk-link govuk-pagination__link" href="?page={{ nextPage }}&pagingcookie={{ reports.results.fetchxmlpagingcookie | url_encode }}&prevcookie={{ pagingcookie }}" rel="next">
+ if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', buildPagination);
+  } else {
+    buildPagination();
+  }
