@@ -1,5 +1,10 @@
-{% assign pagingCookie = request.querystring.pagingcookie %}
+<style>
+  #pagination-container .govuk-pagination__item {
+    display: inline-block !important;
+  }
+</style>
 
+{% assign tableid = 'submitted-reports' %}
 <script>
   const totalItemCount = parseInt('{{ totalItemCount }}', 10);
   const pageSize = parseInt('{{ pageSize }}', 10);
