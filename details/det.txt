@@ -1,3 +1,54 @@
-{% if pagingCookie %}&pagingcookie={{ pagingCookie | url_encode }}{% endif %}"
+{% assign pagingCookie = request.querystring.pagingcookie %}
 
-{% if reports.paging_cookie %}&pagingcookie={{ reports.paging_cookie | url_encode }}{% endif %}" 
+<script>
+  const totalItemCount = parseInt('{{ totalItemCount }}', 10);
+  const pageSize = parseInt('{{ pageSize }}', 10);
+  const currentPage = parseInt('{{ pageNumber }}', 10);
+  const totalPages = Math.ceil(totalItemCount / pageSize);
+
+  function buildPagination() {
+    const container = document.getElementById('pagination-container');
+    if (!container) return;
+    for (let i = 1; i <= totalPages; i++) {
+      const li = document.createElement('li');
+      li.className = 'govuk-pagination__item';
+      const a = document.createElement('a');
+      a.className = 'govuk-link govuk-pagination__link';
+      a.href = '?page=' + i;
+      a.textContent = i;
+      if (i === currentPage) {
+        li.classList.add('govuk-pagination__item--current');
+        a.setAttribute('aria-current', 'page');
+      }
+      li.appendChild(a);
+      container.appendChild(li);
+    }
+  }
+
+  function sortTable(colIndex, isDate) {
+    const table = document.getElementById('{{ tableid }}');
+    const tbody = table.tBodies[0];
+    const rows = Array.from(tbody.rows);
+    const currentDir = table.getAttribute('data-sort-dir') === 'asc' ? 'desc' : 'asc';
+    table.setAttribute('data-sort-dir', currentDir);
+
+    rows.sort(function(a, b) {
+      const aText = a.cells[colIndex].innerText.trim();
+      const bText = b.cells[colIndex].innerText.trim();
+      if (isDate) {
+        return currentDir === 'asc'
+          ? new Date(aText) - new Date(bText)
+          : new Date(bText) - new Date(aText);
+      }
+      return currentDir === 'asc'
+        ? aText.localeCompare(bText)
+        : bText.localeCompare(aText);
+    });
+
+    tbody.innerHTML = '';
+    rows.forEach(r => tbody.appendChild(r));
+  }
+
+  document.addEventListener('DOMContentLoaded', buildPagination);
+  window.sortTable = sortTable;
+</script>
