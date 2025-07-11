@@ -1,24 +1,17 @@
-<div class="govuk-pagination__prev">
-    {% if currentPage > 1 %}
-    <a class="govuk-link govuk-pagination__link" href="?page={{ currentPage | minus: 1 }}" rel="prev">
-      <span class="govuk-pagination__link-title">Previous<span class="govuk-visually-hidden"> page</span></span>
-    </a>
-    {% endif %}
-  </div>
-  <ul class="govuk-pagination__list" id="pagination-container">
-    {% for i in (1..totalPages) %}
-      <li class="govuk-pagination__item{% if i == currentPage %} govuk-pagination__item--current{% endif %}">
-        <a class="govuk-link govuk-pagination__link" href="?page={{ i }}">{{ i }}</a>
-      </li>
-    {% endfor %}
-  </ul>
-  <div class="govuk-pagination__next">
-    {% if currentPage < totalPages %}
-    <a class="govuk-link govuk-pagination__link" href="?page={{ currentPage | plus: 1 }}" rel="next">
-      <span class="govuk-pagination__link-title">Next<span class="govuk-visually-hidden"> page</span></span>
-    </a>
-    {% endif %}
-  </div>
+{% assign currentPage = request.params['page'] | default: 1 | plus: 0 %}
 
 
-{% assign currentPage = request.params['page'] | default: 1 %}
+{% else %}
+{% assign attachments = null %}
+{% endif %}
+
+{% if attachments and attachments.results.entities.size > 0 %}
+  {% for a in attachments.results.entities %}
+    {% assign pid = a.voap_portalrequestlookup.id %}
+    {% if attachmentCounts[pid] %}
+      {% assign attachmentCounts = attachmentCounts | merge: { pid: attachmentCounts[pid] | plus: 1 } %}
+    {% else %}
+      {% assign attachmentCounts = attachmentCounts | merge: { pid: 1 } %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
