@@ -24,7 +24,68 @@
 {% fetchxml total_query %}
 <fetch version="1.0" mapping="logical" aggregate="true">
   <entity name="voap_portalrequest">
-@@ -89,32 +89,50 @@
+    <attribute name="voap_portalrequestid" aggregate="count" alias="total" />
+    <filter type="and">
+      <condition attribute="statuscode" operator="in">
+        <value>400400001</value>
+        <value>564100003</value>
+      </condition>
+      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
+    </filter>
+  </entity>
+</fetch>
+{% endfetchxml %}
+
+{% assign totalCount = total_query.results.entities[0].total.value %}
+{% assign totalPages = totalCount | divided_by: pageSize | ceil %}
+
+{% assign portalRequestIds = reports.results.entities | map: 'voap_portalrequestid' %}
+
+{% fetchxml attachments %}
+<fetch version="1.0" mapping="logical">
+  <entity name="voap_portalfilemanagement">
+    <filter>
+      <condition attribute="voap_portalrequestlookup" operator="in">
+        {% for id in portalRequestIds %}
+          <value>{{ id }}</value>
+        {% endfor %}
+      </condition>
+      <condition attribute="statuscode" operator="in">
+        <value>695720002</value>
+        <value>695720010</value>
+        <value>695720003</value>
+        <value>695720011</value>
+        <value>695720007</value>
+      </condition>
+    </filter>
+    <attribute name="voap_portalrequestlookup" />
+    <attribute name="voap_portalfilemanagementid" />
+  </entity>
+</fetch>
+{% endfetchxml %}
+
+{% assign attachmentCounts = {} %}
+{% for a in attachments.results.entities %}
+  {% assign pid = a.voap_portalrequestlookup.id %}
+  {% if attachmentCounts[pid] %}
+    {% assign attachmentCounts = attachmentCounts | merge: { pid: attachmentCounts[pid] | plus: 1 } %}
+  {% else %}
+    {% assign attachmentCounts = attachmentCounts | merge: { pid: 1 } %}
+  {% endif %}
+{% endfor %}
+
+<table class="govuk-table" id="submitted-reports">
+  <caption class="govuk-table__caption">List of submitted reports</caption>
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">Billing authority report number</th>
+      <th scope="col" class="govuk-table__header">Billing authority reference number</th>
+      <th scope="col" class="govuk-table__header">Date created</th>
+      <th scope="col" class="govuk-table__header">Postcode</th>
+      <th scope="col" class="govuk-table__header">Supporting documents</th>
+      <th scope="col" class="govuk-table__header">Action</th>
+    </tr>
+  </thead>
   <tbody class="govuk-table__body">
     {% for result in reports.results.entities %}
     <tr class="govuk-table__row">
@@ -72,6 +133,3 @@
     {% endif %}
   </div>
 </nav>
-
-{% assign tableid = 'submitted-reports' %}
-{% include 'VOA/GDS Table Sorting Pagination JS' %}
