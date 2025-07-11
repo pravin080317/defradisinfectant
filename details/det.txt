@@ -1,125 +1,50 @@
-{% assign currentPage = request.params['page'] | default: 1 %}
-{% assign pageSize = 20 %}
-
-{% fetchxml reports_count %}
-<fetch mapping="logical" aggregate="true">
-  <entity name="voap_portalrequest">
-    <attribute name="voap_portalrequestid" aggregate="count" alias="total" />
-    <filter type="and">
-      <condition attribute="statuscode" operator="in">
-        <value>400400001</value>
-        <value>564100003</value>
-      </condition>
-      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
-    </filter>
-  </entity>
-</fetch>
-{% endfetchxml %}
-{% assign totalCount = reports_count.results.entities[0].total_value | default: 0 %}
-{% assign totalPages = totalCount | divided_by: pageSize | ceil %}
-
-{% fetchxml reports %}
-<fetch version="1.0" mapping="logical" count="{{ pageSize }}" page="{{ currentPage }}">
-  <entity name="voap_portalrequest">
-    <filter type="and">
-      <condition attribute="statuscode" operator="in">
-        <value>400400001</value>
-        <value>564100003</value>
-      </condition>
-      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
-    </filter>
-    <order attribute="createdon" descending="true" />
-    <attribute name="voap_billingauthorityreportnumber" />
-    <attribute name="voap_billingauthorityreferencenumber" />
-    <attribute name="createdon" />
-    <attribute name="voap_newpropertyaddressline5postcode" />
-    <attribute name="voap_portalrequestid" />
-  </entity>
-</fetch>
-{% endfetchxml %}
-
-<table class="govuk-table" id="submitted-reports">
-  <caption class="govuk-table__caption">List of submitted reports (click a column header to sort)</caption>
-  <thead class="govuk-table__head">
-    <tr class="govuk-table__row">
-      <th scope="col" class="govuk-table__header">
-        <a href="#" onclick="event.preventDefault(); sortTable(0)" class="govuk-link sort-control" style="color:#005ea5" aria-sort="none" aria-label="Billing authority report number, not sorted. Activate to sort ascending.">
-          Billing authority report number
-          <span aria-hidden="true" class="sort-triangle"></span>
-        </a>
-      </th>
-      <th scope="col" class="govuk-table__header">
-        <a href="#" onclick="event.preventDefault(); sortTable(1)" class="govuk-link sort-control" style="color:#005ea5; white-space: nowrap;" aria-sort="none" aria-label="Billing authority reference number, not sorted. Activate to sort ascending.">
-          Billing authority reference number
-          <span aria-hidden="true" class="sort-triangle"></span>
-        </a>
-      </th>
-      <th scope="col" class="govuk-table__header">
-        <a href="#" onclick="event.preventDefault(); sortTable(2, true)" class="govuk-link sort-control" style="color:#005ea5; white-space: nowrap;" aria-sort="none" aria-label="Date created, not sorted. Activate to sort ascending.">
-          Date created
-          <span aria-hidden="true" class="sort-triangle"></span>
-        </a>
-      </th>
-      <th scope="col" class="govuk-table__header">
-        <a href="#" onclick="event.preventDefault(); sortTable(3)" class="govuk-link sort-control" style="color:#005ea5; white-space: nowrap;" aria-sort="none" aria-label="Postcode, not sorted. Activate to sort ascending.">
-          Postcode
-          <span aria-hidden="true" class="sort-triangle"></span>
-        </a>
-      </th>
-      <th scope="col" class="govuk-table__header" style="color:#005ea5">Supporting documents</th>
-      <th scope="col" class="govuk-table__header" style="color:#005ea5">Action</th>
-    </tr>
-  </thead>
-  <tbody class="govuk-table__body">
-    {% for result in reports.results.entities %}
-      {% fetchxml attachments %}
-<fetch version="1.0" mapping="logical" distinct="false">
-  <entity name="voap_portalfilemanagement">
-    <filter type="and">
-      <condition attribute="voap_portalrequestlookup" operator="eq" value="{{ result.voap_portalrequestid }}" />
-      <condition attribute="statuscode" operator="in">
-        <value>695720002</value>
-        <value>695720010</value>
-        <value>695720003</value>
-        <value>695720011</value>
-        <value>695720007</value>
-      </condition>
-    </filter>
-    <attribute name="voap_portalfilemanagementid" />
-  </entity>
-</fetch>
-      {% endfetchxml %}
-      <tr class="govuk-table__row">
-        <td class="govuk-table__cell">
-          {% if result.voap_billingauthorityreportnumber %}
-            <a class="govuk-link" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}">{{ result.voap_billingauthorityreportnumber }}</a>
-          {% endif %}
-        </td>
-        <td class="govuk-table__cell">{{ result.voap_billingauthorityreferencenumber }}</td>
-        <td class="govuk-table__cell">{{ result.createdon | date: 'dd MMM yyyy HH:mm' }}</td>
-        <td class="govuk-table__cell">{{ result.voap_newpropertyaddressline5postcode }}</td>
-        <td class="govuk-table__cell">{{ attachments.results.entities.size }}</td>
-        <td class="govuk-table__cell">
-          {% if attachments.results.entities.size == 0 %}
-            <a class="govuk-link" href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ result.voap_portalrequestid }}">Add documents <span class="govuk-visually-hidden"> for report {{ result.voap_billingauthorityreportnumber }}</span></a>
-          {% else %}
-            <a class="govuk-link" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}#supporting-documents">View supporting documents <span class="govuk-visually-hidden"> for report {{ result.voap_billingauthorityreportnumber }}</span></a>
-          {% endif %}
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<nav class="govuk-pagination" role="navigation">
-  <ul class="govuk-pagination__list">
+ <ul class="govuk-pagination__list">
     {% for i in (1..totalPages) %}
-      <li class="govuk-pagination__item">
-        <a href="?page={{ i }}" class="govuk-link govuk-pagination__link {% if i == currentPage %}govuk-pagination__item--current{% endif %}">{{ i }}</a>
+      <li class="govuk-pagination__item{% if i == currentPage %} govuk-pagination__item--current{% endif %}">
+        <a href="?page={{ i }}" class="govuk-link govuk-pagination__link">{{ i }}</a>
       </li>
     {% endfor %}
   </ul>
-</nav>
 
-{% assign tableid = 'submitted-reports' %}
-{% include 'VOA/GDS_Table_Sorting_Pagination_JS' %}
+
+(function() {
+  var currentPage = 1;
+  var recordsPerPage = 20;
+
+  function sortTable(colIndex, isDate) {
+    var table = document.getElementById('{{ tableid }}');
+    if (!table) return;
+    var tbody = table.tBodies[0];
+    var rows = Array.from(tbody.rows);
+    var headers = table.querySelectorAll(
+      '.govuk-table__header button, .govuk-table__header a.govuk-link'
+    );
+    var header = headers[colIndex];
+    var prevState = header.getAttribute('aria-sort') || 'none';
+    var ascending = prevState !== 'ascending';
+
+    headers.forEach(function(h) {
+      h.setAttribute('aria-sort', 'none');
+    });
+
+    rows.sort(function(a, b) {
+      var aText = a.cells[colIndex].innerText.trim();
+      var bText = b.cells[colIndex].innerText.trim();
+      if (isDate) {
+        return ascending
+          ? new Date(aText) - new Date(bText)
+          : new Date(bText) - new Date(aText);
+      }
+      return ascending
+        ? aText.localeCompare(bText)
+        : bText.localeCompare(aText);
+    });
+
+    tbody.innerHTML = '';
+    rows.forEach(function(r) { tbody.appendChild(r); });
+    header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+  }
+
+  window.sortTable = sortTable;
+})();
+</script>
