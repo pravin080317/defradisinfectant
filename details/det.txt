@@ -1,21 +1,77 @@
-{% assign totalCount = total_query.results.entities[0].total.value | default: 0 %}
-{% assign totalCount = 0 %}
-{% if total_query.results.entities and total_query.results.entities.size > 0 %}
-  {% assign totalCount = total_query.results.entities[0].total.value | plus: 0 %}
-{% endif %}
-{% assign totalPages = totalCount | divided_by: pageSize | ceil %}
-{% if totalPages == 0 %}
-  {% assign totalPages = 1 %}
-{% endif %}
+{% assign currentPage = request.params['page'] | default: 1 %}
+{% assign pageSize = 20 %}
 
-{% assign portalRequestIds = reports.results.entities | map: 'voap_portalrequestid' | map: 'id' %}
-{% if reports.results.entities %}
-  {% assign portalRequestIds = reports.results.entities | map: 'voap_portalrequestid' | map: 'id' %}
-  {% assign reportList = reports.results.entities %}
-{% else %}
-  {% assign portalRequestIds = '' %}
-  {% assign reportList = '' %}
-{% endif %}
+{% fetchxml reports %}
+<fetch version="1.0" mapping="logical" count="{{ pageSize }}" page="{{ currentPage }}">
+  <entity name="voap_portalrequest">
+    <filter type="and">
+      <condition attribute="statuscode" operator="in">
+        <value>400400001</value>
+        <value>564100003</value>
+      </condition>
+      <condition attribute="voap_bacode" operator="eq" value="{{ bacode }}" />
+    </filter>
+    <order attribute="createdon" descending="true" />
+    <attribute name="voap_billingauthorityreportnumber" />
+    <attribute name="voap_billingauthorityreferencenumber" />
+    <attribute name="createdon" />
+    <attribute name="voap_newpropertyaddressline5postcode" />
+    <attribute name="voap_portalrequestid" />
+  </entity>
+</fetch>
+{% endfetchxml %}
 
-{% if portalRequestIds.size > 0 %}
-{% if portalRequestIds != '' and portalRequestIds.size > 0 %}
+{% fetchxml total_query %}
+<fetch version="1.0" mapping="logical" aggregate="true">
+  <entity name="voap_portalrequest">
+@@ -89,32 +89,50 @@
+  <tbody class="govuk-table__body">
+    {% for result in reports.results.entities %}
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">
+        {% if result.voap_billingauthorityreportnumber %}
+          <a class="govuk-link" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}">{{ result.voap_billingauthorityreportnumber }}</a>
+        {% endif %}
+      </td>
+      <td class="govuk-table__cell">{{ result.voap_billingauthorityreferencenumber }}</td>
+      <td class="govuk-table__cell">{{ result.createdon | date: 'dd MMM yyyy HH:mm' }}</td>
+      <td class="govuk-table__cell">{{ result.voap_newpropertyaddressline5postcode }}</td>
+      <td class="govuk-table__cell">{{ attachmentCounts[result.voap_portalrequestid] | default: 0 }}</td>
+      <td class="govuk-table__cell">
+        {% if attachmentCounts[result.voap_portalrequestid] %}
+          <a class="govuk-link" href="{{ sitemarkers['UMR006 Report Details'].url }}?id={{ result.voap_portalrequestid }}#supporting-documents">View supporting documents <span class="govuk-visually-hidden"> for report {{ result.voap_billingauthorityreportnumber }}</span></a>
+        {% else %}
+          <a class="govuk-link" href="{{ sitemarkers['UMR004 Upload Evidence'].url }}?id={{ result.voap_portalrequestid }}">Add documents <span class="govuk-visually-hidden"> for report {{ result.voap_billingauthorityreportnumber }}</span></a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<nav class="govuk-pagination" role="navigation" aria-label="results">
+  <div class="govuk-pagination__prev">
+    {% if currentPage > 1 %}
+    <a class="govuk-link govuk-pagination__link" href="?page={{ currentPage | minus: 1 }}" rel="prev">
+      <span class="govuk-pagination__link-title">Previous<span class="govuk-visually-hidden"> page</span></span>
+    </a>
+    {% endif %}
+  </div>
+  <ul class="govuk-pagination__list" id="pagination-container">
+    {% for i in (1..totalPages) %}
+      <li class="govuk-pagination__item{% if i == currentPage %} govuk-pagination__item--current{% endif %}">
+        <a class="govuk-link govuk-pagination__link" href="?page={{ i }}">{{ i }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+  <div class="govuk-pagination__next">
+    {% if currentPage < totalPages %}
+    <a class="govuk-link govuk-pagination__link" href="?page={{ currentPage | plus: 1 }}" rel="next">
+      <span class="govuk-pagination__link-title">Next<span class="govuk-visually-hidden"> page</span></span>
+    </a>
+    {% endif %}
+  </div>
+</nav>
+
+{% assign tableid = 'submitted-reports' %}
+{% include 'VOA/GDS Table Sorting Pagination JS' %}
