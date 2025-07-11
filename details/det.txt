@@ -1,17 +1,21 @@
-{% assign currentPage = request.params['page'] | default: 1 | plus: 0 %}
+{% assign totalCount = total_query.results.entities[0].total.value | default: 0 %}
+{% assign totalCount = 0 %}
+{% if total_query.results.entities and total_query.results.entities.size > 0 %}
+  {% assign totalCount = total_query.results.entities[0].total.value | plus: 0 %}
+{% endif %}
+{% assign totalPages = totalCount | divided_by: pageSize | ceil %}
+{% if totalPages == 0 %}
+  {% assign totalPages = 1 %}
+{% endif %}
 
-
+{% assign portalRequestIds = reports.results.entities | map: 'voap_portalrequestid' | map: 'id' %}
+{% if reports.results.entities %}
+  {% assign portalRequestIds = reports.results.entities | map: 'voap_portalrequestid' | map: 'id' %}
+  {% assign reportList = reports.results.entities %}
 {% else %}
-{% assign attachments = null %}
+  {% assign portalRequestIds = '' %}
+  {% assign reportList = '' %}
 {% endif %}
 
-{% if attachments and attachments.results.entities.size > 0 %}
-  {% for a in attachments.results.entities %}
-    {% assign pid = a.voap_portalrequestlookup.id %}
-    {% if attachmentCounts[pid] %}
-      {% assign attachmentCounts = attachmentCounts | merge: { pid: attachmentCounts[pid] | plus: 1 } %}
-    {% else %}
-      {% assign attachmentCounts = attachmentCounts | merge: { pid: 1 } %}
-    {% endif %}
-  {% endfor %}
-{% endif %}
+{% if portalRequestIds.size > 0 %}
+{% if portalRequestIds != '' and portalRequestIds.size > 0 %}
