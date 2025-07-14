@@ -1,11 +1,15 @@
-{% assign currentPageParam = request.params['page'] | default: '1' %}
+{% assign pageSize = 20 %}
 
-{% if currentPageParam == '' or currentPageParam == null %}
-  {% assign currentPage = 1 %}
-{% else %}
-  {% assign currentPage = currentPageParam | plus: 0 %}
-{% endif %}
+{%- assign currentPageParam = request.params['page'] | default: '1' -%}
 
-{% if currentPage < 1 %}
-  {% assign currentPage = 1 %}
-{% endif %}
+{%- assign currentPageParamTrimmed = currentPageParam | strip -%}
+
+{%- if currentPageParamTrimmed == '' or currentPageParamTrimmed == null or currentPageParamTrimmed == '0' -%}
+  {%- assign currentPage = 1 -%}
+{%- else -%}
+  {%- assign currentPage = currentPageParamTrimmed | plus: 0 -%}
+{%- endif -%}
+
+{%- if currentPage < 1 -%}
+  {%- assign currentPage = 1 -%}
+{%- endif -%}
