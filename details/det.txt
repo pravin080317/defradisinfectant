@@ -1,13 +1,27 @@
 {% assign pageSize = 20 %}
 
-{%- assign currentPageRaw = request.params['page'] | default: '1' | strip -%}
+{%- assign rawPage = request.params['page'] | strip | default: '1' -%}
 
-{%- if currentPageRaw == '' or currentPageRaw == null or currentPageRaw == '0' -%}
-  {%- assign currentPage = 1 -%}
-{%- else -%}
-  {%- assign currentPage = currentPageRaw | plus: 0 -%}
-{%- endif -%}
+{%- comment %}
+  Ensure currentPage is always a number >= 1
+{%- endcomment %}
+{% capture parsedPage %}
+  {{ rawPage | plus: 0 }}
+{% endcapture %}
 
-{%- if currentPage < 1 -%}
-  {%- assign currentPage = 1 -%}
-{%- endif -%}
+{% assign currentPage = parsedPage | plus: 0 %}
+
+{% if currentPage < 1 %}
+  {% assign currentPage = 1 %}
+{% endif %}
+
+
+{% assign previousPage = currentPage | minus: 1 %}
+{% if previousPage < 1 %}
+  {% assign previousPage = 1 %}
+{% endif %}
+
+{% assign nextPage = currentPage | plus: 1 %}
+{% if nextPage > totalPages %}
+  {% assign nextPage = totalPages %}
+{% endif %}
