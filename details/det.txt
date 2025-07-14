@@ -1,50 +1,14 @@
- <ul class="govuk-pagination__list">
-    {% for i in (1..totalPages) %}
-      <li class="govuk-pagination__item{% if i == currentPage %} govuk-pagination__item--current{% endif %}">
-        <a href="?page={{ i }}" class="govuk-link govuk-pagination__link">{{ i }}</a>
-      </li>
-    {% endfor %}
-  </ul>
+{% assign currentPageString = request.params['page'] | default: '1' %}
+{% assign currentPage = currentPageString | plus: 0 %}
 
+{% if currentPage > 1 %}
+  {% assign previousPage = currentPage | minus: 1 %}
+{% else %}
+  {% assign previousPage = 1 %}
+{% endif %}
 
-(function() {
-  var currentPage = 1;
-  var recordsPerPage = 20;
+{% assign nextPage = currentPage | plus: 1 %}
 
-  function sortTable(colIndex, isDate) {
-    var table = document.getElementById('{{ tableid }}');
-    if (!table) return;
-    var tbody = table.tBodies[0];
-    var rows = Array.from(tbody.rows);
-    var headers = table.querySelectorAll(
-      '.govuk-table__header button, .govuk-table__header a.govuk-link'
-    );
-    var header = headers[colIndex];
-    var prevState = header.getAttribute('aria-sort') || 'none';
-    var ascending = prevState !== 'ascending';
-
-    headers.forEach(function(h) {
-      h.setAttribute('aria-sort', 'none');
-    });
-
-    rows.sort(function(a, b) {
-      var aText = a.cells[colIndex].innerText.trim();
-      var bText = b.cells[colIndex].innerText.trim();
-      if (isDate) {
-        return ascending
-          ? new Date(aText) - new Date(bText)
-          : new Date(bText) - new Date(aText);
-      }
-      return ascending
-        ? aText.localeCompare(bText)
-        : bText.localeCompare(aText);
-    });
-
-    tbody.innerHTML = '';
-    rows.forEach(function(r) { tbody.appendChild(r); });
-    header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
-  }
-
-  window.sortTable = sortTable;
-})();
-</script>
+{% if nextPage > totalPages %}
+  {% assign nextPage = totalPages %}
+{% endif %}
