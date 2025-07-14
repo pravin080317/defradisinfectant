@@ -1,18 +1,11 @@
 {% assign pageSize = 20 %}
 
 {%- assign rawPage = request.params['page'] | default: '1' | strip -%}
-{%- assign currentPage = rawPage | plus: 0 -%}
+
+{%- comment %} Force numeric value from query param or fallback to 1 {% endcomment -%}
+{%- assign rawPageStr = rawPage | prepend: '' -%}
+{%- assign currentPage = rawPageStr | plus: 0 -%}
+
 {%- if currentPage < 1 -%}
   {%- assign currentPage = 1 -%}
-{%- endif -%}
-
-{%- assign previousPage = currentPage | minus: 1 -%}
-{%- if previousPage < 1 -%}
-  {%- assign previousPage = 1 -%}
-{%- endif -%}
-
-{%- assign nextPage = currentPage | plus: 1 -%}
-{%- assign totalPages = totalCount | divided_by: pageSize | ceil -%}
-{%- if nextPage > totalPages -%}
-  {%- assign nextPage = totalPages -%}
 {%- endif -%}
