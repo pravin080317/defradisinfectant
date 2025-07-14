@@ -2,9 +2,11 @@
 
 {%- assign rawPage = request.params['page'] | default: '1' | strip -%}
 
-{%- comment %} Force numeric value from query param or fallback to 1 {% endcomment -%}
-{%- assign rawPageStr = rawPage | prepend: '' -%}
-{%- assign currentPage = rawPageStr | plus: 0 -%}
+{%- if rawPage == '' or rawPage == null or rawPage == '0' -%}
+  {%- assign currentPage = 1 -%}
+{%- else -%}
+  {%- assign currentPage = rawPage | plus: 0 -%}
+{%- endif -%}
 
 {%- if currentPage < 1 -%}
   {%- assign currentPage = 1 -%}
