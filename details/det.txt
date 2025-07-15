@@ -2,3 +2,6 @@
 {% assign sortField = request.params['sortField'] | default: 'createdon' %}
 {% assign sortDir = request.params['sortDir'] | default: 'desc' %}
 {% assign isDesc = sortDir == 'desc' %}
+
+
+<order attribute="{{ sortField }}" descending="{{ isDesc }}" />
