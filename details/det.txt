@@ -10,8 +10,15 @@
 
   {% assign rangeStart = currentPage | minus: 2 %}
   {% assign rangeEnd = currentPage | plus: 2 %}
-  {% assign rangeStart = rangeStart | at_least: 2 %}
-  {% assign rangeEnd = rangeEnd | at_most: totalPages | minus: 1 %}
+
+  {% if rangeStart < 2 %}
+    {% assign rangeEnd = rangeEnd | plus: 2 | minus: rangeStart %}
+    {% assign rangeStart = 2 %}
+  {% endif %}
+
+  {% if rangeEnd > totalPages - 1 %}
+    {% assign rangeEnd = totalPages | minus: 1 %}
+  {% endif %}
 
   {% if rangeStart > 2 %}
     <li class="govuk-pagination__item govuk-pagination__item--ellipsis">…</li>
