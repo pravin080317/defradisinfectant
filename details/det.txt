@@ -1,13 +1,43 @@
-{% assign pageSize = 20 %}
+<ul class="govuk-pagination__list" id="pagination-container">
+  <!-- Always show page 1 -->
+  <li class="govuk-pagination__item{% if currentPage == 1 %} govuk-pagination__item--current{% endif %}">
+    {% if currentPage == 1 %}
+      <span class="govuk-pagination__link" aria-current="page">1</span>
+    {% else %}
+      <a href="?page=1" class="govuk-link govuk-pagination__link">1</a>
+    {% endif %}
+  </li>
 
-{%- assign rawPage = request.params['page'] | default: '1' | strip -%}
+  {% assign rangeStart = currentPage | minus: 2 %}
+  {% assign rangeEnd = currentPage | plus: 2 %}
+  {% assign rangeStart = rangeStart | at_least: 2 %}
+  {% assign rangeEnd = rangeEnd | at_most: totalPages | minus: 1 %}
 
-{%- if rawPage == '' or rawPage == null or rawPage == '0' -%}
-  {%- assign currentPage = 1 -%}
-{%- else -%}
-  {%- assign currentPage = rawPage | plus: 0 -%}
-{%- endif -%}
+  {% if rangeStart > 2 %}
+    <li class="govuk-pagination__item govuk-pagination__item--ellipsis">…</li>
+  {% endif %}
 
-{%- if currentPage < 1 -%}
-  {%- assign currentPage = 1 -%}
-{%- endif -%}
+  {% for i in (rangeStart..rangeEnd) %}
+    <li class="govuk-pagination__item{% if i == currentPage %} govuk-pagination__item--current{% endif %}">
+      {% if i == currentPage %}
+        <span class="govuk-pagination__link" aria-current="page">{{ i }}</span>
+      {% else %}
+        <a href="?page={{ i }}" class="govuk-link govuk-pagination__link">{{ i }}</a>
+      {% endif %}
+    </li>
+  {% endfor %}
+
+  {% if rangeEnd < totalPages - 1 %}
+    <li class="govuk-pagination__item govuk-pagination__item--ellipsis">…</li>
+  {% endif %}
+
+  {% if totalPages > 1 %}
+    <li class="govuk-pagination__item{% if currentPage == totalPages %} govuk-pagination__item--current{% endif %}">
+      {% if currentPage == totalPages %}
+        <span class="govuk-pagination__link" aria-current="page">{{ totalPages }}</span>
+      {% else %}
+        <a href="?page={{ totalPages }}" class="govuk-link govuk-pagination__link">{{ totalPages }}</a>
+      {% endif %}
+    </li>
+  {% endif %}
+</ul>
