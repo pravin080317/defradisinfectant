@@ -1,17 +1,8 @@
-{% assign isCurrentSort = sortField == 'createdon' %}
-{% assign toggleDir = isCurrentSort and sortDir == 'true' ? 'false' : 'true' %}
-{% assign currentSortIcon = isCurrentSort and sortDir == 'true' ? '↓' : isCurrentSort and sortDir == 'false' ? '↑' : '' %}
-<th scope="col" class="govuk-table__header">
-  <a href="?page=1&sortField=createdon&sortDir={{ toggleDir }}"
-     class="govuk-link sort-control"
-     aria-sort="{% if isCurrentSort %}{% if sortDir == 'true' %}descending{% else %}ascending{% endif %}{% else %}none{% endif %}">
-    Date created {{ currentSortIcon }}
-    <span class="govuk-visually-hidden">
-      {% if isCurrentSort %}
-        sorted {% if sortDir == 'true' %}descending{% else %}ascending{% endif %}. Activate to sort {% if sortDir == 'true' %}ascending{% else %}descending{% endif %}.
-      {% else %}
-        Not sorted. Activate to sort ascending.
-      {% endif %}
-    </span>
-  </a>
-</th>
+{% assign currentSortIcon = '' %}
+{% if isCurrentSort %}
+  {% if sortDir == 'true' %}
+    {% assign currentSortIcon = ' ↓' %}
+  {% else %}
+    {% assign currentSortIcon = ' ↑' %}
+  {% endif %}
+{% endif %}
