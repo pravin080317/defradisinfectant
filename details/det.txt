@@ -1,7 +1,3 @@
- {% if request.params['sortField'] == 'createdon' %}
-       {% if request.params['sortDir'] == 'true' or request.params['sortDir'] == nil %}
-         <span aria-hidden="true"> ↓</span>
-       {% else %}
-         <span aria-hidden="true"> ↑</span>
-       {% endif %}
-     {% endif %}
+<div aria-live="polite" aria-atomic="true" class="govuk-visually-hidden" id="pagination-announcement">
+  Showing page {{ currentPage }} of {{ totalPages }}
+</div>
