@@ -1,5 +1,5 @@
-{% if isCurrentSort %}
-       {% if sortDir == 'true' %}
+ {% if request.params['sortField'] == 'createdon' %}
+       {% if request.params['sortDir'] == 'true' or request.params['sortDir'] == nil %}
          <span aria-hidden="true"> ↓</span>
        {% else %}
          <span aria-hidden="true"> ↑</span>
