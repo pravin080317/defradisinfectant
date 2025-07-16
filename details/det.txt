@@ -1,7 +1,16 @@
-
-{% assign sortField = request.params['sortField'] | default: 'createdon' %}
-{% assign sortDir = request.params['sortDir'] | default: 'desc' %}
-{% assign isDesc = sortDir == 'desc' %}
-
-
-<order attribute="{{ sortField }}" descending="{{ isDesc }}" />
+<tr class="govuk-table__row">
+      {% assign headers = "voap_billingauthorityreportnumber,voap_billingauthorityreferencenumber,createdon,voap_newpropertyaddressline5postcode" | split: "," %}
+      {% assign labels = "Billing authority report number,Billing authority reference number,Date created,Postcode" | split: "," %}
+      {% for header in headers %}
+        {% assign label = labels[forloop.index0] %}
+        {% assign isCurrentSort = sortField == header %}
+        {% assign toggleDir = sortDir == 'asc' and isCurrentSort ? 'desc' : 'asc' %}
+        <th scope="col" class="govuk-table__header">
+          <a href="?page=1&sortField={{ header }}&sortDir={{ toggleDir }}" class="govuk-link sort-control" aria-sort="{{ isCurrentSort and sortDir or 'none' }}">
+            {{ label }}
+          </a>
+        </th>
+      {% endfor %}
+      <th scope="col" class="govuk-table__header">Supporting documents</th>
+      <th scope="col" class="govuk-table__header">Action</th>
+    </tr>
