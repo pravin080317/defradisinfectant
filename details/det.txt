@@ -1,16 +1,52 @@
-<tr class="govuk-table__row">
-      {% assign headers = "voap_billingauthorityreportnumber,voap_billingauthorityreferencenumber,createdon,voap_newpropertyaddressline5postcode" | split: "," %}
-      {% assign labels = "Billing authority report number,Billing authority reference number,Date created,Postcode" | split: "," %}
-      {% for header in headers %}
-        {% assign label = labels[forloop.index0] %}
-        {% assign isCurrentSort = sortField == header %}
-        {% assign toggleDir = sortDir == 'asc' and isCurrentSort ? 'desc' : 'asc' %}
-        <th scope="col" class="govuk-table__header">
-          <a href="?page=1&sortField={{ header }}&sortDir={{ toggleDir }}" class="govuk-link sort-control" aria-sort="{{ isCurrentSort and sortDir or 'none' }}">
-            {{ label }}
-          </a>
-        </th>
-      {% endfor %}
-      <th scope="col" class="govuk-table__header">Supporting documents</th>
-      <th scope="col" class="govuk-table__header">Action</th>
-    </tr>
+<thead class="govuk-table__head">
+  <tr class="govuk-table__row">
+
+    <!-- Billing authority report number -->
+    <th scope="col" class="govuk-table__header">
+      {% assign isCurrentSort = sortField == 'voap_billingauthorityreportnumber' %}
+      {% assign toggleDir = isCurrentSort and sortDir == 'asc' ? 'desc' : 'asc' %}
+      <a href="?page=1&sortField=voap_billingauthorityreportnumber&sortDir={{ toggleDir }}" 
+         class="govuk-link sort-control"
+         aria-sort="{% if isCurrentSort %}{{ sortDir }}{% else %}none{% endif %}">
+        Billing authority report number
+      </a>
+    </th>
+
+    <!-- Billing authority reference number -->
+    <th scope="col" class="govuk-table__header">
+      {% assign isCurrentSort = sortField == 'voap_billingauthorityreferencenumber' %}
+      {% assign toggleDir = isCurrentSort and sortDir == 'asc' ? 'desc' : 'asc' %}
+      <a href="?page=1&sortField=voap_billingauthorityreferencenumber&sortDir={{ toggleDir }}" 
+         class="govuk-link sort-control"
+         aria-sort="{% if isCurrentSort %}{{ sortDir }}{% else %}none{% endif %}">
+        Billing authority reference number
+      </a>
+    </th>
+
+    <!-- Date created -->
+    <th scope="col" class="govuk-table__header">
+      {% assign isCurrentSort = sortField == 'createdon' %}
+      {% assign toggleDir = isCurrentSort and sortDir == 'asc' ? 'desc' : 'asc' %}
+      <a href="?page=1&sortField=createdon&sortDir={{ toggleDir }}" 
+         class="govuk-link sort-control"
+         aria-sort="{% if isCurrentSort %}{{ sortDir }}{% else %}none{% endif %}">
+        Date created
+      </a>
+    </th>
+
+    <!-- Postcode -->
+    <th scope="col" class="govuk-table__header">
+      {% assign isCurrentSort = sortField == 'voap_newpropertyaddressline5postcode' %}
+      {% assign toggleDir = isCurrentSort and sortDir == 'asc' ? 'desc' : 'asc' %}
+      <a href="?page=1&sortField=voap_newpropertyaddressline5postcode&sortDir={{ toggleDir }}" 
+         class="govuk-link sort-control"
+         aria-sort="{% if isCurrentSort %}{{ sortDir }}{% else %}none{% endif %}">
+        Postcode
+      </a>
+    </th>
+
+    <!-- Static columns -->
+    <th scope="col" class="govuk-table__header">Supporting documents</th>
+    <th scope="col" class="govuk-table__header">Action</th>
+  </tr>
+</thead>
