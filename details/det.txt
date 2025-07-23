@@ -1,41 +1,43 @@
-Here's a clear and complete response you can send to Andrew based on your message and screenshots:
+function selectAccount(event) {
+  event.preventDefault();
 
----
+  const account = event.target;
+  const newCouncilId = account.getAttribute('value');
+  const newCouncilName = account.innerText?.trim();
+  const prevCouncilId = sessionStorage.getItem("activeCouncilId");
 
-Hi Andrew,
+  updateNewActiveAccount(newCouncilId)
+    .then(() => {
+      // Update active council in sessionStorage
+      if (newCouncilId && newCouncilId !== prevCouncilId) {
+        sessionStorage.setItem("activeCouncilId", newCouncilId);
 
-You're correct — the errors shown on the **Fix reports with data errors** page are driven from the `voa_frontdoorportalerrorexceptionreasons` table, particularly the fields:
+        // ✅ Safely track council switch event if App Insights is present
+        try {
+          if (window.appInsights && typeof window.appInsights.trackEvent === "function") {
+            window.appInsights.trackEvent({
+              name: "CouncilSwitched",
+              properties: {
+                userId: "{{ user.id | default: 'Anonymous' }}",
+                userName: "{{ user.fullname | default: 'N/A' }}",
+                previousCouncilId: prevCouncilId || "Unknown",
+                newCouncilId: newCouncilId,
+                newCouncilName: newCouncilName,
+                switchTime: new Date().toISOString()
+              }
+            });
+          } else {
+            console.warn("App Insights not available on this page.");
+          }
+        } catch (err) {
+          console.error("App Insights tracking failed:", err);
+        }
+      }
 
-* `voap_portalerrormessage` – this is what appears in the portal UI.
-* `voa_reason` – this provides additional explanation, mostly used internally or for VOA support teams.
-
-### How It Works:
-
-* **Front Door Azure Function** is responsible for validating uploaded report data.
-* It uses the legacy rule base defined in the `voa_frontdoorportalerrorexceptionreasons` table to check for any issues.
-* If an issue is identified:
-
-  * It writes the appropriate `voap_errorcode` to the `voap_portalrequest` and/or `voap_portalfilemanagement` tables.
-  * The Power Pages frontend reads this `errorcode` and fetches the corresponding `voap_portalerrormessage` from the Front Door error table for display.
-
-### Notes:
-
-* There are **no lookup relationships** between these tables — the mapping and population of error codes/messages is handled by Azure Function logic during processing.
-* If there is **only a VOA-facing issue** (i.e., not intended for display to users), it may only populate `voa_reason`.
-* In some cases, **both fields are populated**, especially when there's an error the user should fix *and* additional background info for internal handling.
-
-### Regarding "E" Error Codes:
-
-* Short error codes like **E01**, **E02** are part of `voap_errorcode`.
-* These only appear in `portalrequest` or `portalfilemanagement` **if** there is an error.
-* If the record is valid and processed successfully, these fields will be empty.
-* If a file fails *structurally* (e.g., corrupt XML or invalid format), it may silently fail without triggering an error code — which is something we're reviewing (as raised in the recent XML upload issue).
-
-Let me know if you'd like help with a summary query to list which error codes/messages are being triggered most often.
-
-Best regards,
-Praveen
-
----
-
-Let me know if you want a follow-up SQL query to show error frequencies or usage stats across those tables.
+      // Redirect to dashboard
+      newAccountPage();
+    })
+    .catch(function (error) {
+      console.error("Error updating council:", error);
+    });
+}
