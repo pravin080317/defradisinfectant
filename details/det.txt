@@ -1,43 +1,10 @@
-function selectAccount(event) {
-  event.preventDefault();
-
-  const account = event.target;
-  const newCouncilId = account.getAttribute('value');
-  const newCouncilName = account.innerText?.trim();
-  const prevCouncilId = sessionStorage.getItem("activeCouncilId");
-
-  updateNewActiveAccount(newCouncilId)
-    .then(() => {
-      // Update active council in sessionStorage
-      if (newCouncilId && newCouncilId !== prevCouncilId) {
-        sessionStorage.setItem("activeCouncilId", newCouncilId);
-
-        // ✅ Safely track council switch event if App Insights is present
-        try {
-          if (window.appInsights && typeof window.appInsights.trackEvent === "function") {
-            window.appInsights.trackEvent({
-              name: "CouncilSwitched",
-              properties: {
-                userId: "{{ user.id | default: 'Anonymous' }}",
-                userName: "{{ user.fullname | default: 'N/A' }}",
-                previousCouncilId: prevCouncilId || "Unknown",
-                newCouncilId: newCouncilId,
-                newCouncilName: newCouncilName,
-                switchTime: new Date().toISOString()
-              }
-            });
-          } else {
-            console.warn("App Insights not available on this page.");
-          }
-        } catch (err) {
-          console.error("App Insights tracking failed:", err);
-        }
-      }
-
-      // Redirect to dashboard
-      newAccountPage();
-    })
-    .catch(function (error) {
-      console.error("Error updating council:", error);
-    });
+// Save initial active council info to sessionStorage
+try {
+  const existingCouncilId = sessionStorage.getItem("activeCouncilId");
+  if (!existingCouncilId) {
+    sessionStorage.setItem("activeCouncilId", "{{ user.voap_contact_ActiveAccount_account.accountid }}");
+    sessionStorage.setItem("activeCouncilName", "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}");
+  }
+} catch (e) {
+  console.error("Failed to set initial council info in sessionStorage", e);
 }
