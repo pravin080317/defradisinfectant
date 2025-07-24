@@ -19,3 +19,41 @@ pageViews
 | summarize councilsUsed = make_set(userCouncil), numCouncils = dcount(userCouncil) by userId, sessionId
 | where numCouncils > 1
 | order by userId, sessionId
+
+
+customEvents
+| where name == "LAPortalLogin"
+| extend
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    userStatus = tostring(customDimensions.userStatus),
+    userCouncil = tostring(customDimensions.userCouncil),
+    sessionId = tostring(customDimensions.sessionId),
+    loginTime = todatetime(customDimensions.loginTime),
+    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
+| where userStatus == "LoggedIn"
+| where userId != "Anonymous" and isnotempty(userId)
+| project timestamp, loginTime, userId, userName, userCouncil, sessionId, isMultiCouncil
+| order by loginTime desc
+
+
+customEvents
+| where name == "LAPortalLogin"
+| extend
+    userId = tostring(customDimensions.userId),
+    loginDate = startofday(todatetime(customDimensions.loginTime))
+| summarize loginsPerDay = dcount(session_Id) by userId, loginDate
+
+
+customEvents
+| where name == "LAPortalLogin"
+| extend userCouncil = tostring(customDimensions.userCouncil)
+| summarize loginCount = count() by userCouncil
+| order by loginCount desc
+
+
+customEvents
+| where name == "LAPortalLogin"
+| extend userId = tostring(customDimensions.userId), sessionId = tostring(customDimensions.sessionId)
+| summarize loginEvents = count() by userId, sessionId
+| where loginEvents > 1
