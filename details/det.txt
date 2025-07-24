@@ -1,10 +1,21 @@
-// Save initial active council info to sessionStorage
-try {
-  const existingCouncilId = sessionStorage.getItem("activeCouncilId");
-  if (!existingCouncilId) {
-    sessionStorage.setItem("activeCouncilId", "{{ user.voap_contact_ActiveAccount_account.accountid }}");
-    sessionStorage.setItem("activeCouncilName", "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}");
-  }
-} catch (e) {
-  console.error("Failed to set initial council info in sessionStorage", e);
-}
+pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    userCouncil = tostring(customDimensions.userCouncil)
+| where userId != "Anonymous" and userCouncil != "Unknown" and isnotempty(userCouncil)
+| summarize distinctCouncils = make_set(userCouncil), count = count() by userId
+| extend numCouncils = array_length(distinctCouncils)
+| where numCouncils > 1
+| project userId, numCouncils, distinctCouncils, count
+| order by numCouncils desc
+
+
+pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    sessionId = tostring(customDimensions.sessionId),
+    userCouncil = tostring(customDimensions.userCouncil)
+| where userId != "Anonymous" and userCouncil != "Unknown" and isnotempty(userCouncil)
+| summarize councilsUsed = make_set(userCouncil), numCouncils = dcount(userCouncil) by userId, sessionId
+| where numCouncils > 1
+| order by userId, sessionId
