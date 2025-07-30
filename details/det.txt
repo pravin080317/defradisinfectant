@@ -1,59 +1,91 @@
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    userCouncil = tostring(customDimensions.userCouncil)
-| where userId != "Anonymous" and userCouncil != "Unknown" and isnotempty(userCouncil)
-| summarize distinctCouncils = make_set(userCouncil), count = count() by userId
-| extend numCouncils = array_length(distinctCouncils)
-| where numCouncils > 1
-| project userId, numCouncils, distinctCouncils, count
-| order by numCouncils desc
+You're right to dig deeper into this — here's a **clear breakdown** of what the **Canvas App Map Control** can and **can’t** do, especially for **colour-coded maps** like in your SBL screen.
 
+---
 
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId),
-    userCouncil = tostring(customDimensions.userCouncil)
-| where userId != "Anonymous" and userCouncil != "Unknown" and isnotempty(userCouncil)
-| summarize councilsUsed = make_set(userCouncil), numCouncils = dcount(userCouncil) by userId, sessionId
-| where numCouncils > 1
-| order by userId, sessionId
+### ✅ What Power Apps Map Control **CAN DO** (as of 2025)
 
+1. **Display Multiple Pins**:
 
-customEvents
-| where name == "LAPortalLogin"
-| extend
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    userStatus = tostring(customDimensions.userStatus),
-    userCouncil = tostring(customDimensions.userCouncil),
-    sessionId = tostring(customDimensions.sessionId),
-    loginTime = todatetime(customDimensions.loginTime),
-    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
-| where userStatus == "LoggedIn"
-| where userId != "Anonymous" and isnotempty(userId)
-| project timestamp, loginTime, userId, userName, userCouncil, sessionId, isMultiCouncil
-| order by loginTime desc
+   * You can show 1,000+ pins based on latitude/longitude from a data source (Dataverse, Collection, SharePoint, etc.).
 
+2. **Custom Pin Colours**:
 
-customEvents
-| where name == "LAPortalLogin"
-| extend
-    userId = tostring(customDimensions.userId),
-    loginDate = startofday(todatetime(customDimensions.loginTime))
-| summarize loginsPerDay = dcount(session_Id) by userId, loginDate
+   * You can bind each pin’s colour to a field like `Band` (e.g., Red for A, Blue for B, etc.).
+   * Use the `Color` property within your record’s JSON.
 
+3. **Tooltip & Label on Click**:
 
-customEvents
-| where name == "LAPortalLogin"
-| extend userCouncil = tostring(customDimensions.userCouncil)
-| summarize loginCount = count() by userCouncil
-| order by loginCount desc
+   * When a user clicks a pin, it can show info like UARN, address, price.
 
+4. **Zoom, Pan, Cluster**:
 
-customEvents
-| where name == "LAPortalLogin"
-| extend userId = tostring(customDimensions.userId), sessionId = tostring(customDimensions.sessionId)
-| summarize loginEvents = count() by userId, sessionId
-| where loginEvents > 1
+   * Supports pan/zoom.
+   * Can auto-cluster if pin density is high.
+
+---
+
+### ❌ What It **CANNOT DO** Directly
+
+| Limitation                      | Explanation                                                                                                                                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Layer multiple data sources** | You can only bind **one data source at a time** to the Map Control. <br>So if you want to show properties from both "To Work" and "Paused", they must be merged into a **single collection first**. |
+| **Built-in Legend**             | The Map Control does **not support a visible legend** (e.g., Red = A1, Blue = B2). You must **build your own legend using a `Gallery` control**.                                                    |
+| **Conditional Icons or Shapes** | Only one marker shape/style is supported. You can’t change shape (e.g., circle vs triangle) — just colour.                                                                                          |
+| **Click Pin → Filter Table**    | Requires extra logic: you must set a variable on pin click to filter the related `Gallery`.                                                                                                         |
+| **No heatmaps or polygons**     | For advanced visuals (e.g., boundary overlays, zones), you need Power BI or PCF.                                                                                                                    |
+
+---
+
+### 🛠️ Workaround: Create a Legend using Canvas Components
+
+You can manually create a **legend** like this:
+
+```plaintext
+[🟥] A1
+[🟩] B2
+[🟦] C
+...
+```
+
+Using a vertical `Gallery` with:
+
+* A static collection like:
+
+  ```PowerApps
+  ClearCollect(Legend,
+    { Color: Red, Label: "A1" },
+    { Color: Green, Label: "B2" },
+    { Color: Blue, Label: "C" }
+  )
+  ```
+* Each row: a coloured icon + label
+
+Then display the legend beside the map.
+
+---
+
+### 🧩 Example Integration Flow
+
+| Step                     | Implementation                                |
+| ------------------------ | --------------------------------------------- |
+| Map control              | `MapControl.Items = MergedPropertyCollection` |
+| Pin colour binding       | `Color: ThisRecord.BandColor`                 |
+| Legend (right side)      | Vertical `Gallery` using `Legend` collection  |
+| Click pin to view info   | `OnSelect: Set(varUarn, ThisItem.UARN)`       |
+| Click pin → filter table | Use `Filter(GalleryItems, UARN = varUarn)`    |
+
+---
+
+### ✅ Verdict
+
+| Feature            | Canvas App Fit                  |
+| ------------------ | ------------------------------- |
+| Coloured Pins      | ✅ Fully Supported               |
+| Band Legend        | ⚠️ Custom Build Needed          |
+| Multi-source Layer | ❌ Must merge into single source |
+| Pin → Table filter | ✅ With additional logic         |
+| Performance        | ✅ Up to \~1,500 pins reliably   |
+
+---
+
+Would you like me to create a mock-up showing this map + gallery + legend layout for your “View Batch” or SBL screen?
