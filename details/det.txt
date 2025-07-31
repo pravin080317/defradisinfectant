@@ -9,29 +9,35 @@ customEvents
     loginTime = todatetime(customDimensions.loginTime),
     isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil),
     eventType = "Login"
-| project timestamp, eventType, userId, userName, sessionId, loginTime, userCouncil, isMultiCouncil
+| project timestamp, eventType, userId, userName, sessionId, loginTime, userCouncil, isMultiCouncil, pageName = ""
 
-// STEP 2: Union with pageViews for additional councils visited
+//
+// STEP 2: Union with pageViews to capture additional councils visited
+//
 | union (
     pageViews
     | extend 
         userId = tostring(customDimensions.userId),
+        userName = tostring(customDimensions.userName), // may be empty sometimes
         sessionId = tostring(customDimensions.sessionId),
         userCouncil = tostring(customDimensions.userCouncil),
         eventType = "PageView",
         pageName = tostring(name)
-    | project timestamp, eventType, userId, userName = "", sessionId, loginTime = datetime(null), userCouncil, isMultiCouncil = "", pageName
+    | project timestamp, eventType, userId, userName, sessionId, loginTime = datetime(null), userCouncil, isMultiCouncil = "", pageName
 )
 
-// STEP 3: Summarize council usage per session
+//
+// STEP 3: Summarize by session
+//
 | summarize
     councilsVisited = make_set(userCouncil),
     totalCouncils = dcountif(userCouncil, userCouncil != "Unknown" and isnotempty(userCouncil)),
+    userName = any(userName),
     loginTime = minif(timestamp, eventType == "Login"),
     pagesVisited = countif(eventType == "PageView")
     by userId, sessionId
 | where totalCouncils > 1
-| order by userId, sessionId
+| order by loginTime desc
 
 
 The issue with Application Insights logging was that for users who are part of a multi-local-authority (multi-LA) setup, only the initial login council was being correctly captured, while any subsequent council switch (without logging out and back in) was recorded with "userCouncil": "Unknown". This occurred because the telemetry script was not aware of council changes made dynamically within the session. To fix this, we enhanced the portal’s JavaScript to detect when a user switches councils via the "Change" link, capturing the new council ID and name in sessionStorage. The telemetry tracking snippet was updated to first try reading the council from the Power Pages Liquid context ({{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}), and if that fails (e.g., after a council switch), fall back to the latest value stored in sessionStorage. This ensures accurate tracking of userCouncil for both login and post-switch activity within the same session, enabling full visibility of council usage across a user’s journey in Application Insights.
