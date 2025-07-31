@@ -1,25 +1,30 @@
 customEvents
 | where name == "LAPortalLogin"
-| extend
+| extend 
     userId = tostring(customDimensions.userId),
     userName = tostring(customDimensions.userName),
     userCouncil = tostring(customDimensions.userCouncil),
-    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
-| where userId != "Anonymous" and isnotempty(userId)
-| summarize
+    isMulti = tostring(customDimensions.isUserRepresentsMultipleCouncil)
+| summarize 
+    totalLogins = count(),
     councilsUsed = make_set(userCouncil),
-    loginCount = count()
-    by userId, userName, isMultiCouncil
-| where array_length(councilsUsed) > 1
-| order by loginCount desc
+    councilCount = dcount(userCouncil)
+    by userId, userName, isMulti
+| extend userType = iff(isMulti == "true", "Multi-LA", "Normal")
+| order by userType, userName
 
 
-customEvents
-| where name == "LAPortalLogin"
-| extend
+pageViews
+| extend 
     userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
     userCouncil = tostring(customDimensions.userCouncil),
-    loginTime = todatetime(customDimensions.loginTime)
-| where userId == "<replace-with-actual-user-guid>"
-| project loginTime, userCouncil, userId
-| order by loginTime desc
+    isMulti = tostring(customDimensions.isUserRepresentsMultipleCouncil)
+| where userId != "Anonymous" and isnotempty(userCouncil)
+| summarize 
+    pagesViewed = count(),
+    councilsUsed = make_set(userCouncil),
+    councilCount = dcount(userCouncil)
+    by userId, userName, isMulti
+| extend userType = iff(isMulti == "true", "Multi-LA", "Normal")
+| order by userType, userName
