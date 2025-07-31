@@ -1,69 +1,79 @@
-Here’s a structured breakdown of the **Overall Map Capabilities** relevant to the Welsh Revaluation SBL, Comparable, and Smoothing model screens — based on your screenshots, transcripts, and ESRI/Canvas/PCF context:
+Certainly — here’s a **condensed, first-person summary** of your full technical reasoning, rephrased as if authored by you, with the **key points retained** and in **clear, structured language**:
 
 ---
 
-### 🧭 Overall Map Capabilities – Functional View
+### 🧭 Map Component Approach Summary – My View
 
-| Capability Category  | Description                                                      | Example Use Case in SBL/Comparable Screens       |
-| -------------------- | ---------------------------------------------------------------- | ------------------------------------------------ |
-| **🧱 Basic Display** |                                                                  |                                                  |
-| - Plot properties    | Show dots/pins on map using coordinates                          | Show UARNs in Aberystwyth with band info         |
-| - Color-coded pins   | Visual banding (A–H, outlier, sale, etc.) using different colors | Band A = Blue, Outlier = Red X, Sale = Green dot |
-| - Zoom/Pan           | Zoom in/out and move map freely                                  | Zoom to Cambrian Street level                    |
-| - Map Legend         | Display dynamic legends for band, RAG, property type             | Legend below map (Band A, B, C...)               |
+We need an interactive mapping tool to support SBL and comparable sales workflows, but we also have to balance feasibility, refresh needs, performance, and platform constraints.
 
----
+#### ✅ Data Freshness & Latency
 
-### 🔁 **Interactivity / Navigation**
+* The current SBL works off a **twice-daily static dataset**, which works fine for now, but ideally we should aim for **near-real-time updates** via APIs (DAP2/VaaS).
+* **Canvas OOB map** can fetch data on load or on filter change, but it can’t handle continuous streaming or large datasets. Re-querying after edits is possible, but not instant.
+* **Custom PCF** offers better flexibility — we can cache, load by viewport, or use APIs directly. Could even link to Synapse feeds for fresher updates.
+* **Power BI** is least suitable here. Even with DirectQuery, there's a lag. Not viable for interactive use.
+* **External embedded map** (like the GEO team’s) gives us full control — can call APIs directly and show fresh data. We'll need to handle auth and cross-app comms, but this path gives us low-latency and reuse of proven tools.
 
-| Capability              | Description                                             | Trigger Example                              |
-| ----------------------- | ------------------------------------------------------- | -------------------------------------------- |
-| - Click pin → focus row | Highlight matching row in data table                    | Click purple pin → auto-focus address below  |
-| - Click row → focus pin | Highlight pin on map when row is clicked                | Select UARN in table → show green dot on map |
-| - Drill-through         | Navigate to detailed UARN screen or batch edit          | Click UARN → open band edit page             |
-| - Dynamic filters       | Filter map by user selections (Type, Area, Band, Batch) | Area > 100 sqm + Band C only                 |
-| - Radius/polygon select | Select a group of pins within radius or draw region     | 3km radius from outlier point                |
-| - Table sync            | Map and table remain in sync during filters and zoom    | Changing filter updates both                 |
+#### 🚀 Performance & Scalability
 
----
+* Canvas maps don’t scale well with large data (no clustering, no on-demand tiling).
+* PCFs or external JS maps (e.g. Esri/Leaflet) are far better — we can implement clustering, optimize draw calls, or fetch only visible data via bounding boxes.
+* GEO team already uses bounding box queries in Postgres, so we can reuse this.
+* For smooth zoom/pan, external/PCF maps (e.g. using Mapbox or ArcGIS) are far superior.
+* Canvas maps or Power BI visuals can lag or freeze with too many pins.
 
-### 📊 **Graph Integration / Analytical**
+#### 🔁 Integration with Canvas UI (Filtering, Table Sync)
 
-| Capability               | Description                                                    | Example                                       |
-| ------------------------ | -------------------------------------------------------------- | --------------------------------------------- |
-| - Band Margin Graph Sync | Adjust horizontal lines on graph, update bands and redraw pins | Move Band D margin → pins auto-update         |
-| - Show outliers          | Identify and mark outlier sales in a separate color or shape   | Red X on map or pink on graph                 |
-| - Model Recalc Trigger   | Trigger recalculation of smoothening line on margin move       | Move Band E → adjust slope of regression line |
-| - Popup/Tooltip Info     | Hover/click pin shows mini info window (band, AVM, address)    | Hover pin → "12 BERLLAN DEG, Band D, £243K"   |
+* **Canvas native map** supports input binding (filters → map), but doesn't easily expose outputs (map click → Canvas reaction).
+* **PCF** is better: two-way data binding is possible. E.g. filters → PCF updates map, map interactions → output back to Canvas for table sync.
+* **Power BI** again has poor integration — limited one-way filter passing. Drilldowns inside Power BI won't update Canvas UI.
+* **External map** can integrate via `postMessage` in a PCF wrapper. For example, user draws a polygon → message posted → Canvas picks up and filters table. Requires some setup but fully feasible.
 
----
+#### 🔄 Reuse of GEO/CTB Tools
 
-### ⚙️ **Config & Tech Integration**
-
-| Capability                 | Description                                                    | Platform Dependency                                      |
-| -------------------------- | -------------------------------------------------------------- | -------------------------------------------------------- |
-| - Real-time Update         | Filters trigger map/table refresh without page reload          | Requires PCF or embedded ESRI                            |
-| - High-volume UARN support | Load >1000 points with clustering                              | Needs optimization, pagination, clustering               |
-| - ESRI Web Embed           | Use existing GeoVM/ESRI viewer with config                     | Already seen in Find Address screen                      |
-| - PCF Map Control          | Fully customisable React + TypeScript map logic                | Required for drag/drop, RAG logic                        |
-| - Canvas Default Map       | Limited to Bing/LatLng view, no clustering, no drag/select     | MVP use only                                             |
-| - Power BI Embed           | Good for static map + charts; poor real-time interaction       | Only useful for dashboard visualisation                  |
-| - Drill actions / Routing  | Pin click triggers navigation inside app (e.g. band edit page) | Requires Power Fx + Canvas screen config or custom logic |
+* GEO already has a working sales viewer in JS with radius filters, polygons, etc.
+* Instead of rebuilding in Power Apps, we can **embed that via iframe or wrap as PCF**.
+* Similarly, CTB has Graph UI tools we could reuse for drag/drop charts (e.g. smoothening sliders).
+* This keeps us aligned with tools already approved, avoids rework, and accelerates delivery.
 
 ---
 
-### 💡 Optional/Future
+### ✅ Final Recommendation (MVP Approach)
 
-| Feature                    | Description                                                                  | Complexity |
-| -------------------------- | ---------------------------------------------------------------------------- | ---------- |
-| - Heatmap / Density Layer  | Intensity view for clusters or sales densities                               | Medium     |
-| - Drag pin → reassign band | Directly reassign a property's band by dragging it within a threshold region | High       |
-| - Batch overlay layers     | Show two or more batch layer boundaries as polygons                          | Medium     |
-| - Compare side-by-side     | Map on left, graph on right, filters affecting both                          | Medium     |
-| - Offline mode             | Cached tile or vector layer for disconnected mode                            | High       |
+**Start with Option 4: Embedded External Map** (GEO Viewer inside Canvas page)
+
+* Use existing GEO map to show pins, handle zoom, batch display, legend, and interactivity
+* Canvas handles filters, data tables, and band edit navigation
+* Implement minimal integration at first: filter via param passing, highlight pin on click
+* Defer advanced features like polygon selection, band margin sliders to later
+
+This keeps Phase 1 simple, delivers real value, and sets the stage for advanced interactivity later (possibly via PCF if tighter Canvas coupling is required).
 
 ---
 
-Would you like a follow-up table mapping these against:
-✅ **Canvas Native** vs 🛠 **PCF Map Component** vs 🌐 **ESRI Web Embed** support?
-Let me know and I’ll structure it for MVP vs Full Build view.
+### 🔧 Staged Enhancements (Post-MVP)
+
+1. **Polygon selection & radius filters** – enable user to select group of properties for batch rebanding.
+2. **Drag-drop charts (AVM threshold tuning)** – reuse CTB tools where possible.
+3. **PCF Wrapper** – if iframe limitations emerge, move to PCF version of GEO map.
+4. **Layer toggles & legends** – add UX polish as performance permits.
+5. **Advanced API wiring** – enable instant data refresh post-edit if backend supports it.
+
+---
+
+### 📌 Dependencies to Track
+
+* DAP2/VaaS API readiness
+* GEO service endpoint access
+* Auth (SSO/token) for external tools
+* PCF approval for JS libraries (e.g. Leaflet/D3)
+* GEO/CTB resource availability and timelines
+
+---
+
+### 📝 Conclusion
+
+Rather than reinvent the wheel, let's **orchestrate via Canvas**, delegate visuals to **GEO tools**, and iterate toward the full experience.
+This gives us speed, performance, and flexibility — without overengineering Phase 1.
+
+Let me know if you want this converted into a Confluence-style page or PPT bullets.
