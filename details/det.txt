@@ -1,37 +1,69 @@
-Here is the full **Map Requirements Table (UI view)**, combining insights from your screenshots and sessions across SBL, smoothing, and comparable tools:
+Here’s a structured breakdown of the **Overall Map Capabilities** relevant to the Welsh Revaluation SBL, Comparable, and Smoothing model screens — based on your screenshots, transcripts, and ESRI/Canvas/PCF context:
 
 ---
 
-### 🗺️ SBL + Smoothing + Comparable Tool – Map Requirements
+### 🧭 Overall Map Capabilities – Functional View
 
-| #  | Requirement                                                         | Depends On / Trigger                       |
-| -- | ------------------------------------------------------------------- | ------------------------------------------ |
-| 1  | Plot property pins (UARNs) on map with band-based colour legend     | Filter (Batch, Patch, AVM Output)          |
-| 2  | Show batch-level RAG status (Red/Amber/Green)                       | Filter (Batch ID), Processing Status       |
-| 3  | Click map pin → highlight that UARN in data table                   | Table state (visible list), UARN mapping   |
-| 4  | Click table row → highlight same pin on map                         | Table row selection                        |
-| 5  | Zoom in/out of map and preserve filtered UARN pins                  | Filtered UARNs, map state                  |
-| 6  | Dynamic clustering at lower zoom levels                             | Map library feature                        |
-| 7  | Tooltip/Popup showing UARN + Band + Address on pin hover            | AVM/UARN attribute feed                    |
-| 8  | Display multiple batches overlayed (with distinct legends)          | Batch filter logic                         |
-| 9  | Enable drill-through on click: load UARN screen                     | UARN ID, Property drill logic              |
-| 10 | Radius-based selection (e.g. 3km view of nearby properties)         | Geo search / spatial buffer API            |
-| 11 | Filter pane on left → update map instantly (Type, Rooms, EPC, etc.) | Filter bindings                            |
-| 12 | Draw polygon/select pins manually for batch reassignment            | Custom interaction logic                   |
-| 13 | Colour-coded banding dots (A, B, C, D, etc.) with legend            | Band-Colour mapping                        |
-| 14 | "Reset" button to clear filters + map zoom                          | Filter reset state + map config            |
-| 15 | Load new smoothing graph when batch changes                         | Chart component binding                    |
-| 16 | Map pin click triggers smoothing graph dot focus                    | Shared UARN sync between map & chart       |
-| 17 | Visualise outliers (red X or different shape)                       | AVM Outlier flag                           |
-| 18 | Drag band margins to reshape band thresholds (on graph)             | User-defined margin → trigger model recalc |
-| 19 | Display AVM predicted values, price range bands in tooltips         | AVM output + band lookup                   |
-| 20 | Navigate to band edit screen via UARN click                         | Drillthrough action routing                |
-| 21 | Show smoothing line (log scale) alongside AVM band points           | Smoothed model (frontend charting)         |
-| 22 | Click "Edit Batch" → navigate to re-banding screen                  | Batch-to-screen routing logic              |
-| 23 | Show Band Margin (Model vs. User Input) in separate side panel      | Output Model + Editable Input UX           |
-| 24 | Map filters update Band Margin and table below                      | Shared dataset / interdependency           |
-| 25 | Heatmap or density view toggle (optional/future)                    | Map control configuration                  |
+| Capability Category  | Description                                                      | Example Use Case in SBL/Comparable Screens       |
+| -------------------- | ---------------------------------------------------------------- | ------------------------------------------------ |
+| **🧱 Basic Display** |                                                                  |                                                  |
+| - Plot properties    | Show dots/pins on map using coordinates                          | Show UARNs in Aberystwyth with band info         |
+| - Color-coded pins   | Visual banding (A–H, outlier, sale, etc.) using different colors | Band A = Blue, Outlier = Red X, Sale = Green dot |
+| - Zoom/Pan           | Zoom in/out and move map freely                                  | Zoom to Cambrian Street level                    |
+| - Map Legend         | Display dynamic legends for band, RAG, property type             | Legend below map (Band A, B, C...)               |
 
 ---
 
-Let me know if you want this grouped by MVP / Advanced / Future tiers, or mapped against **Canvas Default / PCF / ESRI Web Embed** support.
+### 🔁 **Interactivity / Navigation**
+
+| Capability              | Description                                             | Trigger Example                              |
+| ----------------------- | ------------------------------------------------------- | -------------------------------------------- |
+| - Click pin → focus row | Highlight matching row in data table                    | Click purple pin → auto-focus address below  |
+| - Click row → focus pin | Highlight pin on map when row is clicked                | Select UARN in table → show green dot on map |
+| - Drill-through         | Navigate to detailed UARN screen or batch edit          | Click UARN → open band edit page             |
+| - Dynamic filters       | Filter map by user selections (Type, Area, Band, Batch) | Area > 100 sqm + Band C only                 |
+| - Radius/polygon select | Select a group of pins within radius or draw region     | 3km radius from outlier point                |
+| - Table sync            | Map and table remain in sync during filters and zoom    | Changing filter updates both                 |
+
+---
+
+### 📊 **Graph Integration / Analytical**
+
+| Capability               | Description                                                    | Example                                       |
+| ------------------------ | -------------------------------------------------------------- | --------------------------------------------- |
+| - Band Margin Graph Sync | Adjust horizontal lines on graph, update bands and redraw pins | Move Band D margin → pins auto-update         |
+| - Show outliers          | Identify and mark outlier sales in a separate color or shape   | Red X on map or pink on graph                 |
+| - Model Recalc Trigger   | Trigger recalculation of smoothening line on margin move       | Move Band E → adjust slope of regression line |
+| - Popup/Tooltip Info     | Hover/click pin shows mini info window (band, AVM, address)    | Hover pin → "12 BERLLAN DEG, Band D, £243K"   |
+
+---
+
+### ⚙️ **Config & Tech Integration**
+
+| Capability                 | Description                                                    | Platform Dependency                                      |
+| -------------------------- | -------------------------------------------------------------- | -------------------------------------------------------- |
+| - Real-time Update         | Filters trigger map/table refresh without page reload          | Requires PCF or embedded ESRI                            |
+| - High-volume UARN support | Load >1000 points with clustering                              | Needs optimization, pagination, clustering               |
+| - ESRI Web Embed           | Use existing GeoVM/ESRI viewer with config                     | Already seen in Find Address screen                      |
+| - PCF Map Control          | Fully customisable React + TypeScript map logic                | Required for drag/drop, RAG logic                        |
+| - Canvas Default Map       | Limited to Bing/LatLng view, no clustering, no drag/select     | MVP use only                                             |
+| - Power BI Embed           | Good for static map + charts; poor real-time interaction       | Only useful for dashboard visualisation                  |
+| - Drill actions / Routing  | Pin click triggers navigation inside app (e.g. band edit page) | Requires Power Fx + Canvas screen config or custom logic |
+
+---
+
+### 💡 Optional/Future
+
+| Feature                    | Description                                                                  | Complexity |
+| -------------------------- | ---------------------------------------------------------------------------- | ---------- |
+| - Heatmap / Density Layer  | Intensity view for clusters or sales densities                               | Medium     |
+| - Drag pin → reassign band | Directly reassign a property's band by dragging it within a threshold region | High       |
+| - Batch overlay layers     | Show two or more batch layer boundaries as polygons                          | Medium     |
+| - Compare side-by-side     | Map on left, graph on right, filters affecting both                          | Medium     |
+| - Offline mode             | Cached tile or vector layer for disconnected mode                            | High       |
+
+---
+
+Would you like a follow-up table mapping these against:
+✅ **Canvas Native** vs 🛠 **PCF Map Component** vs 🌐 **ESRI Web Embed** support?
+Let me know and I’ll structure it for MVP vs Full Build view.
