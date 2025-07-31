@@ -1,79 +1,14 @@
-Certainly — here’s a **condensed, first-person summary** of your full technical reasoning, rephrased as if authored by you, with the **key points retained** and in **clear, structured language**:
-
----
-
-### 🧭 Map Component Approach Summary – My View
-
-We need an interactive mapping tool to support SBL and comparable sales workflows, but we also have to balance feasibility, refresh needs, performance, and platform constraints.
-
-#### ✅ Data Freshness & Latency
-
-* The current SBL works off a **twice-daily static dataset**, which works fine for now, but ideally we should aim for **near-real-time updates** via APIs (DAP2/VaaS).
-* **Canvas OOB map** can fetch data on load or on filter change, but it can’t handle continuous streaming or large datasets. Re-querying after edits is possible, but not instant.
-* **Custom PCF** offers better flexibility — we can cache, load by viewport, or use APIs directly. Could even link to Synapse feeds for fresher updates.
-* **Power BI** is least suitable here. Even with DirectQuery, there's a lag. Not viable for interactive use.
-* **External embedded map** (like the GEO team’s) gives us full control — can call APIs directly and show fresh data. We'll need to handle auth and cross-app comms, but this path gives us low-latency and reuse of proven tools.
-
-#### 🚀 Performance & Scalability
-
-* Canvas maps don’t scale well with large data (no clustering, no on-demand tiling).
-* PCFs or external JS maps (e.g. Esri/Leaflet) are far better — we can implement clustering, optimize draw calls, or fetch only visible data via bounding boxes.
-* GEO team already uses bounding box queries in Postgres, so we can reuse this.
-* For smooth zoom/pan, external/PCF maps (e.g. using Mapbox or ArcGIS) are far superior.
-* Canvas maps or Power BI visuals can lag or freeze with too many pins.
-
-#### 🔁 Integration with Canvas UI (Filtering, Table Sync)
-
-* **Canvas native map** supports input binding (filters → map), but doesn't easily expose outputs (map click → Canvas reaction).
-* **PCF** is better: two-way data binding is possible. E.g. filters → PCF updates map, map interactions → output back to Canvas for table sync.
-* **Power BI** again has poor integration — limited one-way filter passing. Drilldowns inside Power BI won't update Canvas UI.
-* **External map** can integrate via `postMessage` in a PCF wrapper. For example, user draws a polygon → message posted → Canvas picks up and filters table. Requires some setup but fully feasible.
-
-#### 🔄 Reuse of GEO/CTB Tools
-
-* GEO already has a working sales viewer in JS with radius filters, polygons, etc.
-* Instead of rebuilding in Power Apps, we can **embed that via iframe or wrap as PCF**.
-* Similarly, CTB has Graph UI tools we could reuse for drag/drop charts (e.g. smoothening sliders).
-* This keeps us aligned with tools already approved, avoids rework, and accelerates delivery.
-
----
-
-### ✅ Final Recommendation (MVP Approach)
-
-**Start with Option 4: Embedded External Map** (GEO Viewer inside Canvas page)
-
-* Use existing GEO map to show pins, handle zoom, batch display, legend, and interactivity
-* Canvas handles filters, data tables, and band edit navigation
-* Implement minimal integration at first: filter via param passing, highlight pin on click
-* Defer advanced features like polygon selection, band margin sliders to later
-
-This keeps Phase 1 simple, delivers real value, and sets the stage for advanced interactivity later (possibly via PCF if tighter Canvas coupling is required).
-
----
-
-### 🔧 Staged Enhancements (Post-MVP)
-
-1. **Polygon selection & radius filters** – enable user to select group of properties for batch rebanding.
-2. **Drag-drop charts (AVM threshold tuning)** – reuse CTB tools where possible.
-3. **PCF Wrapper** – if iframe limitations emerge, move to PCF version of GEO map.
-4. **Layer toggles & legends** – add UX polish as performance permits.
-5. **Advanced API wiring** – enable instant data refresh post-edit if backend supports it.
-
----
-
-### 📌 Dependencies to Track
-
-* DAP2/VaaS API readiness
-* GEO service endpoint access
-* Auth (SSO/token) for external tools
-* PCF approval for JS libraries (e.g. Leaflet/D3)
-* GEO/CTB resource availability and timelines
-
----
-
-### 📝 Conclusion
-
-Rather than reinvent the wheel, let's **orchestrate via Canvas**, delegate visuals to **GEO tools**, and iterate toward the full experience.
-This gives us speed, performance, and flexibility — without overengineering Phase 1.
-
-Let me know if you want this converted into a Confluence-style page or PPT bullets.
+customEvents
+| where name == "LAPortalLogin"
+| extend
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    userStatus = tostring(customDimensions.userStatus),
+    userCouncil = tostring(customDimensions.userCouncil),
+    sessionId = tostring(customDimensions.sessionId),
+    loginTime = todatetime(customDimensions.loginTime),
+    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
+| where userStatus == "LoggedIn"
+| where userId != "Anonymous" and isnotempty(userId)
+| project timestamp, loginTime, userId, userName, userCouncil, sessionId, isMultiCouncil
+| order by loginTime desc
