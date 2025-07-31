@@ -12,3 +12,14 @@ customEvents
     by userId, userName, isMultiCouncil
 | where array_length(councilsUsed) > 1
 | order by loginCount desc
+
+
+customEvents
+| where name == "LAPortalLogin"
+| extend
+    userId = tostring(customDimensions.userId),
+    userCouncil = tostring(customDimensions.userCouncil),
+    loginTime = todatetime(customDimensions.loginTime)
+| where userId == "<replace-with-actual-user-guid>"
+| project loginTime, userCouncil, userId
+| order by loginTime desc
