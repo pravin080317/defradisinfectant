@@ -1,32 +1,14 @@
 customEvents
 | where name == "LAPortalLogin"
 | extend
-    loginTime = todatetime(customDimensions.loginTime),
     userId = tostring(customDimensions.userId),
     userName = tostring(customDimensions.userName),
     userCouncil = tostring(customDimensions.userCouncil),
-    sessionId = tostring(customDimensions.sessionId),
     isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
 | where userId != "Anonymous" and isnotempty(userId)
 | summarize
-    firstLogin = min(loginTime),
-    lastLogin = max(loginTime),
-    totalLogins = count(),
-    distinctCouncils = dcount(userCouncil),
-    councils = makeset(userCouncil)
+    councilsUsed = make_set(userCouncil),
+    loginCount = count()
     by userId, userName, isMultiCouncil
-| order by totalLogins desc
-
-
-customEvents
-| where name == "LAPortalLogin"
-| extend
-    loginTime = todatetime(customDimensions.loginTime),
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    userCouncil = tostring(customDimensions.userCouncil),
-    sessionId = tostring(customDimensions.sessionId),
-    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
-| where userId != "Anonymous"
-| project loginTime, userId, userName, sessionId, userCouncil, isMultiCouncil
-| order by loginTime desc
+| where array_length(councilsUsed) > 1
+| order by loginCount desc
