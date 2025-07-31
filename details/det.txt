@@ -1,20 +1,28 @@
-pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    sessionId = tostring(customDimensions.sessionId),
-    userCouncil = tostring(customDimensions.userCouncil)
-| where userId != "Anonymous" and userCouncil != "Unknown" and isnotempty(userCouncil)
-| summarize councilsUsed = make_set(userCouncil), numCouncils = dcount(userCouncil) by userId, sessionId
-| where numCouncils > 1
-| order by userId, sessionId
+let fullEvents = union
+(
+    customEvents
+    | where name == "LAPortalLogin"
+    | extend eventType = "Login",
+             userId = tostring(customDimensions.userId),
+             userCouncil = tostring(customDimensions.userCouncil),
+             sessionId = tostring(customDimensions.sessionId),
+             timestamp = timestamp
+),
+(
+    pageViews
+    | extend eventType = "PageView",
+             userId = tostring(customDimensions.userId),
+             userCouncil = tostring(customDimensions.userCouncil),
+             sessionId = tostring(customDimensions.sessionId),
+             timestamp = timestamp,
+             pageName = name
+)
+| where userId != "Anonymous" and isnotempty(userCouncil) and userCouncil != "Unknown";
 
+let councilSummary = fullEvents
+| summarize councils = make_set(userCouncil), councilCount = dcount(userCouncil) by userId, sessionId;
 
-customEvents
-| where name == "LAPortalLogin"
-| extend 
-    userId = tostring(customDimensions.userId),
-    userCouncil = tostring(customDimensions.userCouncil),
-    sessionId = tostring(customDimensions.sessionId)
-| summarize councilsUsed = make_set(userCouncil), numCouncils = dcount(userCouncil) by userId, sessionId
-| where numCouncils > 1
-| order by userId, sessionId
+fullEvents
+| join kind=inner (councilSummary) on userId, sessionId
+| project eventType, timestamp, userId, userCouncil, councilCount, councils, sessionId, pageName
+| order by userId, sessionId, timestamp
