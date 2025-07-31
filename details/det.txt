@@ -1,59 +1,37 @@
-Here’s a **consolidated list of all map-related requirements** gathered so far across design workshops, transcripts, and image walkthroughs — with a breakdown of **dependencies** on filter controls, table/grid state, band/sort logic, and user interactions.
+Here is the full **Map Requirements Table (UI view)**, combining insights from your screenshots and sessions across SBL, smoothing, and comparable tools:
 
 ---
 
-## ✅ Map Requirements (Grouped by Functional Category)
+### 🗺️ SBL + Smoothing + Comparable Tool – Map Requirements
 
-| **#** | **Feature / Requirement**                                              | **Depends On**                                 | **Notes**                                                            |
-| ----- | ---------------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------- |
-| 1     | **Plot property pins (UARNs) on map with color-coded bands**           | Filter (Batch, Patch, AVM Output)              | Colors: A–E bands (grey, blue, purple, pink, yellow) from AVM/SBL    |
-| 2     | **Show batch-level RAG status (Red/Amber/Green)**                      | Filter (Batch ID), Processing Status           | Uses batch status metadata (performance, outlier %)                  |
-| 3     | **Click map pin → highlight in data table**                            | Table state (visible list), UARN mapping       | One-to-one mapping; click event must sync with gallery/table         |
-| 4     | **Click table row → highlight on map**                                 | Table row selection                            | Also triggers property detail load or reband flow                    |
-| 5     | **Zoom in/out of map; retain filtered pins in view**                   | Filtered UARNs, map view state                 | Zoom level and visible pins update independently                     |
-| 6     | **Legend overlay (band color, batch status)**                          | Filtered data, band scheme                     | Legend updates dynamically if needed based on filters                |
-| 7     | **Draw polygon on map to select multiple properties**                  | PCF/Map integration, full list of UARNs        | Filter table and enable bulk action (e.g., reband or batch creation) |
-| 8     | **Radius filter (e.g., 200m around a selected outlier)**               | Spatial query API (PostGIS), central UARN      | Used for SBL and comparables; may update map and table               |
-| 9     | **Pin tooltip / popup with AVM info, band, coordinates**               | Property metadata (from AVM/VaaS)              | Triggered on map hover or click                                      |
-| 10    | **Visual indication of outliers (e.g., red pins)**                     | Smoothing model result / residuals             | May need to overlay residuals or classification                      |
-| 11    | **Drag horizontal band lines on graph to update band thresholds**      | Smoothing graph view, AVM + banding model      | Changes recompute band assignment; live model recalculation needed   |
-| 12    | **Band impact chart update when band margins are moved**               | AVM smoothing model                            | Graph reacts to manual threshold adjustment                          |
-| 13    | **Zoom to adjacent areas or neighboring streets**                      | Patch/LSOA geometry + distance logic           | Uses spatial expansion beyond current batch                          |
-| 14    | **Filter pins by property attributes (e.g. age, type, beds)**          | Attribute filters (via dropdowns on left pane) | Pins and table update together; filtered server- or client-side      |
-| 15    | **Filter by outlier only / band mismatch / AVM deviation**             | AVM vs band comparison                         | Reflected in map styling and table flags                             |
-| 16    | **Auto-highlight properties when thresholds change (e.g. band moved)** | Band calculation engine, chart interactivity   | Requires recalculated band assignments on the fly                    |
-| 17    | **Filter map by comparable sales (only comps shown)**                  | SVT filters (type, sale year, beds)            | Sales-only layer, may need separate pin icon/style                   |
-| 18    | **Heatmap or density overlays (optional)**                             | Volume of data, postcode concentration         | Nice-to-have; to show high-density property clusters                 |
-| 19    | **Layer toggle (e.g., show/hide MSOA, benchmarks, sold only)**         | UI control toggle                              | Map re-renders with layers shown or hidden                           |
-| 20    | **Selection summary (count, average AVM) per area or shape**           | Table selection or map polygon                 | Optional rollup panel (e.g., show mean band within shape)            |
-
----
-
-## 🧩 Dependency Grid Summary
-
-| **Dependency Type**                             | **Impacting Features**     | **Implication**                                                              |
-| ----------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------- |
-| **Filter Controls (Batch, Patch, AVM filters)** | 1, 2, 5, 6, 14, 15, 17, 19 | Drive what data is shown on map and table; also impact band color grouping   |
-| **Table Selection (Row Highlight)**             | 4, 9, 20                   | When row is selected, map must reflect highlight (and vice versa)            |
-| **AVM/Smoothing Output**                        | 10, 11, 12, 15, 16         | Determines visual flags (outliers, deviations) and triggers recalculation    |
-| **Band Thresholds (Manual Update)**             | 11, 12, 16                 | Graph interactivity; causes band reclassification → affects map/table pins   |
-| **Spatial Logic / Geometry**                    | 7, 8, 13                   | Needs PostGIS API or precomputed GeoJSON (distance filtering, shape drawing) |
-| **UI Toggles (Layers, Legends)**                | 6, 18, 19                  | Affects rendering only; toggles optional layers/overlays on the map          |
+| #  | Requirement                                                         | Depends On / Trigger                       |
+| -- | ------------------------------------------------------------------- | ------------------------------------------ |
+| 1  | Plot property pins (UARNs) on map with band-based colour legend     | Filter (Batch, Patch, AVM Output)          |
+| 2  | Show batch-level RAG status (Red/Amber/Green)                       | Filter (Batch ID), Processing Status       |
+| 3  | Click map pin → highlight that UARN in data table                   | Table state (visible list), UARN mapping   |
+| 4  | Click table row → highlight same pin on map                         | Table row selection                        |
+| 5  | Zoom in/out of map and preserve filtered UARN pins                  | Filtered UARNs, map state                  |
+| 6  | Dynamic clustering at lower zoom levels                             | Map library feature                        |
+| 7  | Tooltip/Popup showing UARN + Band + Address on pin hover            | AVM/UARN attribute feed                    |
+| 8  | Display multiple batches overlayed (with distinct legends)          | Batch filter logic                         |
+| 9  | Enable drill-through on click: load UARN screen                     | UARN ID, Property drill logic              |
+| 10 | Radius-based selection (e.g. 3km view of nearby properties)         | Geo search / spatial buffer API            |
+| 11 | Filter pane on left → update map instantly (Type, Rooms, EPC, etc.) | Filter bindings                            |
+| 12 | Draw polygon/select pins manually for batch reassignment            | Custom interaction logic                   |
+| 13 | Colour-coded banding dots (A, B, C, D, etc.) with legend            | Band-Colour mapping                        |
+| 14 | "Reset" button to clear filters + map zoom                          | Filter reset state + map config            |
+| 15 | Load new smoothing graph when batch changes                         | Chart component binding                    |
+| 16 | Map pin click triggers smoothing graph dot focus                    | Shared UARN sync between map & chart       |
+| 17 | Visualise outliers (red X or different shape)                       | AVM Outlier flag                           |
+| 18 | Drag band margins to reshape band thresholds (on graph)             | User-defined margin → trigger model recalc |
+| 19 | Display AVM predicted values, price range bands in tooltips         | AVM output + band lookup                   |
+| 20 | Navigate to band edit screen via UARN click                         | Drillthrough action routing                |
+| 21 | Show smoothing line (log scale) alongside AVM band points           | Smoothed model (frontend charting)         |
+| 22 | Click "Edit Batch" → navigate to re-banding screen                  | Batch-to-screen routing logic              |
+| 23 | Show Band Margin (Model vs. User Input) in separate side panel      | Output Model + Editable Input UX           |
+| 24 | Map filters update Band Margin and table below                      | Shared dataset / interdependency           |
+| 25 | Heatmap or density view toggle (optional/future)                    | Map control configuration                  |
 
 ---
 
-## 🔁 Bidirectional Sync Scenarios
-
-| **Action**                                    | **Expected Reaction**                                         |
-| --------------------------------------------- | ------------------------------------------------------------- |
-| User selects a property pin                   | Table row auto-highlights; detail panel loads                 |
-| User selects a row in the table               | Map pin bounces/highlights                                    |
-| User applies attribute filter (e.g. beds = 3) | Table and map refresh to show subset                          |
-| User draws polygon on map                     | Table filters to selected UARNs; “Bulk Reband” becomes active |
-| User drags band margin on graph               | Reband model recalculates; map/table update new band colors   |
-| User zooms to adjacent street                 | New properties (outside current patch) fetched and plotted    |
-| User changes radius filter                    | Map refreshes pins; table shows only UARNs within radius      |
-
----
-
-Let me know if you’d like this in Excel or Confluence-style checklist format. I can also provide a UX-driven **persona-to-feature responsibility** table (e.g., “QA uses radius filter to select comps”) if needed.
+Let me know if you want this grouped by MVP / Advanced / Future tiers, or mapped against **Canvas Default / PCF / ESRI Web Embed** support.
