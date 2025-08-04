@@ -1,43 +1,37 @@
-// STEP 1: Get all LAPortalLogin events
+// Step 1: Get login events
 customEvents
 | where name == "LAPortalLogin"
-| extend 
+| extend
     userId = tostring(customDimensions.userId),
     userName = tostring(customDimensions.userName),
     userCouncil = tostring(customDimensions.userCouncil),
     sessionId = tostring(customDimensions.sessionId),
     loginTime = todatetime(customDimensions.loginTime),
-    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil),
-    eventType = "Login"
-| project timestamp, eventType, userId, userName, sessionId, loginTime, userCouncil, isMultiCouncil, pageName = ""
+    eventType = "Login",
+    switchTime = datetime(null),
+    switchCouncil = ""
+| project timestamp, eventType, userId, userName, sessionId, loginTime, switchTime, userCouncil, switchCouncil
 
-//
-// STEP 2: Union with pageViews to capture additional councils visited
-//
+// Step 2: Get CouncilSwitched events
 | union (
-    pageViews
-    | extend 
+    customEvents
+    | where name == "CouncilSwitched"
+    | extend
         userId = tostring(customDimensions.userId),
-        userName = tostring(customDimensions.userName), // may be empty sometimes
+        userName = tostring(customDimensions.userName),
         sessionId = tostring(customDimensions.sessionId),
-        userCouncil = tostring(customDimensions.userCouncil),
-        eventType = "PageView",
-        pageName = tostring(name)
-    | project timestamp, eventType, userId, userName, sessionId, loginTime = datetime(null), userCouncil, isMultiCouncil = "", pageName
+        switchCouncil = tostring(customDimensions.userCouncil),
+        previousCouncil = tostring(customDimensions.previousCouncil),
+        switchTime = timestamp,
+        eventType = "CouncilSwitch"
+    | project timestamp, eventType, userId, userName, sessionId, loginTime = datetime(null), switchTime, userCouncil = previousCouncil, switchCouncil
 )
 
-//
-// STEP 3: Summarize by session
-//
-| summarize
-    councilsVisited = make_set(userCouncil),
-    totalCouncils = dcountif(userCouncil, userCouncil != "Unknown" and isnotempty(userCouncil)),
-    userName = any(userName),
+// Step 3: Summarize for each session
+| summarize 
     loginTime = minif(timestamp, eventType == "Login"),
-    pagesVisited = countif(eventType == "PageView")
+    switchEvents = make_list(pack("switchTime", switchTime, "from", userCouncil, "to", switchCouncil)),
+    totalCouncils = dcountif(switchCouncil, switchCouncil != "" and isnotempty(switchCouncil)) + 1,
+    userName = any(userName)
     by userId, sessionId
-| where totalCouncils > 1
 | order by loginTime desc
-
-
-The issue with Application Insights logging was that for users who are part of a multi-local-authority (multi-LA) setup, only the initial login council was being correctly captured, while any subsequent council switch (without logging out and back in) was recorded with "userCouncil": "Unknown". This occurred because the telemetry script was not aware of council changes made dynamically within the session. To fix this, we enhanced the portal’s JavaScript to detect when a user switches councils via the "Change" link, capturing the new council ID and name in sessionStorage. The telemetry tracking snippet was updated to first try reading the council from the Power Pages Liquid context ({{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}), and if that fails (e.g., after a council switch), fall back to the latest value stored in sessionStorage. This ensures accurate tracking of userCouncil for both login and post-switch activity within the same session, enabling full visibility of council usage across a user’s journey in Application Insights.
