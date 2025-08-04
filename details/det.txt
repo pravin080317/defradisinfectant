@@ -1,14 +1,17 @@
+// STEP 1: Get all LAPortalLogin events
 let logins = customEvents
 | where name == "LAPortalLogin"
-| extend
+| extend 
     userId = tostring(customDimensions.userId),
     userName = tostring(customDimensions.userName),
     userCouncil = tostring(customDimensions.userCouncil),
+    sessionId = tostring(customDimensions.sessionId),
     loginTime = todatetime(customDimensions.loginTime),
-    sessionId = tostring(customDimensions.sessionId)
-| project 
-    timestamp, eventType = "Login", userId, userName, userCouncil, loginTime, sessionId, councilId = userCouncil, councilName = userCouncil, switchTime = loginTime;
+    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil),
+    eventType = "Login"
+| project timestamp, eventType, userId, userName, sessionId, loginTime, userCouncil, isMultiCouncil, councilSwitchTime = datetime(null);
 
+// STEP 2: Get all CouncilSwitched events with proper switchTime fallback
 let switches = customEvents
 | where name == "CouncilSwitched"
 | extend
@@ -17,21 +20,24 @@ let switches = customEvents
     previousCouncilId = tostring(customDimensions.previousCouncilId),
     newCouncilId = tostring(customDimensions.newCouncilId),
     newCouncilName = tostring(customDimensions.newCouncilName),
-    switchTime = todatetime(customDimensions.switchTime),
-    sessionId = tostring(customDimensions.sessionId)
+    sessionId = tostring(customDimensions.sessionId),
+    rawSwitchTime = todatetime(customDimensions.switchTime),
+    eventType = "CouncilSwitch"
 | project 
-    timestamp, eventType = "CouncilSwitch", userId, userName, councilId = newCouncilId, councilName = newCouncilName, switchTime, sessionId;
+    timestamp, eventType, userId, userName, sessionId, loginTime = datetime(null),
+    userCouncil = newCouncilId,
+    isMultiCouncil = "", 
+    councilSwitchTime = iff(isnull(rawSwitchTime), timestamp, rawSwitchTime);
 
-let allEvents = union logins, switches
-| order by userId, sessionId, switchTime asc;
-
-allEvents
-| summarize 
-    councilsVisited = make_list(councilName), 
-    councilIds = make_list(councilId),
-    firstLogin = minif(switchTime, eventType == "Login"),
-    switches = countif(eventType == "CouncilSwitch"),
-    sessions = dcount(sessionId)
-    by userId, userName
-| where array_length(councilIds) > 1
-| order by firstLogin desc
+// STEP 3: Combine and summarize
+logins
+| union switches
+| summarize
+    councilsVisited = make_set(userCouncil),
+    totalCouncils = dcountif(userCouncil, userCouncil != "Unknown" and isnotempty(userCouncil)),
+    loginTime = minif(timestamp, eventType == "Login"),
+    councilSwitches = countif(eventType == "CouncilSwitch"),
+    switchTimestamps = make_list(councilSwitchTime, 5)
+    by userId, userName, sessionId
+| where totalCouncils > 1
+| order by loginTime desc
