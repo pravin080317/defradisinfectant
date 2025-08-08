@@ -1,55 +1,133 @@
-A. Canvas Custom Page Screens (Entry Point for SVT)
-Task List – Case Worker View
+Got it — we’ll keep **sales data only in DAP2**, and **Dataverse will only store Tasks** for allocation and tracking.
+No historical migration for this ROM.
 
-My open tasks, filters, search, sort, pagination.
+Here’s the **ROM breakdown** for the “Data Ingestion & Output Integration” user story with that assumption:
 
-Task List – Manager View
+---
 
-All tasks, filters, search, sort, pagination, assign/reassign action.
+## **ROM – Data Ingestion & Output Integration (Tasks in Dataverse, Sales Data in DAP2)**
 
-Sales Record / Task Detail View
+### **Scope**
 
-Sale summary, source data tabs (WLTT / LRPPD / SDLT), comparables, outcome section.
+* Daily scheduled ingestion of **Reval Sales Records** (Outlier = Yes) from DAP2.
+* Create corresponding **Task** records in Dataverse for each outlier sale.
+* Link Task GUID to the corresponding sale in DAP2 (for UI navigation / tracking).
+* Push verification outcomes from Dataverse back to DAP2 when a Task is completed.
+* No local storage of sales data in Dataverse.
 
-PAD Update Inline Form
+---
 
-Editable property attributes, Save & Continue → triggers PAD wrapper job.
+### **1. Components**
 
-Source Change Modal (popup or embedded)
+| Component                                  | Role                                                         |
+| ------------------------------------------ | ------------------------------------------------------------ |
+| **DAP2 API**                               | Source of truth for sales data (GET Outliers, POST Outcomes) |
+| **Custom Connector**                       | Secure interface between Power Platform and DAP2 APIs        |
+| **Power Automate (Scheduled Flow)**        | Orchestration of daily ingestion & Task creation             |
+| **Dataverse Task Table (ActivityPointer)** | Stores Tasks for allocation & tracking                       |
+| **Dataverse Plugin / Power Automate**      | Trigger outcome push when Task is completed                  |
+| **Model-driven App (Tasks)**               | For Team Manager to view & assign                            |
+| **Canvas Page (in SVT UI)**                | Displays Tasks & links to DAP2 detail page                   |
 
-Dropdown to select alternate data source, confirm change.
+---
 
-Outcome Confirmation Modal (popup)
+### **2. Processes**
 
-Summary of decision (useful / not useful + reason), submit.
+#### **A. Daily Ingestion**
 
-B. QA Persona Screens (Canvas Page or Embedded Model-Driven Form)
-QA Task List
+1. **Trigger** – Power Automate scheduled flow runs daily (e.g., 02:00).
+2. **Get Outliers** – Custom Connector calls DAP2:
 
-All tasks pending QA, filters, sampling rate view.
+   ```
+   GET /revalsalesrecords?outlier=yes&date=yyyy-mm-dd
+   ```
+3. **Create Tasks** in Dataverse:
 
-QA Detail View
+   * Subject: `SVT Verification – {SaleId}`
+   * Description: `Address: {Address}, UARN: {UARN}`
+   * Status: Open
+   * Owner: Unassigned (or default Team Manager)
+   * Custom Field: `SaleId` (DAP2 reference)
+4. **Update DAP2** with Task GUID:
 
-Read-only sales record + outcome, pass/fail toggle, remarks, audit history.
+   ```
+   PATCH /revalsalesrecords/{SaleId} { "taskId": "{TaskGUID}" }
+   ```
 
-C. Model-Driven App Screens
-Task Record Form (Activity Table)
+#### **B. Outcome Push**
 
-Standard Dynamics task form with SVT custom fields.
+1. **Trigger** – Task status changes to “Completed” in Dataverse.
+2. **Get Outcome Data** – Plugin/Flow reads from linked SV Outcome table or Task fields.
+3. **Send to DAP2**:
 
-PAD Update Wrapper Case Form
+   ```
+   POST /svoutcomes
+   {
+     "saleId": "{SaleId}",
+     "taskId": "{TaskGUID}",
+     "decision": "{Pass/Fail/Other}",
+     "remarks": "{Remarks}",
+     "conditionScore": "{Score}",
+     "sourceChanged": true/false
+   }
+   ```
 
-Case type = Data Enhancement, linked to PAD integration.
+---
 
-Manager Dashboard / Reports
+### **3. Integrations**
 
-Charts for task distribution, completion rate, QA pass/fail rate.
+* **DAP2 → Power Platform**:
 
-D. Optional / Supporting Screens
-Advanced Search / Filter Pane (if agreed for MVP)
+  * GET Outlier sales list (read-only)
+  * PATCH sale with Task GUID
+* **Power Platform → DAP2**:
 
-Multi-filter on sale price, dates, MSOA, etc.
+  * POST outcome data
+* **Dataverse**:
 
-Comparables Detail View (if required outside main record)
+  * Task table CRUD (standard entity)
+  * Plugin on Task status change
 
-Full list of comparable sales with maps/photos.
+---
+
+### **4. Security**
+
+* **DAP2 API** via APIM secured with OAuth2 client credentials.
+* **Dataverse role-based access control**:
+
+  * Case Worker: Read/update assigned Tasks only
+  * Team Manager: Read/update all Tasks, reassign
+
+---
+
+### **5. Dependencies**
+
+* **DAP2 API endpoints**:
+
+  * `GET /revalsalesrecords`
+  * `PATCH /revalsalesrecords/{id}`
+  * `POST /svoutcomes`
+* Service account for Power Automate to call DAP2 via APIM.
+* Network access between Power Platform and DAP2 API.
+* Agreement on Task GUID field in DAP2 schema.
+
+---
+
+### **6. ROM Effort Estimate**
+
+| Area                                                   | Estimated Effort |
+| ------------------------------------------------------ | ---------------- |
+| **Custom Connector Setup (DAP2)**                      | 2–3 days         |
+| **Power Automate Flow (Daily ingestion)**              | 3–4 days         |
+| **Dataverse Task creation & mapping**                  | 2 days           |
+| **Outcome push automation (Flow/Plugin)**              | 3–4 days         |
+| **Model-driven app Task view & permissions**           | 2–3 days         |
+| **Canvas page integration (Task list & open in DAP2)** | 4–5 days         |
+| **Testing & UAT**                                      | 5–7 days         |
+| **Total**                                              | \~3.5–4 weeks    |
+
+---
+
+If you want, I can next **map this story into a sequence diagram** so it’s clear exactly how **DAP2, Power Automate, Dataverse, and the SVT UI** interact step-by-step. That would make the ROM airtight for approvals.
+
+Do you want me to prepare that diagram now?
