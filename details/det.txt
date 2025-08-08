@@ -1,43 +1,9 @@
-// STEP 1: Get all LAPortalLogin events
-let logins = customEvents
-| where name == "LAPortalLogin"
-| extend 
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    userCouncil = tostring(customDimensions.userCouncil),
-    sessionId = tostring(customDimensions.sessionId),
-    loginTime = todatetime(customDimensions.loginTime),
-    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil),
-    eventType = "Login"
-| project timestamp, eventType, userId, userName, sessionId, loginTime, userCouncil, isMultiCouncil, councilSwitchTime = datetime(null);
+When a Power Pages site is deployed, Microsoft hosts it on an Azure App Service Plan in their own managed environment, which is normally not exposed in our Azure subscription.
 
-// STEP 2: Get all CouncilSwitched events with proper switchTime fallback
-let switches = customEvents
-| where name == "CouncilSwitched"
-| extend
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    previousCouncilId = tostring(customDimensions.previousCouncilId),
-    newCouncilId = tostring(customDimensions.newCouncilId),
-    newCouncilName = tostring(customDimensions.newCouncilName),
-    sessionId = tostring(customDimensions.sessionId),
-    rawSwitchTime = todatetime(customDimensions.switchTime),
-    eventType = "CouncilSwitch"
-| project 
-    timestamp, eventType, userId, userName, sessionId, loginTime = datetime(null),
-    userCouncil = newCouncilId,
-    isMultiCouncil = "", 
-    councilSwitchTime = iff(isnull(rawSwitchTime), timestamp, rawSwitchTime);
+However, Sherlin and KK have identified some App Service Plans in our Azure environment, and we need to verify if these are actually related to the LA Portal.
 
-// STEP 3: Combine and summarize
-logins
-| union switches
-| summarize
-    councilsVisited = make_set(userCouncil),
-    totalCouncils = dcountif(userCouncil, userCouncil != "Unknown" and isnotempty(userCouncil)),
-    loginTime = minif(timestamp, eventType == "Login"),
-    councilSwitches = countif(eventType == "CouncilSwitch"),
-    switchTimestamps = make_list(councilSwitchTime, 5)
-    by userId, userName, sessionId
-| where totalCouncils > 1
-| order by loginTime desc
+To confirm this, please:
+
+Check the Application settings or tags for any references to Power Pages, Dataverse, or the portal URL.
+
+Review the default Azure URL (e.g., *.azurewebsites.net) and see if it redirects to, or displays, the LA Portal site.
