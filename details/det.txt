@@ -1,9 +1,55 @@
-When a Power Pages site is deployed, Microsoft hosts it on an Azure App Service Plan in their own managed environment, which is normally not exposed in our Azure subscription.
+A. Canvas Custom Page Screens (Entry Point for SVT)
+Task List – Case Worker View
 
-However, Sherlin and KK have identified some App Service Plans in our Azure environment, and we need to verify if these are actually related to the LA Portal.
+My open tasks, filters, search, sort, pagination.
 
-To confirm this, please:
+Task List – Manager View
 
-Check the Application settings or tags for any references to Power Pages, Dataverse, or the portal URL.
+All tasks, filters, search, sort, pagination, assign/reassign action.
 
-Review the default Azure URL (e.g., *.azurewebsites.net) and see if it redirects to, or displays, the LA Portal site.
+Sales Record / Task Detail View
+
+Sale summary, source data tabs (WLTT / LRPPD / SDLT), comparables, outcome section.
+
+PAD Update Inline Form
+
+Editable property attributes, Save & Continue → triggers PAD wrapper job.
+
+Source Change Modal (popup or embedded)
+
+Dropdown to select alternate data source, confirm change.
+
+Outcome Confirmation Modal (popup)
+
+Summary of decision (useful / not useful + reason), submit.
+
+B. QA Persona Screens (Canvas Page or Embedded Model-Driven Form)
+QA Task List
+
+All tasks pending QA, filters, sampling rate view.
+
+QA Detail View
+
+Read-only sales record + outcome, pass/fail toggle, remarks, audit history.
+
+C. Model-Driven App Screens
+Task Record Form (Activity Table)
+
+Standard Dynamics task form with SVT custom fields.
+
+PAD Update Wrapper Case Form
+
+Case type = Data Enhancement, linked to PAD integration.
+
+Manager Dashboard / Reports
+
+Charts for task distribution, completion rate, QA pass/fail rate.
+
+D. Optional / Supporting Screens
+Advanced Search / Filter Pane (if agreed for MVP)
+
+Multi-filter on sale price, dates, MSOA, etc.
+
+Comparables Detail View (if required outside main record)
+
+Full list of comparable sales with maps/photos.
