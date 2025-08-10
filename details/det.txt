@@ -1,48 +1,62 @@
-The Sales Record Management & Decision Logging feature in SVT will be implemented as a custom canvas app page embedded within the Model-Driven App, providing role-based interfaces for Caseworkers, Team Managers, and QA users. The page will use Virtual Tables or a Custom Connector to retrieve Reval Sales data from DAP2 (filtered by Outlier Flag, Job ID, and user role) and display it in searchable, filterable lists. From these lists, users can drill into a Sales Record Details screen to review linked datasets (WLTT, LRPPD, MILO, PAD), view historical decisions, and perform key actions such as changing the main source, logging verification outcomes, and raising PAD enhancement cases. All decision updates will be stored in the SV Outcome table in Dataverse for full auditability and later batch-export to DAP2. Source changes will trigger updates to PAD data via DAL1/Postgres integration. Daily system processes will export completed outcomes from Dataverse to DAP2 in batch, ensuring data integrity and alignment with downstream systems such as AVM.
+This feature enforces role-based access within the SVT custom canvas app, allowing only authorised users—Team Managers, Caseworkers, and optionally QA Reviewers—to access relevant sections of the app and perform actions based on their privileges. It ensures data security, workflow governance, and auditability for all interactions.
+
+Solution Summary
+Dataverse security roles will be configured for Team Manager, Caseworker, and (optional) QA Reviewer.
+
+The SVT canvas app will check the user’s role at runtime (using User().Email or Dataverse profile) to control:
+
+Navigation access (which screens can be opened).
+
+Button/control visibility (e.g. Reassign, QA Mark).
+
+Edit privileges on fields (e.g. decision logging).
+
+Audit logs will be captured for all user interactions in Dataverse (e.g. task reassignment, outcome submission).
+
+Team Managers will be able to:
+
+View all jobs/tasks.
+
+Assign tasks (individually/bulk) to Caseworkers.
+
+Override case details or escalate.
+
+Caseworkers will only:
+
+View/edit tasks assigned to them.
+
+See all sales records but act only on assigned ones.
+
+QA Reviewers (if introduced) will have read-only access with the ability to pass/fail outcomes.
+
+
+To-Be Components
+Component Type	Description
+Dataverse Security Roles	SVT Manager, SVT Caseworker, (SVT QA Reviewer)
+Canvas App Logic	Conditional visibility and logic via Power Fx based on user’s role
+Audit Table (Dataverse)	Logs each user action (assignments, outcomes, overrides)
+Model-Driven Navigation	Role-based sitemap: SVT Canvas page visible only to SVT roles
+Custom APIs (Dataverse)	Assignment and override actions audited via plugins
+System Jobs/Flows	Power Automate or plugin to stamp audit info (user, role, timestamp)
 
 Assumptions
-Reval Sales data will remain in DAP2 and will not be replicated into Dataverse (only Job/Task metadata will be stored in Dataverse).
+Only 3 personas are in scope: Team Manager, Caseworker, and QA Reviewer (optional).
 
-Only tasks are created in Dataverse; sales detail retrieval will always happen through the Virtual Table or Custom Connector.
+User Role info will be available in Dataverse systemuser table or from AAD claims.
 
-Completed SV Outcomes will be exported to DAP2 once daily, not in real time.
+Audit logging is enabled at platform level or implemented via plugins.
 
-Source data changes will not directly update DAP2 but will be reflected in PAD via DAL1/Postgres integration.
+Role-based logic in the Canvas App is enforced using Power Fx expressions.
 
-Audit trail for all user actions (decisions, reassignments, source changes) will be stored in Dataverse for compliance.
-
-Only authorised personas (Caseworker, Manager, QA) will have access to the SVT UI, with role-based actions enforced in Power Apps.
-
-Conditional scoring and decision logic will be handled within SVT and stored in SV Outcome.
-
+Caseworkers are allowed to see all jobs but only interact with their assigned ones.
 
 Dependencies
-DAP2 APIs available for:
+AAD Role mapping or Dynamics user team mapping (for persona detection).
 
-Retrieving Outlier Sales records.
+Dataverse security roles provisioned per persona and assigned in Environments.
 
-Retrieving Sales record details with linked datasets.
+Custom logic in canvas app to interpret and apply role-based control.
 
-Receiving SV Outcome batch updates.
+Audit plugin or logging mechanism enabled for write operations (assignment, decision).
 
-Dataverse Plugins / Custom APIs for:
-
-Creating/Updating SV Outcome records.
-
-Changing Main Source with audit trail.
-
-Triggering PAD enhancement cases.
-
-PAD/DAL1 Integration for:
-
-Applying source data changes to PAD attributes.
-
-Power Automate / Azure Function for:
-
-Daily export of completed SV Outcomes to DAP2.
-
-Security Roles in Dataverse aligned to Caseworker, Manager, QA personas.
-
-Model-Driven App Navigation updated to include SVT Custom Canvas Page.
-
-Audit & Logging Framework in Dataverse for compliance.
+Power Automate or Plugin logic to validate permissions before executing API actions.
