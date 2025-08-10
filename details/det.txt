@@ -1,133 +1,48 @@
-Got it — we’ll keep **sales data only in DAP2**, and **Dataverse will only store Tasks** for allocation and tracking.
-No historical migration for this ROM.
+The Sales Record Management & Decision Logging feature in SVT will be implemented as a custom canvas app page embedded within the Model-Driven App, providing role-based interfaces for Caseworkers, Team Managers, and QA users. The page will use Virtual Tables or a Custom Connector to retrieve Reval Sales data from DAP2 (filtered by Outlier Flag, Job ID, and user role) and display it in searchable, filterable lists. From these lists, users can drill into a Sales Record Details screen to review linked datasets (WLTT, LRPPD, MILO, PAD), view historical decisions, and perform key actions such as changing the main source, logging verification outcomes, and raising PAD enhancement cases. All decision updates will be stored in the SV Outcome table in Dataverse for full auditability and later batch-export to DAP2. Source changes will trigger updates to PAD data via DAL1/Postgres integration. Daily system processes will export completed outcomes from Dataverse to DAP2 in batch, ensuring data integrity and alignment with downstream systems such as AVM.
 
-Here’s the **ROM breakdown** for the “Data Ingestion & Output Integration” user story with that assumption:
+Assumptions
+Reval Sales data will remain in DAP2 and will not be replicated into Dataverse (only Job/Task metadata will be stored in Dataverse).
 
----
+Only tasks are created in Dataverse; sales detail retrieval will always happen through the Virtual Table or Custom Connector.
 
-## **ROM – Data Ingestion & Output Integration (Tasks in Dataverse, Sales Data in DAP2)**
+Completed SV Outcomes will be exported to DAP2 once daily, not in real time.
 
-### **Scope**
+Source data changes will not directly update DAP2 but will be reflected in PAD via DAL1/Postgres integration.
 
-* Daily scheduled ingestion of **Reval Sales Records** (Outlier = Yes) from DAP2.
-* Create corresponding **Task** records in Dataverse for each outlier sale.
-* Link Task GUID to the corresponding sale in DAP2 (for UI navigation / tracking).
-* Push verification outcomes from Dataverse back to DAP2 when a Task is completed.
-* No local storage of sales data in Dataverse.
+Audit trail for all user actions (decisions, reassignments, source changes) will be stored in Dataverse for compliance.
 
----
+Only authorised personas (Caseworker, Manager, QA) will have access to the SVT UI, with role-based actions enforced in Power Apps.
 
-### **1. Components**
+Conditional scoring and decision logic will be handled within SVT and stored in SV Outcome.
 
-| Component                                  | Role                                                         |
-| ------------------------------------------ | ------------------------------------------------------------ |
-| **DAP2 API**                               | Source of truth for sales data (GET Outliers, POST Outcomes) |
-| **Custom Connector**                       | Secure interface between Power Platform and DAP2 APIs        |
-| **Power Automate (Scheduled Flow)**        | Orchestration of daily ingestion & Task creation             |
-| **Dataverse Task Table (ActivityPointer)** | Stores Tasks for allocation & tracking                       |
-| **Dataverse Plugin / Power Automate**      | Trigger outcome push when Task is completed                  |
-| **Model-driven App (Tasks)**               | For Team Manager to view & assign                            |
-| **Canvas Page (in SVT UI)**                | Displays Tasks & links to DAP2 detail page                   |
 
----
+Dependencies
+DAP2 APIs available for:
 
-### **2. Processes**
+Retrieving Outlier Sales records.
 
-#### **A. Daily Ingestion**
+Retrieving Sales record details with linked datasets.
 
-1. **Trigger** – Power Automate scheduled flow runs daily (e.g., 02:00).
-2. **Get Outliers** – Custom Connector calls DAP2:
+Receiving SV Outcome batch updates.
 
-   ```
-   GET /revalsalesrecords?outlier=yes&date=yyyy-mm-dd
-   ```
-3. **Create Tasks** in Dataverse:
+Dataverse Plugins / Custom APIs for:
 
-   * Subject: `SVT Verification – {SaleId}`
-   * Description: `Address: {Address}, UARN: {UARN}`
-   * Status: Open
-   * Owner: Unassigned (or default Team Manager)
-   * Custom Field: `SaleId` (DAP2 reference)
-4. **Update DAP2** with Task GUID:
+Creating/Updating SV Outcome records.
 
-   ```
-   PATCH /revalsalesrecords/{SaleId} { "taskId": "{TaskGUID}" }
-   ```
+Changing Main Source with audit trail.
 
-#### **B. Outcome Push**
+Triggering PAD enhancement cases.
 
-1. **Trigger** – Task status changes to “Completed” in Dataverse.
-2. **Get Outcome Data** – Plugin/Flow reads from linked SV Outcome table or Task fields.
-3. **Send to DAP2**:
+PAD/DAL1 Integration for:
 
-   ```
-   POST /svoutcomes
-   {
-     "saleId": "{SaleId}",
-     "taskId": "{TaskGUID}",
-     "decision": "{Pass/Fail/Other}",
-     "remarks": "{Remarks}",
-     "conditionScore": "{Score}",
-     "sourceChanged": true/false
-   }
-   ```
+Applying source data changes to PAD attributes.
 
----
+Power Automate / Azure Function for:
 
-### **3. Integrations**
+Daily export of completed SV Outcomes to DAP2.
 
-* **DAP2 → Power Platform**:
+Security Roles in Dataverse aligned to Caseworker, Manager, QA personas.
 
-  * GET Outlier sales list (read-only)
-  * PATCH sale with Task GUID
-* **Power Platform → DAP2**:
+Model-Driven App Navigation updated to include SVT Custom Canvas Page.
 
-  * POST outcome data
-* **Dataverse**:
-
-  * Task table CRUD (standard entity)
-  * Plugin on Task status change
-
----
-
-### **4. Security**
-
-* **DAP2 API** via APIM secured with OAuth2 client credentials.
-* **Dataverse role-based access control**:
-
-  * Case Worker: Read/update assigned Tasks only
-  * Team Manager: Read/update all Tasks, reassign
-
----
-
-### **5. Dependencies**
-
-* **DAP2 API endpoints**:
-
-  * `GET /revalsalesrecords`
-  * `PATCH /revalsalesrecords/{id}`
-  * `POST /svoutcomes`
-* Service account for Power Automate to call DAP2 via APIM.
-* Network access between Power Platform and DAP2 API.
-* Agreement on Task GUID field in DAP2 schema.
-
----
-
-### **6. ROM Effort Estimate**
-
-| Area                                                   | Estimated Effort |
-| ------------------------------------------------------ | ---------------- |
-| **Custom Connector Setup (DAP2)**                      | 2–3 days         |
-| **Power Automate Flow (Daily ingestion)**              | 3–4 days         |
-| **Dataverse Task creation & mapping**                  | 2 days           |
-| **Outcome push automation (Flow/Plugin)**              | 3–4 days         |
-| **Model-driven app Task view & permissions**           | 2–3 days         |
-| **Canvas page integration (Task list & open in DAP2)** | 4–5 days         |
-| **Testing & UAT**                                      | 5–7 days         |
-| **Total**                                              | \~3.5–4 weeks    |
-
----
-
-If you want, I can next **map this story into a sequence diagram** so it’s clear exactly how **DAP2, Power Automate, Dataverse, and the SVT UI** interact step-by-step. That would make the ROM airtight for approvals.
-
-Do you want me to prepare that diagram now?
+Audit & Logging Framework in Dataverse for compliance.
