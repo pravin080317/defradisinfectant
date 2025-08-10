@@ -1,62 +1,42 @@
-This feature enforces role-based access within the SVT custom canvas app, allowing only authorised users—Team Managers, Caseworkers, and optionally QA Reviewers—to access relevant sections of the app and perform actions based on their privileges. It ensures data security, workflow governance, and auditability for all interactions.
+This feature focuses on presenting detailed and structured views of sale data aggregated from multiple sources — Reval Sales, WLTT, LRPPD, MILO, PAD — so that caseworkers can make informed verification decisions and raise enhancement cases if discrepancies are found. Some fields are editable (e.g., selected source), while others are view-only. Data consistency, audit, and UX coherence with existing VOA tooling are key goals.
 
-Solution Summary
-Dataverse security roles will be configured for Team Manager, Caseworker, and (optional) QA Reviewer.
+This feature will be delivered via a Canvas Custom Page (Sales Details View) in the SVT solution, integrating with APIs that pull curated data joins from DAP2.
 
-The SVT canvas app will check the user’s role at runtime (using User().Email or Dataverse profile) to control:
+The page will:
 
-Navigation access (which screens can be opened).
+Present Reval Sale and linked source datasets in grouped attribute sections
 
-Button/control visibility (e.g. Reassign, QA Mark).
+Visually flag differences or inconsistencies between sources
 
-Edit privileges on fields (e.g. decision logging).
+Allow editable fields like source selection, condition scores
 
-Audit logs will be captured for all user interactions in Dataverse (e.g. task reassignment, outcome submission).
+Show hyperlinks to PAD records or back to raw data
 
-Team Managers will be able to:
+Trigger updates to SV Outcome or raise PAD enhancement requests
 
-View all jobs/tasks.
-
-Assign tasks (individually/bulk) to Caseworkers.
-
-Override case details or escalate.
-
-Caseworkers will only:
-
-View/edit tasks assigned to them.
-
-See all sales records but act only on assigned ones.
-
-QA Reviewers (if introduced) will have read-only access with the ability to pass/fail outcomes.
+Keep audit logs via Dataverse plugin/custom API
 
 
-To-Be Components
-Component Type	Description
-Dataverse Security Roles	SVT Manager, SVT Caseworker, (SVT QA Reviewer)
-Canvas App Logic	Conditional visibility and logic via Power Fx based on user’s role
-Audit Table (Dataverse)	Logs each user action (assignments, outcomes, overrides)
-Model-Driven Navigation	Role-based sitemap: SVT Canvas page visible only to SVT roles
-Custom APIs (Dataverse)	Assignment and override actions audited via plugins
-System Jobs/Flows	Power Automate or plugin to stamp audit info (user, role, timestamp)
+PAD Attributes
 
-Assumptions
-Only 3 personas are in scope: Team Manager, Caseworker, and QA Reviewer (optional).
+Source Verification	Current source, select alternative, mark “source changed”
+Outlier Score/Reason	Numeric value, flag, reason codes
+Raise PAD Enhancement	Button triggers case creation in Dynamics
 
-User Role info will be available in Dataverse systemuser table or from AAD claims.
 
-Audit logging is enabled at platform level or implemented via plugins.
 
-Role-based logic in the Canvas App is enforced using Power Fx expressions.
 
-Caseworkers are allowed to see all jobs but only interact with their assigned ones.
+API from DAP2 returns clean, structured, joined data for the given sale.
 
-Dependencies
-AAD Role mapping or Dynamics user team mapping (for persona detection).
+Only limited fields are editable (primarily source selection, outcome, remarks).
 
-Dataverse security roles provisioned per persona and assigned in Environments.
+PAD enhancement cases are managed exclusively within Dynamics (SVT only triggers wrapper).
 
-Custom logic in canvas app to interpret and apply role-based control.
 
-Audit plugin or logging mechanism enabled for write operations (assignment, decision).
+Confirm final field schema from DAP2 for each data source (WLTT, LRPPD, MILO).
 
-Power Automate or Plugin logic to validate permissions before executing API actions.
+DAP2 must expose joined dataset via API (GET /svt/sales/{saleId}).
+
+PAD enhancement case management must be integrated with VOS/DLM pipeline.
+
+Final confirmation from business on editable vs read-only fields.
