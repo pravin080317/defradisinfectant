@@ -1,37 +1,41 @@
-Approach:
+Here is a complete table listing the **required DAL2 APIs** (for use with Virtual Tables in SVT), based on the **Reval Sales data interaction scenarios**. The table includes **HTTP verb**, **endpoint path**, **use case**, and whether it’s used for **RetrieveMultiple**, **RetrieveSingle**, **Update**, etc.
 
-Store Welsh translations centrally in a Dataverse table (one row per content block, keyed by ContentID).
+---
 
-English content remains static on the page. Welsh is loaded from Dataverse only if Welsh is selected.
+### 🔧 **API Specification Table – Virtual Table Support for SVT**
 
-Implementation in Power Pages:
+| **API Name**                       | **HTTP Verb** | **Endpoint Path**                          | **Description / Usage**                                                                 |
+| ---------------------------------- | ------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Get Reval Sales Record (List)      | `GET`         | `/reval-sales?filter=...&top=...&skip=...` | 🔹 *RetrieveMultiple* – Used by dashboards and search views. Supports filters & paging. |
+| Get Reval Sale by ID               | `GET`         | `/reval-sales/{id}`                        | 🔸 *RetrieveSingle* – Shows the full sales record detail in the verification screen.    |
+| Update Reval Sale                  | `PATCH`       | `/reval-sales/{id}`                        | 🛠️ *Update* – Updates source flag, condition score, decision values.                   |
+| Create Reval Sale (if needed)      | `POST`        | `/reval-sales`                             | 🆕 *Create* – Only if internal SVT job allows creation of custom sales records.         |
+| Delete Reval Sale (rarely needed)  | `DELETE`      | `/reval-sales/{id}`                        | ❌ *Delete* – Only for admin cleanup; not usually needed.                                |
+| Search Reval Sales (Optimized)     | `GET`         | `/reval-sales/search?postcode=...`         | 🔍 Alternative *RetrieveMultiple* endpoint with optimized lookup (by postcode/address). |
+| Get Related Sources for Sale       | `GET`         | `/reval-sales/{id}/sources`                | 📄 *RetrieveSingle* – Returns WLTT, LRPPD, MILO, PAD source data for a specific sale.   |
+| Get Sale Verification History      | `GET`         | `/reval-sales/{id}/history`                | 📜 *RetrieveMultiple* – Shows all past decision changes, source changes, audits.        |
+| Get Tasks by User / Status         | `GET`         | `/svt-tasks?user=...&status=...`           | 📋 *RetrieveMultiple* – List of tasks (jobs) assigned to a user.                        |
+| Get Task by ID                     | `GET`         | `/svt-tasks/{taskId}`                      | 🔸 *RetrieveSingle* – Loads a task's details and linked sale.                           |
+| Create Task (Job Assignment)       | `POST`        | `/svt-tasks`                               | ✅ *Create* – Creates task/job for a sale, from Team Manager view.                       |
+| Update Task Status                 | `PATCH`       | `/svt-tasks/{taskId}`                      | 🔄 *Update* – Used when status is changed (e.g. assigned, complete, sent for QA).       |
+| Raise PAD Update / Enhancement Req | `POST`        | `/enhancement-requests`                    | 🔔 *Create* – Raised from SVT UI when PAD change is needed (links to DAL1).             |
+| Get PAD Data for Hered ID          | `GET`         | `/pad/{heredId}`                           | 🏠 *RetrieveSingle* – Fetches PAD attributes for display in the decision screen.        |
+| Get Repeat Sales for a UARN        | `GET`         | `/reval-sales/repeat-sales?uarn=...`       | 🔁 *RetrieveMultiple* – For navigating across time-based sales of same property.        |
 
-Assign unique ContentIDs to every translatable block (header, section, button, etc.).
+---
 
-Use Liquid to query Dataverse for all Welsh content for the current page (single optimized query).
+### 📝 Notes:
 
-On language switch, dynamically display Welsh text by matching ContentID.
+* All endpoints must:
 
-Missing translations fall back to English automatically.
+  * Support JSON responses
+  * Have `id` as unique primary key for virtual table linking
+  * Be secured via **Azure AD App Registration**
+* **RetrieveMultiple** endpoints should ideally support:
 
-Pros (for LA Portal):
+  * `$top`, `$skip`, `$orderby`, `$filter`
+  * OData-like query patterns or a DAL2-friendly equivalent
 
-Centralized Welsh content management—easy updates, auditing, and future expansion.
+---
 
-Minimal page changes: English loads instantly, only one Dataverse fetch per page for Welsh.
-
-Reduces content drift: all Welsh content is managed in one Dataverse table.
-
-Supports future language additions with the same model.
-
-Allows content editors and translators to update Welsh independently (with simple UI).
-
-Cons (for LA Portal):
-
-Requires initial developer effort: add ContentIDs, set up Liquid/JS logic, and design Dataverse schema.
-
-Slightly increased page load time in Welsh mode due to data fetch (usually negligible if optimized).
-
-Reliance on Dataverse availability for Welsh rendering.
-
-Editors must manage ContentIDs and Dataverse records accurately.
+Would you like a visual API flow diagram or Swagger/OpenAPI sample next?
