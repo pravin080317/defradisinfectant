@@ -1,41 +1,31 @@
-Here is a complete table listing the **required DAL2 APIs** (for use with Virtual Tables in SVT), based on the **Reval Sales data interaction scenarios**. The table includes **HTTP verb**, **endpoint path**, **use case**, and whether it’s used for **RetrieveMultiple**, **RetrieveSingle**, **Update**, etc.
+Here is the breakdown of **update APIs**, each tied to specific actions in SVT (e.g. changing source, condition score, or final decision), with **Reval Sale ID** and **Task ID** passed in each request. This follows your update pattern via API (typically PATCH or POST).
 
 ---
 
-### 🔧 **API Specification Table – Virtual Table Support for SVT**
+### 🔄 **SVT Update API Endpoints – Action-Wise Breakdown**
 
-| **API Name**                       | **HTTP Verb** | **Endpoint Path**                          | **Description / Usage**                                                                 |
-| ---------------------------------- | ------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- |
-| Get Reval Sales Record (List)      | `GET`         | `/reval-sales?filter=...&top=...&skip=...` | 🔹 *RetrieveMultiple* – Used by dashboards and search views. Supports filters & paging. |
-| Get Reval Sale by ID               | `GET`         | `/reval-sales/{id}`                        | 🔸 *RetrieveSingle* – Shows the full sales record detail in the verification screen.    |
-| Update Reval Sale                  | `PATCH`       | `/reval-sales/{id}`                        | 🛠️ *Update* – Updates source flag, condition score, decision values.                   |
-| Create Reval Sale (if needed)      | `POST`        | `/reval-sales`                             | 🆕 *Create* – Only if internal SVT job allows creation of custom sales records.         |
-| Delete Reval Sale (rarely needed)  | `DELETE`      | `/reval-sales/{id}`                        | ❌ *Delete* – Only for admin cleanup; not usually needed.                                |
-| Search Reval Sales (Optimized)     | `GET`         | `/reval-sales/search?postcode=...`         | 🔍 Alternative *RetrieveMultiple* endpoint with optimized lookup (by postcode/address). |
-| Get Related Sources for Sale       | `GET`         | `/reval-sales/{id}/sources`                | 📄 *RetrieveSingle* – Returns WLTT, LRPPD, MILO, PAD source data for a specific sale.   |
-| Get Sale Verification History      | `GET`         | `/reval-sales/{id}/history`                | 📜 *RetrieveMultiple* – Shows all past decision changes, source changes, audits.        |
-| Get Tasks by User / Status         | `GET`         | `/svt-tasks?user=...&status=...`           | 📋 *RetrieveMultiple* – List of tasks (jobs) assigned to a user.                        |
-| Get Task by ID                     | `GET`         | `/svt-tasks/{taskId}`                      | 🔸 *RetrieveSingle* – Loads a task's details and linked sale.                           |
-| Create Task (Job Assignment)       | `POST`        | `/svt-tasks`                               | ✅ *Create* – Creates task/job for a sale, from Team Manager view.                       |
-| Update Task Status                 | `PATCH`       | `/svt-tasks/{taskId}`                      | 🔄 *Update* – Used when status is changed (e.g. assigned, complete, sent for QA).       |
-| Raise PAD Update / Enhancement Req | `POST`        | `/enhancement-requests`                    | 🔔 *Create* – Raised from SVT UI when PAD change is needed (links to DAL1).             |
-| Get PAD Data for Hered ID          | `GET`         | `/pad/{heredId}`                           | 🏠 *RetrieveSingle* – Fetches PAD attributes for display in the decision screen.        |
-| Get Repeat Sales for a UARN        | `GET`         | `/reval-sales/repeat-sales?uarn=...`       | 🔁 *RetrieveMultiple* – For navigating across time-based sales of same property.        |
+| **Action**                            | **Method** | **Endpoint Path**                            | **Description**                                                                          | **Required Inputs**                        |
+| ------------------------------------- | ---------- | -------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------ |
+| ✅ Update Source Flag                  | `PATCH`    | `/reval-sales/{revalSaleId}/source`          | Updates the main source (e.g. switch from WLTT to LRPPD) used in decision-making.        | `taskId`, `revalSaleId`, `newSource`       |
+| 🟨 Update Condition Score             | `PATCH`    | `/reval-sales/{revalSaleId}/condition-score` | Sets or modifies the condition score for the selected sale.                              | `taskId`, `revalSaleId`, `scoreValue`      |
+| 🧾 Update Decision Outcome            | `PATCH`    | `/reval-sales/{revalSaleId}/decision`        | Applies final verification decision (e.g. useful, not useful), reason code, and remarks. | `taskId`, `revalSaleId`, `decisionPayload` |
+| 🟪 Update Remarks Only                | `PATCH`    | `/reval-sales/{revalSaleId}/remarks`         | Updates caseworker or QA remarks separately.                                             | `taskId`, `revalSaleId`, `remarksText`     |
+| 🔄 Update Outlier Info + Ratio Audit  | `PATCH`    | `/reval-sales/{revalSaleId}/outlier-info`    | Captures outlier flag (true/false) and its numeric ratio; stores in audit.               | `taskId`, `revalSaleId`, `flag`, `ratio`   |
+| 🧩 Update Final Outcome & Lock Record | `POST`     | `/svt-tasks/{taskId}/finalise-outcome`       | Finalises outcome (locked), triggers downstream integration if QA passed.                | `taskId`, `revalSaleId`, outcome fields    |
 
 ---
 
-### 📝 Notes:
+### 🧠 Notes:
 
-* All endpoints must:
+* `taskId` is used to ensure audit traceability and job linkage.
+* These should be idempotent where possible (use `requestId` for deduplication).
+* For transactional consistency, PATCH endpoints should be atomic per field-set.
+* The finalisation endpoint (`/finalise-outcome`) can include logic for:
 
-  * Support JSON responses
-  * Have `id` as unique primary key for virtual table linking
-  * Be secured via **Azure AD App Registration**
-* **RetrieveMultiple** endpoints should ideally support:
-
-  * `$top`, `$skip`, `$orderby`, `$filter`
-  * OData-like query patterns or a DAL2-friendly equivalent
+  * Write to SV Outcome
+  * Lock record from edits
+  * Trigger downstream sync (to DAL/DAP2)
 
 ---
 
-Would you like a visual API flow diagram or Swagger/OpenAPI sample next?
+Let me know if you want PowerFx examples or Swagger-style specs for these!
