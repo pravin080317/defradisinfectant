@@ -1,31 +1,47 @@
-Here is the breakdown of **update APIs**, each tied to specific actions in SVT (e.g. changing source, condition score, or final decision), with **Reval Sale ID** and **Task ID** passed in each request. This follows your update pattern via API (typically PATCH or POST).
+Here is a **solution summary paragraph** for each **SVT feature under the epic**:
 
 ---
 
-### 🔄 **SVT Update API Endpoints – Action-Wise Breakdown**
+### 1. **Data Ingestion and Output Integration**
 
-| **Action**                            | **Method** | **Endpoint Path**                            | **Description**                                                                          | **Required Inputs**                        |
-| ------------------------------------- | ---------- | -------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------ |
-| ✅ Update Source Flag                  | `PATCH`    | `/reval-sales/{revalSaleId}/source`          | Updates the main source (e.g. switch from WLTT to LRPPD) used in decision-making.        | `taskId`, `revalSaleId`, `newSource`       |
-| 🟨 Update Condition Score             | `PATCH`    | `/reval-sales/{revalSaleId}/condition-score` | Sets or modifies the condition score for the selected sale.                              | `taskId`, `revalSaleId`, `scoreValue`      |
-| 🧾 Update Decision Outcome            | `PATCH`    | `/reval-sales/{revalSaleId}/decision`        | Applies final verification decision (e.g. useful, not useful), reason code, and remarks. | `taskId`, `revalSaleId`, `decisionPayload` |
-| 🟪 Update Remarks Only                | `PATCH`    | `/reval-sales/{revalSaleId}/remarks`         | Updates caseworker or QA remarks separately.                                             | `taskId`, `revalSaleId`, `remarksText`     |
-| 🔄 Update Outlier Info + Ratio Audit  | `PATCH`    | `/reval-sales/{revalSaleId}/outlier-info`    | Captures outlier flag (true/false) and its numeric ratio; stores in audit.               | `taskId`, `revalSaleId`, `flag`, `ratio`   |
-| 🧩 Update Final Outcome & Lock Record | `POST`     | `/svt-tasks/{taskId}/finalise-outcome`       | Finalises outcome (locked), triggers downstream integration if QA passed.                | `taskId`, `revalSaleId`, outcome fields    |
+The SVT will be connected to DAP2 to ingest verified Reval Sales Records in batch mode (daily) via a virtual table or Power Automate using custom connectors. Only completed records will be pulled into Dataverse. SVT outcomes, including verification decisions, condition score, and source changes, will be updated in Dataverse and synchronized back to DAP2 via outbound API integration. No manual intervention is expected during ingestion, and all attributes needed for verification will be finalized in later phases.
 
 ---
 
-### 🧠 Notes:
+### 2. **Sales Record Management and Decision Logging**
 
-* `taskId` is used to ensure audit traceability and job linkage.
-* These should be idempotent where possible (use `requestId` for deduplication).
-* For transactional consistency, PATCH endpoints should be atomic per field-set.
-* The finalisation endpoint (`/finalise-outcome`) can include logic for:
-
-  * Write to SV Outcome
-  * Lock record from edits
-  * Trigger downstream sync (to DAL/DAP2)
+This feature provides internal users, primarily caseworkers and team managers, with a structured UI to view, investigate, and edit Reval Sales records. Users can trace historical decision logs, view multiple sale instances per property, apply conditional scoring, change sources, and update decisions. All changes are audited. The SV outcome (decision, score, flags) will be stored and synced back to DAP2. The UI will offer navigation across related data sources like WLTT, LRPPD, and MILO.
 
 ---
 
-Let me know if you want PowerFx examples or Swagger-style specs for these!
+### 3. **Role-Based Access and Permissions**
+
+The SVT will enforce role-based access controls where team managers act as admins with full control (view, edit, assign, override), and caseworkers are limited to their assigned tasks. Role privileges are enforced at both backend and frontend levels via Dataverse security roles. The manager can bulk or individually assign jobs to caseworkers, and every user action will be tracked in audit logs. QA role is assumed for later confirmation but designed for future extensibility.
+
+---
+
+### 4. **Enhanced UI Navigation and Data Exploration**
+
+This feature equips SVT with dashboards for both caseworkers and team managers. Caseworkers can search and filter Reval sales using job IDs, UARNs, addresses, and more, and view detailed records and verification inputs in a unified screen. Managers can view and allocate jobs across teams. The layout supports real-time filters, search suggestions, and job creation (if no job ID exists). UI navigation design is built for productivity and traceability.
+
+---
+
+### 5. **Data Enhancement Case Management (via Dynamics)**
+
+SVT allows raising enhancement requests (such as PAD attribute corrections or dual list mismatches) directly into Dynamics Case Management. These cases must be resolved before a verification decision can be locked. Caseworkers can initiate the enhancement request, and Dynamics will track resolution status. SVT will check case status before allowing final submission. Case ID will be linked to the sales record, with timestamps and audit logs maintained for compliance.
+
+---
+
+### 6. **Structured Presentation of Sale Attributes Across Data Sources**
+
+This feature ensures all relevant attributes from WLTT, LRPPD, MILO, PAD, and Reval sales are displayed in a consistent and readable UI layout, aligned with other VOA tools like Dynamics. Caseworkers can compare attributes across sources, and editable fields like source and condition score are clearly marked. A flag or view indicates if the PAD has been updated. Data is prefetched via virtual table/API and validated before presentation, with audit tracking on edits.
+
+---
+
+### 7. **Quality Assurance Workflow for Sales Verification**
+
+QA users will have a dedicated dashboard to review completed verifications. They can read-only view all decisions, PAD statuses, comments, and flags. QA reviewers can mark each case as Pass (locking it for downstream) or Fail (sending it back to caseworker). Each QA action is tracked with user role and timestamp. QA can bulk assign failed records for rework. UI screens and backend logic for QA will be introduced based on business confirmation.
+
+---
+
+Let me know if you'd like to expand these into a slide deck, traceability matrix, or Excel sheet.
