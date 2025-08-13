@@ -1,42 +1,37 @@
-This feature focuses on presenting detailed and structured views of sale data aggregated from multiple sources — Reval Sales, WLTT, LRPPD, MILO, PAD — so that caseworkers can make informed verification decisions and raise enhancement cases if discrepancies are found. Some fields are editable (e.g., selected source), while others are view-only. Data consistency, audit, and UX coherence with existing VOA tooling are key goals.
+Approach:
 
-This feature will be delivered via a Canvas Custom Page (Sales Details View) in the SVT solution, integrating with APIs that pull curated data joins from DAP2.
+Store Welsh translations centrally in a Dataverse table (one row per content block, keyed by ContentID).
 
-The page will:
+English content remains static on the page. Welsh is loaded from Dataverse only if Welsh is selected.
 
-Present Reval Sale and linked source datasets in grouped attribute sections
+Implementation in Power Pages:
 
-Visually flag differences or inconsistencies between sources
+Assign unique ContentIDs to every translatable block (header, section, button, etc.).
 
-Allow editable fields like source selection, condition scores
+Use Liquid to query Dataverse for all Welsh content for the current page (single optimized query).
 
-Show hyperlinks to PAD records or back to raw data
+On language switch, dynamically display Welsh text by matching ContentID.
 
-Trigger updates to SV Outcome or raise PAD enhancement requests
+Missing translations fall back to English automatically.
 
-Keep audit logs via Dataverse plugin/custom API
+Pros (for LA Portal):
 
+Centralized Welsh content management—easy updates, auditing, and future expansion.
 
-PAD Attributes
+Minimal page changes: English loads instantly, only one Dataverse fetch per page for Welsh.
 
-Source Verification	Current source, select alternative, mark “source changed”
-Outlier Score/Reason	Numeric value, flag, reason codes
-Raise PAD Enhancement	Button triggers case creation in Dynamics
+Reduces content drift: all Welsh content is managed in one Dataverse table.
 
+Supports future language additions with the same model.
 
+Allows content editors and translators to update Welsh independently (with simple UI).
 
+Cons (for LA Portal):
 
-API from DAP2 returns clean, structured, joined data for the given sale.
+Requires initial developer effort: add ContentIDs, set up Liquid/JS logic, and design Dataverse schema.
 
-Only limited fields are editable (primarily source selection, outcome, remarks).
+Slightly increased page load time in Welsh mode due to data fetch (usually negligible if optimized).
 
-PAD enhancement cases are managed exclusively within Dynamics (SVT only triggers wrapper).
+Reliance on Dataverse availability for Welsh rendering.
 
-
-Confirm final field schema from DAP2 for each data source (WLTT, LRPPD, MILO).
-
-DAP2 must expose joined dataset via API (GET /svt/sales/{saleId}).
-
-PAD enhancement case management must be integrated with VOS/DLM pipeline.
-
-Final confirmation from business on editable vs read-only fields.
+Editors must manage ContentIDs and Dataverse records accurately.
