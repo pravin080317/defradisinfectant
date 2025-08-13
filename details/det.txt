@@ -1,47 +1,164 @@
-Here is a **solution summary paragraph** for each **SVT feature under the epic**:
+**SVT Feature to Solution Mapping (with Virtual Table Architecture)**
 
 ---
 
 ### 1. **Data Ingestion and Output Integration**
 
-The SVT will be connected to DAP2 to ingest verified Reval Sales Records in batch mode (daily) via a virtual table or Power Automate using custom connectors. Only completed records will be pulled into Dataverse. SVT outcomes, including verification decisions, condition score, and source changes, will be updated in Dataverse and synchronized back to DAP2 via outbound API integration. No manual intervention is expected during ingestion, and all attributes needed for verification will be finalized in later phases.
+**Solution Summary:**
+The SVT will ingest daily batch data of revaluation sales records from DAP2 using virtual tables in Dataverse. No data is persisted in Dataverse directly; the virtual table points to DAP2 as the live source. Tasks for each sale record will be created and stored in Dataverse’s standard Task entity, with the task ID written back to DAP2 to maintain linkage. Upon completion, the verification outcomes including source and condition scores will be sent back to DAP2.
+
+**To-Be Components:**
+
+* Virtual Table (DAP2 Reval Sales)
+* Canvas App Page embedded in Model-driven App
+* Task Table in Dataverse
+* Power Automate Flows (for sync/trigger)
+* Custom APIs (for write-back)
+
+**Assumptions:**
+
+* Only completed records ingested
+* Daily ingestion (not real-time)
+* No manual intervention required
+
+**Dependencies:**
+
+* DAP2 data schema and API readiness
+* Virtual table pattern approval
+* Secure write-back endpoints in DAP2
 
 ---
 
 ### 2. **Sales Record Management and Decision Logging**
 
-This feature provides internal users, primarily caseworkers and team managers, with a structured UI to view, investigate, and edit Reval Sales records. Users can trace historical decision logs, view multiple sale instances per property, apply conditional scoring, change sources, and update decisions. All changes are audited. The SV outcome (decision, score, flags) will be stored and synced back to DAP2. The UI will offer navigation across related data sources like WLTT, LRPPD, and MILO.
+**Solution Summary:**
+The caseworker accesses reval sales data via canvas page (embedded in model-driven app), sourced through virtual tables from DAP2. A related Task (from Dataverse) maps each verification job. UI provides editable fields for source/condition score and navigation to historical/outlier sales. All updates are recorded and pushed back to DAP2 through API connectors. The audit trail is maintained via Dataverse plugin logging, and raw data sources (WLTT, MILO, LRPPD) are shown as read-only attributes.
+
+**To-Be Components:**
+
+* Canvas Page in Model-driven App
+* Virtual Table: DAP2 Reval Sales
+* Task (Dataverse)
+* Custom Connectors/APIs (write-back, audit)
+
+**Assumptions:**
+
+* Only key attributes are editable
+* Caseworker UI allows full sales investigation
+
+**Dependencies:**
+
+* UI schema finalization
+* Outlier and condition scoring logic from DAP2
+* Attribute mapping across sources
 
 ---
 
-### 3. **Role-Based Access and Permissions**
+### 3. **Role Based Access and Permissions**
 
-The SVT will enforce role-based access controls where team managers act as admins with full control (view, edit, assign, override), and caseworkers are limited to their assigned tasks. Role privileges are enforced at both backend and frontend levels via Dataverse security roles. The manager can bulk or individually assign jobs to caseworkers, and every user action will be tracked in audit logs. QA role is assumed for later confirmation but designed for future extensibility.
+**Solution Summary:**
+Access to SVT canvas app is restricted using Dataverse security roles. Team Manager and Caseworker roles are implemented to control visibility and permitted actions. Team Manager can assign tasks, override decisions, and reassign work, while Caseworker is restricted to assigned jobs. Role info is used for audit tracking and UI control logic.
+
+**To-Be Components:**
+
+* Model-Driven App Security Roles
+* Canvas Page with Role Check Logic
+* Task assignment via Power Automate/API
+
+**Assumptions:**
+
+* Only two roles currently; QA is pending
+
+**Dependencies:**
+
+* Business confirmation on roles and permissions
+* Synchronization of assigned job info in DAP2
 
 ---
 
 ### 4. **Enhanced UI Navigation and Data Exploration**
 
-This feature equips SVT with dashboards for both caseworkers and team managers. Caseworkers can search and filter Reval sales using job IDs, UARNs, addresses, and more, and view detailed records and verification inputs in a unified screen. Managers can view and allocate jobs across teams. The layout supports real-time filters, search suggestions, and job creation (if no job ID exists). UI navigation design is built for productivity and traceability.
+**Solution Summary:**
+SVT canvas app page allows users to search, filter, and explore reval sales using filters such as address, postcode, outlier flag, and job ID. Both caseworker and manager dashboards are powered by DAP2 data via virtual tables, with tasks managed via the Dataverse task table. UI supports dynamic filters, outlier navigation, and conditional UI controls to create jobs for unmatched sales.
+
+**To-Be Components:**
+
+* Canvas Page UI (search, filter, dashboard)
+* Virtual Table (Reval Sales from DAP2)
+* Dataverse Task Table (filtered by user)
+
+**Assumptions:**
+
+* Layout and filters may evolve with UAT feedback
+
+**Dependencies:**
+
+* Virtual Table performance on large data
+* Filter implementation and paging logic
 
 ---
 
 ### 5. **Data Enhancement Case Management (via Dynamics)**
 
-SVT allows raising enhancement requests (such as PAD attribute corrections or dual list mismatches) directly into Dynamics Case Management. These cases must be resolved before a verification decision can be locked. Caseworkers can initiate the enhancement request, and Dynamics will track resolution status. SVT will check case status before allowing final submission. Case ID will be linked to the sales record, with timestamps and audit logs maintained for compliance.
+**Solution Summary:**
+PAD and DLM-related changes are not handled inside SVT but via Dynamics 365 Case Management. The SVT allows raising enhancement requests linked to reval sales, which are written to DAP2 and sync to Dynamics Case entities. The SVT prevents final decision submission if linked enhancement is still open.
+
+**To-Be Components:**
+
+* Canvas Page (raise enhancement request)
+* Custom API to write enhancement to DAP2
+* Dynamics Case Management integration (via DAL1)
+
+**Assumptions:**
+
+* PAD and DLM cases are distinct
+
+**Dependencies:**
+
+* Dynamics Case schema
+* Enhancement sync pipeline between DAP2 ↔ DAL1 ↔ Dynamics
 
 ---
 
 ### 6. **Structured Presentation of Sale Attributes Across Data Sources**
 
-This feature ensures all relevant attributes from WLTT, LRPPD, MILO, PAD, and Reval sales are displayed in a consistent and readable UI layout, aligned with other VOA tools like Dynamics. Caseworkers can compare attributes across sources, and editable fields like source and condition score are clearly marked. A flag or view indicates if the PAD has been updated. Data is prefetched via virtual table/API and validated before presentation, with audit tracking on edits.
+**Solution Summary:**
+Attributes from WLTT, MILO, LRPPD, PAD and Reval Sale are displayed in grouped tabs/sections within the canvas page, powered by virtual tables and DAP2 APIs. Only a subset (like source) is editable. The UI maintains a consistent layout with other VOA tools and allows read-only navigation to linked sources with audit logging on edits.
+
+**To-Be Components:**
+
+* Canvas Page: Multi-tab view per source
+* DAP2 APIs/Virtual Tables per source
+* Editable fields with audit logging (via plugin)
+
+**Assumptions:**
+
+* Source formatting standardised across SVT and VOS
+
+**Dependencies:**
+
+* Confirmation of editable fields
+* Consistent schema for all source APIs
 
 ---
 
 ### 7. **Quality Assurance Workflow for Sales Verification**
 
-QA users will have a dedicated dashboard to review completed verifications. They can read-only view all decisions, PAD statuses, comments, and flags. QA reviewers can mark each case as Pass (locking it for downstream) or Fail (sending it back to caseworker). Each QA action is tracked with user role and timestamp. QA can bulk assign failed records for rework. UI screens and backend logic for QA will be introduced based on business confirmation.
+**Solution Summary:**
+QA users access completed verifications in read-only mode via their own dashboard in SVT. They can mark a record as Pass (lock for downstream use) or Fail (return to caseworker). Tasks in Dataverse are updated accordingly and changes are pushed to DAP2. QA role is separate, with permissions configured in Dataverse.
 
----
+**To-Be Components:**
 
-Let me know if you'd like to expand these into a slide deck, traceability matrix, or Excel sheet.
+* Canvas Page for QA Dashboard
+* Read-only Reval Sale View (DAP2 via virtual table)
+* Task Status Update (Dataverse)
+* Decision API Write-back to DAP2
+
+**Assumptions:**
+
+* QA actions timestamped
+
+**Dependencies:**
+
+* Confirmation of QA flow from business
+* Role provisioning and Dataverse permissions
