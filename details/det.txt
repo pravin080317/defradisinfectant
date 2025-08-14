@@ -1,36 +1,59 @@
-Absolutely, here’s an **updated, realistic comparison table** for all three options in Power Pages (LA Portal), explicitly calling out:
-
-* **Development effort** (upfront and ongoing)
-* **Accessibility** (with real risks)
-* **ID/content management**
-* **Governance/maintenance**
-* **Page load/performance**
-* **Overall risk**
-
-This table assumes a portal with frequent structural updates and occasional new content blocks (not just static pages forever).
+Here's a professionally drafted email you can send to your internal team (not NFT) to communicate the completion of **Bucket List 3 – Performance Improvements**, along with the performance stats and progress on all key initiatives:
 
 ---
 
-### **LA Portal Welsh Language Implementation – Options Comparison**
+### 📧 **Subject**: LA Portal – Completion of Performance Fixes for Submitted Reports Page (Bucket List 3)
 
-| Criteria                    | Option 1: Duplicate Pages (Separate URLs)                                                                        | Option 2: Dataverse Dynamic Swap                                                                                                                                       | Option 3: Inline Hide/Show                                                                                                 |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Dev Effort (Upfront)**    | Moderate (duplicate all pages/templates, setup nav, content, markers for each language)                          | **Highest** (Dataverse schema, Liquid/JS fetch/inject, language toggles, unique IDs, ARIA/focus logic)                                                                 | **Lowest** (add both languages in every content block, simple JS toggle)                                                   |
-| **Ongoing Effort**          | **High:** Any content, layout, or feature update must be done twice (risk of missing one); grows with site size. | **Low for translation/content updates. Moderate–high for page structure/UI changes:** New blocks require ContentID, Dataverse + template update, accessibility review. | **High:** All content changes must be made in every language, in every block, on every page; grows rapidly with site size. |
-| **Accessibility**           | Good (clear separation, distinct URLs for each language; full page reload may break focus/context).              | Good **if ARIA/lang/focus handled in dynamic swap;** more dev needed to avoid confusion with screen readers.                                                           | Risky: Unless `aria-hidden`, focus, and DOM order managed, **screen readers may read both**; duplicate IDs are a risk.     |
-| **ID & Content Management** | Simple (IDs per page/language, but must maintain in both).                                                       | Complex but scalable: **unique, stable ContentIDs for every block;** must coordinate portal and Dataverse changes.                                                     | Error-prone: duplicate IDs likely, especially if reusing markup; difficult to enforce at scale.                            |
-| **Governance/Maintenance**  | Weak: No audit/version control; content drift risk; very hard to manage as site grows.                           | Strong for translations (central Dataverse); moderate for structure (requires process). Easy to audit, supports permissions.                                           | Weak: No central control, no audit/versioning; high chance of error as site grows.                                         |
-| **Performance (Page Load)** | Fast (static, only one language per page loaded).                                                                | Fast (English); for Welsh, **slight delay for Dataverse fetch**—minimized if you bulk-fetch all for page, not per-block.                                               | Slower: Both languages in DOM for all users, **large pages, especially with rich content.**                                |
-| **Overall Risk**            | High: Consistency, missed updates, hard to scale/maintain.                                                       | Medium: Upfront complexity, ongoing discipline needed for ID/accessibility; **lowest risk at scale once process is mature.**                                           | High: Accessibility, drift, duplicate IDs, errors—*not maintainable* for large or growing portals.                         |
+Hi Team,
+
+As part of our LA Portal remediation efforts, we’re pleased to confirm the successful completion of **Bucket List 3** – **Performance Improvements for the Submitted Reports page** (`/ct-submitted-reports/`), which was originally raised by the NFT team during stress testing.
 
 ---
 
-### **Summary Points**
+### ✅ **Bucket List Progress Update**
 
-* **Option 1:** Only viable for very small, never-changing portals. **High long-term cost and risk.**
-* **Option 2:** Best for 40–50+ pages. Initial dev/process investment is high (IDs, ARIA, JS), but **centralized, auditable, and scalable**. Ongoing effort is low for translation updates, but moderate for structural growth.
-* **Option 3:** Suitable only for MVP/prototype or <5-page static sites. **Unmanageable and risky** for any larger, dynamic, or accessibility-compliant portal.
+| Bucket List Item                                                                                    | Status      |
+| --------------------------------------------------------------------------------------------------- | ----------- |
+| 1. **Performance Analytics Dashboard (Application Insights)** – Setup, assistance, and improvements | ✅ Completed |
+| 2. **Accessibility A & AA Fixes** – Across key pages and flows                                      | ✅ Completed |
+| 3. **Performance Improvements – Submitted Reports Page**                                            | ✅ Completed |
 
 ---
 
-**Let me know if you want the table formatted for a PPT slide or need example workflows for ongoing maintenance and accessibility with Option 2!**
+### 📊 **Performance Fix Summary (View Report Page)**
+
+Following the fix implementation (optimized FetchXML, pagination, and query joins), the NFT team conducted two remediation rounds of testing with both **200 and 400 concurrent users**.
+
+#### 🔍 Key Improvements:
+
+| Scenario  | Transaction       | Avg Time (Before) | Avg Time (After) | Errors (Before) | Errors (After) | Improvement    |
+| --------- | ----------------- | ----------------- | ---------------- | --------------- | -------------- | -------------- |
+| 400 Users | Click View Report | 107.34s           | **1.83s**        | **591**         | **0**          | ✅ \~98% faster |
+| 400 Users | Open Report       | 1.4s              | **0.96s**        | **468**         | **0**          | ✅ \~31% faster |
+| 200 Users | Click View Report | 18.92s            | **1.38s**        | **19**          | **0**          | ✅ \~93% faster |
+| 200 Users | Open Report       | 1.04s             | **0.46s**        | **17**          | **0**          | ✅ \~56% faster |
+
+* ⏱️ **All response times now remain well within SLA**, even under load
+* ❌ **All previous errors have been fully eliminated**
+* ✅ NFT team has **closed the original bug** post validation in both rounds
+
+---
+
+This marks a major milestone in our performance remediation journey. The fix has not only stabilized the View Reports functionality but also ensures long-term scalability with no degradation under high usage.
+
+Thanks to everyone involved in diagnosing, implementing, and testing this fix!
+
+Best regards,
+**\[Your Name]**
+*Portal Dev Team*
+
+---
+
+Let me know if you want this adapted for:
+
+* NFT comms
+* Leadership status update
+* Confluence/SharePoint summary
+* JIRA comment update
+
+I can also turn this into a visual PDF or table format if needed.
