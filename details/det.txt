@@ -1,59 +1,20 @@
-Here's a professionally drafted email you can send to your internal team (not NFT) to communicate the completion of **Bucket List 3 – Performance Improvements**, along with the performance stats and progress on all key initiatives:
-
----
-
-### 📧 **Subject**: LA Portal – Completion of Performance Fixes for Submitted Reports Page (Bucket List 3)
-
-Hi Team,
-
-As part of our LA Portal remediation efforts, we’re pleased to confirm the successful completion of **Bucket List 3** – **Performance Improvements for the Submitted Reports page** (`/ct-submitted-reports/`), which was originally raised by the NFT team during stress testing.
-
----
-
-### ✅ **Bucket List Progress Update**
-
-| Bucket List Item                                                                                    | Status      |
-| --------------------------------------------------------------------------------------------------- | ----------- |
-| 1. **Performance Analytics Dashboard (Application Insights)** – Setup, assistance, and improvements | ✅ Completed |
-| 2. **Accessibility A & AA Fixes** – Across key pages and flows                                      | ✅ Completed |
-| 3. **Performance Improvements – Submitted Reports Page**                                            | ✅ Completed |
-
----
-
-### 📊 **Performance Fix Summary (View Report Page)**
-
-Following the fix implementation (optimized FetchXML, pagination, and query joins), the NFT team conducted two remediation rounds of testing with both **200 and 400 concurrent users**.
-
-#### 🔍 Key Improvements:
-
-| Scenario  | Transaction       | Avg Time (Before) | Avg Time (After) | Errors (Before) | Errors (After) | Improvement    |
-| --------- | ----------------- | ----------------- | ---------------- | --------------- | -------------- | -------------- |
-| 400 Users | Click View Report | 107.34s           | **1.83s**        | **591**         | **0**          | ✅ \~98% faster |
-| 400 Users | Open Report       | 1.4s              | **0.96s**        | **468**         | **0**          | ✅ \~31% faster |
-| 200 Users | Click View Report | 18.92s            | **1.38s**        | **19**          | **0**          | ✅ \~93% faster |
-| 200 Users | Open Report       | 1.04s             | **0.46s**        | **17**          | **0**          | ✅ \~56% faster |
-
-* ⏱️ **All response times now remain well within SLA**, even under load
-* ❌ **All previous errors have been fully eliminated**
-* ✅ NFT team has **closed the original bug** post validation in both rounds
-
----
-
-This marks a major milestone in our performance remediation journey. The fix has not only stabilized the View Reports functionality but also ensures long-term scalability with no degradation under high usage.
-
-Thanks to everyone involved in diagnosing, implementing, and testing this fix!
-
-Best regards,
-**\[Your Name]**
-*Portal Dev Team*
-
----
-
-Let me know if you want this adapted for:
-
-* NFT comms
-* Leadership status update
-* Confluence/SharePoint summary
-* JIRA comment update
-
-I can also turn this into a visual PDF or table format if needed.
+| API name                               | HTTP method |
+| -------------------------------------- | ----------- |
+| **/dlm/supplementary-jobs**            | POST        |
+| **/dlm/jobs/{jobId}\:route**           | PATCH       |
+| **/dlm/jobs/{jobId}/complete**         | POST        |
+| **/lists/{listId}/assessments/{uarn}** | GET         |
+| **/lists/2028/assessments\:upsert**    | POST        |
+| **/lists/2005/assessments\:upsert**    | POST        |
+| **/lists/2028/state\:hold**            | POST        |
+| **/lists/2028/publish-snapshot**       | POST        |
+| **/lists/cutover:2005→2028**           | POST        |
+| **/dlm/eligibility/{uarn}**            | GET         |
+| **/avm/schemes/resolve**               | POST        |
+| **/avm/band-suggestion**               | POST        |
+| **/band-margins/{schemeId}**           | GET         |
+| **/band-margins/{schemeId}\:propose**  | POST        |
+| **/pads/validate**                     | POST        |
+| **/pads/events**                       | POST        |
+| **/dlm/mi**                            | GET         |
+| **/audit/{uarn}**                      | GET         |
