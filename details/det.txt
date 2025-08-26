@@ -1,25 +1,10 @@
-SELECT
-    pfm.voap_portalfilemanagementid,
-    pfm.voap_filename,
-    pfm.statuscodename AS FileStatus,
-    pr.voap_portalrequestid,
-    pr.voap_name AS ReportName,
+SELECT 
     fdh.voa_frontdoorheaderid,
-    fdh.voa_totalfrontdoorrowscount,
-    fdr.voa_frontdoorrowid,
-    fdr.voa_numberofunmatchedaddresses,
-    fde.voa_error,
-    fde.voa_description
-FROM voap_portalfilemanagement pfm
-LEFT JOIN voap_portalrequest pr
-    ON pr.voap_portalfilemanagement = pfm.voap_portalfilemanagementid
-LEFT JOIN voa_frontdoorheader fdh
-    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid  -- ✅ Correct join
-LEFT JOIN voa_frontdoorrow fdr
-    ON fdr.voa_frontdoorheaderid = fdh.voa_frontdoorheaderid             -- ✅ Correct join
-LEFT JOIN voa_frontdoorerror fde
-    ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid                   -- ✅ Correct join
-WHERE pfm.statuscodename IN (
-    'Processing', 'Processing Error', 'Complete with Address Matching Error'
-)
+    fdh.voa_portalfilemanagementid,
+    pfm.voap_filename,
+    pfm.statuscodename
+FROM voa_frontdoorheader fdh
+INNER JOIN voap_portalfilemanagement pfm
+    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
+WHERE fdh.voa_portalfilemanagementid IS NOT NULL
 ORDER BY pfm.createdon DESC;
