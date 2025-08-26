@@ -1,20 +1,66 @@
-| API name                               | HTTP method |
-| -------------------------------------- | ----------- |
-| **/dlm/supplementary-jobs**            | POST        |
-| **/dlm/jobs/{jobId}\:route**           | PATCH       |
-| **/dlm/jobs/{jobId}/complete**         | POST        |
-| **/lists/{listId}/assessments/{uarn}** | GET         |
-| **/lists/2028/assessments\:upsert**    | POST        |
-| **/lists/2005/assessments\:upsert**    | POST        |
-| **/lists/2028/state\:hold**            | POST        |
-| **/lists/2028/publish-snapshot**       | POST        |
-| **/lists/cutover:2005→2028**           | POST        |
-| **/dlm/eligibility/{uarn}**            | GET         |
-| **/avm/schemes/resolve**               | POST        |
-| **/avm/band-suggestion**               | POST        |
-| **/band-margins/{schemeId}**           | GET         |
-| **/band-margins/{schemeId}\:propose**  | POST        |
-| **/pads/validate**                     | POST        |
-| **/pads/events**                       | POST        |
-| **/dlm/mi**                            | GET         |
-| **/audit/{uarn}**                      | GET         |
+SELECT
+    -- File Management Info
+    pfm.voap_portalfilemanagementid,
+    pfm.voap_filename,
+    pfm.statuscodename AS FileStatus,
+    pfm.voap_uploadtype,
+    pfm.voap_uploadtypename,
+    pfm.createdon AS FileUploadedOn,
+    
+    -- Portal Request Info
+    pr.voap_portalrequestid,
+    pr.voap_name AS ReportName,
+    pr.voap_errorcodes,
+    pr.statuscodename AS ReportStatus,
+    pr.voap_addressstatusname,
+    pr.voap_addressstring,
+    
+    -- Front Door Header Info
+    fdh.voa_frontdoorheaderid,
+    fdh.voa_totalfrontdoorrowscount,
+    fdh.voa_totalvalidatedfrontdoorrowscount,
+    fdh.voa_validationfailurefrontdoorrowcount,
+    fdh.voa_totaladdressmatchfrontdoorrowscount,
+    
+    -- Front Door Row Info
+    fdr.voa_frontdoorrowid,
+    fdr.voa_numberofunmatchedaddresses,
+    fdr.voa_arealladdressesmatchedname,
+    fdr.voa_arethereunmatchedaddressesname,
+    
+    -- Error Info
+    fde.voa_frontdoorerrorid,
+    fde.voa_error,
+    fde.voa_description,
+    per.voa_portalerrormessage,
+    per.voa_reason
+
+FROM voap_portalfilemanagement pfm
+
+-- Portal Requests Linked to File
+LEFT JOIN voap_portalrequest pr
+    ON pr.voap_portalfilemanagement = pfm.voap_portalfilemanagementid
+
+-- Front Door Header Linked to File
+LEFT JOIN voa_frontdoorheader fdh
+    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
+
+-- Front Door Rows Linked to Header
+LEFT JOIN voa_frontdoorrow fdr
+    ON fdr.voa_frontdoorheaderidname = fdh.voa_frontdoorheaderid
+
+-- Front Door Errors Linked to Rows
+LEFT JOIN voa_frontdoorerror fde
+    ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid
+
+-- Error Messages Mapping
+LEFT JOIN voa_frontdoorportalerrorexceptionreasons per
+    ON per.voa_portalerrorcode = pr.voap_errorcodes
+
+WHERE pfm.statuscodename IN (
+    'Processing',
+    'Processing Error',
+    'Complete with Address Matching Error'
+)
+
+ORDER BY pfm.createdon DESC;
