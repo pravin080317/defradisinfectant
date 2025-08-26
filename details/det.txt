@@ -1,42 +1,40 @@
-SELECT 
+SELECT
     pfm.voap_portalfilemanagementid        AS PortalFileManagementId,
-    pfm.voap_filename                      AS FileName,
-    pfm.statuscodename                    AS FileStatus,
-    pfm.createdon                         AS FileCreatedOn,
-    pfm.createdbyname                     AS UploadedBy,
-    pfm.voap_billingauthority             AS BillingAuthorityId,
-    pfm.voap_billingauthorityname         AS BillingAuthorityName,
-    pfm.voap_bacode                       AS BACode,
-    pfm.voap_accountname                  AS AccountName,
+    pfm.voap_filename                     AS FileName,
+    pfm.voap_filenameoriginal             AS OriginalFileName,
+    pfm.statuscodename                   AS FileStatus,
+    pfm.createdon                        AS FileCreatedOn,
+    pfm.createdbyname                    AS UploadedBy,
+    pfm.voap_loggedinuser                AS LoggedInUser,
+    pfm.voap_billingauthority            AS BillingAuthorityId,
+    pfm.voap_relatedbillingauthorityname AS BillingAuthorityName,  -- ✅ Corrected column name
+    pfm.voap_bacode                      AS BACode,
+    pfm.voap_accountname                 AS AccountName,
 
-    -- Front Door Header info
-    fdh.voa_frontdoorheaderid             AS FrontDoorHeaderId,
-    fdh.voa_totalfrontdoorrowscount       AS TotalRows,
-    fdh.voa_validatedfrontdoorrowcount    AS ValidatedRows,
-    fdh.voa_unmatchedfrontdoorrowcount    AS UnmatchedRows,
-    fdh.voa_addressmatchfrontdoorrowcount AS AddressMatchedRows,
+    -- Portal Request info
+    pr.voap_portalrequestid              AS PortalRequestId,
+    pr.voap_name                         AS PortalRequestName,
+    pr.createdon                         AS RequestCreatedOn,
+    pr.statuscodename                   AS PortalRequestStatus,
 
-    -- Front Door Row details
-    fdr.voa_frontdoorrowid                AS FrontDoorRowId,
-    fdr.statuscodename                   AS RowStatus,
-    fdr.voa_name                         AS RowName,
-    fdr.voa_reference                    AS RowReference,
-    fdr.voa_numberofunmatchedaddresses   AS UnmatchedAddressCount,
+    -- Check if frontdoor header has picked it
+    CASE 
+        WHEN fdh.voa_frontdoorheaderid IS NOT NULL THEN 'Picked'
+        ELSE 'Not Picked'
+    END AS FrontDoorStatus,
 
-    -- Front Door Errors
-    fde.voa_frontdoorerrorid             AS FrontDoorErrorId,
-    fde.voa_error                        AS ErrorMessage,
-    fde.voa_description                 AS ErrorDescription
+    fdh.voa_frontdoorheaderid           AS FrontDoorHeaderId,
+    fdh.voa_totalfrontdoorrowscount     AS TotalFrontDoorRows,
+    fdh.voa_validatedfrontdoorrowcount  AS ValidatedRows,         -- ✅ Confirmed column name
+    fdh.voa_unmatchedfrontdoorrowcount  AS UnmatchedRows          -- ✅ Confirmed column name
 
 FROM dbo.voap_portalfilemanagement pfm
+LEFT JOIN dbo.voap_portalrequest pr
+    ON pr.voap_portalrequestid = pfm.voap_portalrequestlookup   -- ✅ Correct relationship field
 LEFT JOIN dbo.voa_frontdoorheader fdh
-    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
-LEFT JOIN dbo.voa_frontdoorrow fdr
-    ON fdr.voa_frontdoorheaderid = fdh.voa_frontdoorheaderid
-LEFT JOIN dbo.voa_frontdoorerror fde
-    ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid
+    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid  -- ✅ Correct mapping
 
-WHERE pfm.statuscodename IN ('Processing', 'Processing Error', 'New')
-  AND pfm.createdon <= DATEADD(DAY, -2, GETDATE())
+WHERE pfm.statuscodename = 'New'
+  AND pfm.createdon <= DATEADD(HOUR, -24, GETDATE())
 
 ORDER BY pfm.createdon ASC;
