@@ -1,43 +1,54 @@
 SELECT 
-    -- Portal File Management
-    pfm.voap_portalfilemanagementid      AS PortalFileManagementId,
-    pfm.voap_filename                   AS FileName,
-    pfm.statuscodename                 AS FileStatus,
-    pfm.voap_errorcode                 AS FileErrorCode,
-    pfm.createdon                      AS FileCreatedOn,
+    -- Portal File Info
+    pfm.voap_portalfilemanagementid          AS PortalFileManagementId,
+    pfm.voap_filename                        AS FileName,
+    pfm.statuscodename                      AS FileStatus,
+    pfm.voap_errorcode                      AS FileErrorCode,
+    pfm.createdon                           AS FileCreatedOn,
 
     -- Front Door Header
-    fdh.voa_frontdoorheaderid          AS FrontDoorHeaderId,
-    fdh.voa_submissionid              AS SubmissionId,
-    fdh.voa_sourcefiletypecodename    AS SourceFileType,
-    fdh.voa_isvestibulename           AS IsVestibule,
+    fdh.voa_frontdoorheaderid               AS FrontDoorHeaderId,
+    fdh.voa_submissionid                   AS SubmissionId,
+    fdh.voa_sourcefiletypecodename         AS SourceFileType,
+    fdh.voa_isvestibulename                AS IsVestibule,
 
-    -- Portal Request
-    pr.voap_portalrequestid           AS PortalRequestId,
-    pr.statuscodename                AS PortalRequestStatus,
+    -- Row-level details
+    fdr.voa_frontdoorrowid                 AS RowId,
+    fdr.voa_rowstatus                      AS RowStatus,
+    fdr.voa_rowerrormessage                AS RowErrorMessage,
 
-    -- Error Details from Exception Table
-    ex.voa_portalerrorcode           AS ExceptionErrorCode,
-    ex.voa_portalerrormessage       AS ExceptionErrorMessage,
-    ex.voa_reason                   AS ExceptionReason
+    -- Row Errors
+    fde.voa_frontdoorerrorid               AS ErrorId,
+    fde.voa_errorcode                      AS RawErrorCode,
+    fde.voa_errormessage                   AS RawErrorMessage,
+
+    -- Portal-friendly error message from Master Table
+    ex.voa_portalerrorcode                 AS ExceptionErrorCode,
+    ex.voa_portalerrormessage              AS ExceptionErrorMessage,
+    ex.voa_reason                          AS ExceptionReason
 
 FROM voap_portalfilemanagement AS pfm
-    -- Join with Front Door Header (only where ID is not NULL)
-    INNER JOIN voa_frontdoorheader AS fdh
-        ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
-        AND fdh.voa_portalfilemanagementid IS NOT NULL
 
-    -- Join with Portal Request (optional link for deeper mapping)
-    LEFT JOIN voap_portalrequest AS pr
-        ON pr.voap_portalrequestid = pfm.voap_portalfilemanagementid
+-- Join with front door headers (one per uploaded file)
+INNER JOIN voa_frontdoorheader AS fdh
+    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
+    AND fdh.voa_portalfilemanagementid IS NOT NULL
 
-    -- Join with FrontDoor Exception Reasons for detailed error info
-    LEFT JOIN voa_frontdoorportalerrorexceptionreasons AS ex
-        ON pfm.voap_errorcode = ex.voa_portalerrorcode
+-- Join with front door rows (row-level records)
+LEFT JOIN voa_frontdoorrows AS fdr
+    ON fdr.voa_frontdoorheaderid = fdh.voa_frontdoorheaderid
+
+-- Join with row-level errors
+LEFT JOIN voa_frontdoorerrors AS fde
+    ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid
+
+-- Join with master portal exception reasons to get human-readable messages
+LEFT JOIN voa_frontdoorportalerrorexceptionreasons AS ex
+    ON fde.voa_errorcode = ex.voa_portalerrorcode
 
 WHERE pfm.statuscodename IN (
         'Processing',
         'Processing Error',
         'Complete with Address Matching Error'
     )
-ORDER BY pfm.createdon DESC;
+ORDER BY pfm.createdon DESC, fdr.voa_frontdoorrowid;
