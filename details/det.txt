@@ -1,54 +1,116 @@
-SELECT 
-    -- Portal File Management Info
+WITH FileDetails AS
+(
+    SELECT
+        pfm.voap_portalfilemanagementid       AS PortalFileManagementId,
+        pfm.voap_filename                     AS FileName,
+        pfm.statuscodename                   AS FileStatus,
+        pfm.createdon                        AS FileCreatedOn,
+
+        -- Link to Front Door Header
+        fdh.voa_frontdoorheaderid           AS FrontDoorHeaderId,
+        fdh.voa_totalfrontdoorrowscount     AS TotalRows,
+        fdh.voa_validatedfrontdoorrowcount  AS ValidatedRows,
+        fdh.voa_unmatchedfrontdoorrowcount  AS UnmatchedRows,
+        fdh.voa_addressmatchfrontdoorrowcount AS AddressMatchedRows,
+
+        -- Front Door Row Status
+        fdr.statuscodename                 AS RowStatus,
+        fdr.voa_frontdoorrowid            AS FrontDoorRowId,
+
+        -- Front Door Errors
+        CASE WHEN fde.voa_frontdoorerrorid IS NOT NULL THEN 1 ELSE 0 END AS HasError
+
+    FROM dbo.voap_portalfilemanagement pfm
+    LEFT JOIN dbo.voa_frontdoorheader fdh
+        ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
+    LEFT JOIN dbo.voa_frontdoorrow fdr
+        ON fdr.voa_frontdoorheaderid = fdh.voa_frontdoorheaderid
+    LEFT JOIN dbo.voa_frontdoorerror fde
+        ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid
+
+    WHERE pfm.statuscodename IN ('Processing', 'Processing Error', 'New')
+      AND pfm.createdon <= DATEADD(DAY, -2, GETDATE())
+)
+
+SELECT
+    PortalFileManagementId,
+    FileName,
+    FileStatus,
+    MIN(FileCreatedOn)                    AS CreatedOn,
+
+    COUNT(DISTINCT FrontDoorHeaderId)     AS TotalFrontDoorHeaders,
+    MAX(TotalRows)                        AS TotalRows,
+    MAX(ValidatedRows)                    AS ValidatedRows,
+    MAX(UnmatchedRows)                    AS UnmatchedRows,
+    MAX(AddressMatchedRows)               AS AddressMatchedRows,
+
+    COUNT(DISTINCT CASE WHEN RowStatus = 'Validating' THEN FrontDoorRowId END) AS ValidatingRows,
+    COUNT(DISTINCT CASE WHEN RowStatus = 'Mapping' THEN FrontDoorRowId END)    AS MappingRows,
+    COUNT(DISTINCT CASE WHEN RowStatus = 'Validation Failed' THEN FrontDoorRowId END) AS FailedRows,
+    COUNT(DISTINCT CASE WHEN RowStatus = 'Error' THEN FrontDoorRowId END)      AS ErrorRows,
+
+    SUM(HasError)                         AS TotalErrors
+
+FROM FileDetails
+GROUP BY
+    PortalFileManagementId,
+    FileName,
+    FileStatus
+ORDER BY CreatedOn ASC;
+
+
+
+
+
+
+SELECT
+    -- Portal File Management Details
     pfm.voap_portalfilemanagementid      AS PortalFileManagementId,
     pfm.voap_filename                    AS FileName,
     pfm.statuscodename                  AS FileStatus,
     pfm.voap_errorcode                  AS FileErrorCode,
     pfm.createdon                       AS FileCreatedOn,
+    pfm.voap_filesizeinkb               AS FileSizeKB,
 
-    -- Front Door Header Info
+    -- Front Door Header Details
     fdh.voa_frontdoorheaderid           AS FrontDoorHeaderId,
     fdh.voa_submissionid               AS SubmissionId,
+    fdh.voa_filename                   AS FDH_FileName,
     fdh.voa_sourcefiletypecodename     AS SourceFileType,
-    fdh.voa_isvestibulename            AS IsVestibule,
     fdh.voa_totalfrontdoorrowscount    AS TotalRows,
     fdh.voa_validatedfrontdoorrowcount AS ValidatedRows,
     fdh.voa_unmatchedfrontdoorrowcount AS UnmatchedRows,
     fdh.voa_addressmatchfrontdoorrowcount AS AddressMatchedRows,
 
-    -- Front Door Row Info
+    -- Front Door Row Details
     fdr.voa_frontdoorrowid             AS FrontDoorRowId,
     fdr.voa_name                       AS RowName,
+    fdr.statuscodename                AS RowStatus,
+    fdr.voa_arealladdressesmatchedname AS AllAddressesMatched,
+    fdr.voa_arethereunmatchedaddressesname AS UnmatchedStatus,
     fdr.voa_numberofunmatchedaddresses AS UnmatchedRowCount,
-    fdr.voa_arethereunmatchedaddresses AS IsUnmatched,
-    fdr.voa_arethereunmatchedaddressesname AS IsUnmatchedName,
-    fdr.voa_aretheremanuallymatchedaddresses AS IsManualMatch,
-    fdr.voa_aretheremanuallymatchedaddressesname AS IsManualMatchName,
 
-    -- Error Info
-    fde.voa_frontdoorerrorid           AS FrontDoorErrorId,
-    fde.voa_error                      AS RawErrorCode,
-    fde.voa_description               AS RawErrorDescription
+    -- Front Door Error Details
+    fde.voa_frontdoorerrorid          AS FrontDoorErrorId,
+    fde.voa_error                     AS FrontDoorErrorCode,
+    fde.voa_description              AS FrontDoorErrorDescription
 
 FROM dbo.voap_portalfilemanagement pfm
 
--- Join with front door headers
+-- Join Front Door Header
 LEFT JOIN dbo.voa_frontdoorheader fdh
     ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
 
--- Join with front door rows
+-- Join Front Door Rows
 LEFT JOIN dbo.voa_frontdoorrow fdr
     ON fdr.voa_frontdoorheaderid = fdh.voa_frontdoorheaderid
 
--- Join with row-level errors
+-- Join Front Door Errors
 LEFT JOIN dbo.voa_frontdoorerror fde
     ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid
 
--- Filter only files that are still in processing OR failed OR completed with errors
-WHERE pfm.statuscodename IN (
-    'Processing',
-    'Processing Error',
-    'Complete with Address Matching Error'
-)
+-- Filter only required file statuses
+WHERE pfm.statuscodename IN ('Processing', 'Processing Error', 'New')
+  AND pfm.createdon <= DATEADD(DAY, -2, GETDATE())
 
-ORDER BY pfm.createdon DESC, fdh.voa_frontdoorheaderid, fdr.voa_frontdoorrowid;
+ORDER BY pfm.createdon ASC, pfm.voap_portalfilemanagementid;
