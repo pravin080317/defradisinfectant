@@ -1,59 +1,25 @@
 SELECT
-    -- File Management
     pfm.voap_portalfilemanagementid,
     pfm.voap_filename,
     pfm.statuscodename AS FileStatus,
-    pfm.voap_uploadtype,
-    pfm.voap_uploadtypename,
-    pfm.createdon AS FileUploadedOn,
-    
-    -- Portal Request
     pr.voap_portalrequestid,
     pr.voap_name AS ReportName,
-    pr.voap_errorcodes,
-    pr.statuscodename AS ReportStatus,
-    pr.voap_addressstatusname,
-    pr.voap_addressstring,
-    
-    -- Front Door Header
     fdh.voa_frontdoorheaderid,
     fdh.voa_totalfrontdoorrowscount,
-    fdh.voa_totalvalidatedfrontdoorrowscount,
-    fdh.voa_validationfailurefrontdoorrowcount,
-    fdh.voa_totaladdressmatchfrontdoorrowscount,
-
-    -- Front Door Row
     fdr.voa_frontdoorrowid,
     fdr.voa_numberofunmatchedaddresses,
-    fdr.voa_arealladdressesmatchedname,
-    fdr.voa_arethereunmatchedaddressesname,
-
-    -- Errors
-    fde.voa_frontdoorerrorid,
     fde.voa_error,
     fde.voa_description
-
 FROM voap_portalfilemanagement pfm
-
--- Join Portal Requests
 LEFT JOIN voap_portalrequest pr
     ON pr.voap_portalfilemanagement = pfm.voap_portalfilemanagementid
-
--- Join Front Door Header (GUID → GUID ✅)
 LEFT JOIN voa_frontdoorheader fdh
-    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
-
--- Join Front Door Rows (GUID → GUID ✅)
+    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid  -- ✅ Correct join
 LEFT JOIN voa_frontdoorrow fdr
-    ON fdr.voa_frontdoorheaderid = fdh.voa_frontdoorheaderid
-
--- Join Front Door Errors (GUID → GUID ✅)
+    ON fdr.voa_frontdoorheaderid = fdh.voa_frontdoorheaderid             -- ✅ Correct join
 LEFT JOIN voa_frontdoorerror fde
-    ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid
-
+    ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid                   -- ✅ Correct join
 WHERE pfm.statuscodename IN (
-    'Processing',
-    'Processing Error',
-    'Complete with Address Matching Error'
+    'Processing', 'Processing Error', 'Complete with Address Matching Error'
 )
 ORDER BY pfm.createdon DESC;
