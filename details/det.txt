@@ -1,10 +1,43 @@
 SELECT 
-    fdh.voa_frontdoorheaderid,
-    fdh.voa_portalfilemanagementid,
-    pfm.voap_filename,
-    pfm.statuscodename
-FROM voa_frontdoorheader fdh
-INNER JOIN voap_portalfilemanagement pfm
-    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
-WHERE fdh.voa_portalfilemanagementid IS NOT NULL
+    -- Portal File Management
+    pfm.voap_portalfilemanagementid      AS PortalFileManagementId,
+    pfm.voap_filename                   AS FileName,
+    pfm.statuscodename                 AS FileStatus,
+    pfm.voap_errorcode                 AS FileErrorCode,
+    pfm.createdon                      AS FileCreatedOn,
+
+    -- Front Door Header
+    fdh.voa_frontdoorheaderid          AS FrontDoorHeaderId,
+    fdh.voa_submissionid              AS SubmissionId,
+    fdh.voa_sourcefiletypecodename    AS SourceFileType,
+    fdh.voa_isvestibulename           AS IsVestibule,
+
+    -- Portal Request
+    pr.voap_portalrequestid           AS PortalRequestId,
+    pr.statuscodename                AS PortalRequestStatus,
+
+    -- Error Details from Exception Table
+    ex.voa_portalerrorcode           AS ExceptionErrorCode,
+    ex.voa_portalerrormessage       AS ExceptionErrorMessage,
+    ex.voa_reason                   AS ExceptionReason
+
+FROM voap_portalfilemanagement AS pfm
+    -- Join with Front Door Header (only where ID is not NULL)
+    INNER JOIN voa_frontdoorheader AS fdh
+        ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid
+        AND fdh.voa_portalfilemanagementid IS NOT NULL
+
+    -- Join with Portal Request (optional link for deeper mapping)
+    LEFT JOIN voap_portalrequest AS pr
+        ON pr.voap_portalrequestid = pfm.voap_portalfilemanagementid
+
+    -- Join with FrontDoor Exception Reasons for detailed error info
+    LEFT JOIN voa_frontdoorportalerrorexceptionreasons AS ex
+        ON pfm.voap_errorcode = ex.voa_portalerrorcode
+
+WHERE pfm.statuscodename IN (
+        'Processing',
+        'Processing Error',
+        'Complete with Address Matching Error'
+    )
 ORDER BY pfm.createdon DESC;
