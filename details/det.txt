@@ -1,40 +1,45 @@
-SELECT
-    pfm.voap_portalfilemanagementid        AS PortalFileManagementId,
-    pfm.voap_filename                     AS FileName,
-    pfm.voap_filenameoriginal             AS OriginalFileName,
-    pfm.statuscodename                   AS FileStatus,
-    pfm.createdon                        AS FileCreatedOn,
-    pfm.createdbyname                    AS UploadedBy,
-    pfm.voap_loggedinuser                AS LoggedInUser,
-    pfm.voap_billingauthority            AS BillingAuthorityId,
-    pfm.voap_relatedbillingauthorityname AS BillingAuthorityName,  -- ✅ Corrected column name
-    pfm.voap_bacode                      AS BACode,
-    pfm.voap_accountname                 AS AccountName,
+Based on the SVT features you’ve shared, here’s a structured breakdown of **personas** and the **automatic vs manual task assignment logic** across the Sales Verification Tool (SVT):
 
-    -- Portal Request info
-    pr.voap_portalrequestid              AS PortalRequestId,
-    pr.voap_name                         AS PortalRequestName,
-    pr.createdon                         AS RequestCreatedOn,
-    pr.statuscodename                   AS PortalRequestStatus,
+---
 
-    -- Check if frontdoor header has picked it
-    CASE 
-        WHEN fdh.voa_frontdoorheaderid IS NOT NULL THEN 'Picked'
-        ELSE 'Not Picked'
-    END AS FrontDoorStatus,
+## 👥 **Personas in SVT**
 
-    fdh.voa_frontdoorheaderid           AS FrontDoorHeaderId,
-    fdh.voa_totalfrontdoorrowscount     AS TotalFrontDoorRows,
-    fdh.voa_validatedfrontdoorrowcount  AS ValidatedRows,         -- ✅ Confirmed column name
-    fdh.voa_unmatchedfrontdoorrowcount  AS UnmatchedRows          -- ✅ Confirmed column name
+| Persona             | Role Summary                                                                     | Actions Permitted                                                                                                                                               |
+| ------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Caseworker**      | Primary user responsible for verifying assigned sales records                    | - View & work on assigned tasks<br>- Edit sales verification details<br>- Raise PAD enhancements<br>- Add remarks<br>- View history<br>- Submit for QA          |
+| **Team Manager**    | Elevated user with oversight and control over team workflow                      | - View all jobs<br>- Create tasks manually (assign jobs to caseworkers)<br>- Override decisions<br>- Bulk task allocation<br>- Reassign or review team progress |
+| **QA Reviewer**     | Quality Assurance reviewer validating completed sales verifications              | - View completed tasks<br>- Mark Pass/Fail<br>- Add QA remarks<br>- Reassign failed tasks<br>- Read-only access to all sales verification details               |
+| **Service Account** | Automated system-level identity (for backend flows and scheduled data ingestion) | - Pull Reval Sales from DAP2 daily<br>- Auto-create Task for Outlier sales<br>- Update sales record in DAP2 with Task GUID                                      |
 
-FROM dbo.voap_portalfilemanagement pfm
-LEFT JOIN dbo.voap_portalrequest pr
-    ON pr.voap_portalrequestid = pfm.voap_portalrequestlookup   -- ✅ Correct relationship field
-LEFT JOIN dbo.voa_frontdoorheader fdh
-    ON fdh.voa_portalfilemanagementid = pfm.voap_portalfilemanagementid  -- ✅ Correct mapping
+---
 
-WHERE pfm.statuscodename = 'New'
-  AND pfm.createdon <= DATEADD(HOUR, -24, GETDATE())
+## 🔄 **Task Assignment Types**
 
-ORDER BY pfm.createdon ASC;
+| Task Assignment Type                    | Description                                                                              | Triggered By                | Assigned To                                    |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------- | ---------------------------------------------- |
+| ✅ **Automatic**                         | For *Outlier* flagged records, a scheduled flow automatically creates a Task in Dynamics | Power Automate flow (daily) | Task assigned to Team Queue or left Unassigned |
+| ✋ **Manual (Manager)**                  | Team Manager manually creates Tasks or reassigns from the dashboard                      | Team Manager via UI         | Specific Caseworker                            |
+| 🔁 **QA Reassignment**                  | QA user marks a task as *Fail* and reassigns it back to Caseworker                       | QA Reviewer                 | Original or new Caseworker                     |
+| 🧠 **Optional Auto Assignment (Batch)** | Future enhancement – rules-based auto-assignment to balance load across caseworkers      | TBD / Custom Plugin logic   | Caseworker (based on logic)                    |
+
+---
+
+## 🎯 Task ID Linking
+
+* Every **Reval Sale Record** that requires verification has a **linked `TaskId`** (stored in DAP2, pointing to a Dynamics task).
+* This `TaskId` allows the canvas app (SVT custom page) to:
+
+  * Show task status, owner, title
+  * Filter and track sales via assigned jobs
+  * Navigate to the related Dataverse task record
+
+---
+
+## 📌 Summary of Assignment Logic
+
+* **Service Account** handles *daily ingestion and automatic task creation* for outliers.
+* **Team Manager** handles *task assignment*, *job creation*, *bulk allocation*, and *overrides*.
+* **Caseworkers** receive *assigned jobs* and cannot self-assign.
+* **QA Reviewer** can return *failed* verifications for reassignment.
+
+Let me know if you’d like a visual flowchart for task assignment or swimlane diagram for persona activities.
