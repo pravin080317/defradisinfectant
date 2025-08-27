@@ -1,45 +1,408 @@
-Based on the SVT features you’ve shared, here’s a structured breakdown of **personas** and the **automatic vs manual task assignment logic** across the Sales Verification Tool (SVT):
+Here’s a **feature-by-feature breakdown** of what **needs to be developed** in the **Model-Driven App** for SVT, with emphasis on **custom canvas pages**, **Dataverse components**, and integration with **Virtual Tables** and APIs.
 
 ---
 
-## 👥 **Personas in SVT**
+### ✅ **1. Data Ingestion and Output Integration**
 
-| Persona             | Role Summary                                                                     | Actions Permitted                                                                                                                                               |
-| ------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Caseworker**      | Primary user responsible for verifying assigned sales records                    | - View & work on assigned tasks<br>- Edit sales verification details<br>- Raise PAD enhancements<br>- Add remarks<br>- View history<br>- Submit for QA          |
-| **Team Manager**    | Elevated user with oversight and control over team workflow                      | - View all jobs<br>- Create tasks manually (assign jobs to caseworkers)<br>- Override decisions<br>- Bulk task allocation<br>- Reassign or review team progress |
-| **QA Reviewer**     | Quality Assurance reviewer validating completed sales verifications              | - View completed tasks<br>- Mark Pass/Fail<br>- Add QA remarks<br>- Reassign failed tasks<br>- Read-only access to all sales verification details               |
-| **Service Account** | Automated system-level identity (for backend flows and scheduled data ingestion) | - Pull Reval Sales from DAP2 daily<br>- Auto-create Task for Outlier sales<br>- Update sales record in DAP2 with Task GUID                                      |
+**Purpose:**
+Ingest daily sales (Reval) data from DAP2 and export verified decisions back to DAP2 for downstream AVM use.
 
----
+**Components in Model-Driven App:**
 
-## 🔄 **Task Assignment Types**
+* ❌ No user-facing component.
+* ✅ **Scheduled Power Automate Flow** under service account to:
 
-| Task Assignment Type                    | Description                                                                              | Triggered By                | Assigned To                                    |
-| --------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------- | ---------------------------------------------- |
-| ✅ **Automatic**                         | For *Outlier* flagged records, a scheduled flow automatically creates a Task in Dynamics | Power Automate flow (daily) | Task assigned to Team Queue or left Unassigned |
-| ✋ **Manual (Manager)**                  | Team Manager manually creates Tasks or reassigns from the dashboard                      | Team Manager via UI         | Specific Caseworker                            |
-| 🔁 **QA Reassignment**                  | QA user marks a task as *Fail* and reassigns it back to Caseworker                       | QA Reviewer                 | Original or new Caseworker                     |
-| 🧠 **Optional Auto Assignment (Batch)** | Future enhancement – rules-based auto-assignment to balance load across caseworkers      | TBD / Custom Plugin logic   | Caseworker (based on logic)                    |
+  * Call DAP2 to retrieve outlier Reval sales.
+  * Create Dataverse Task for each.
+  * Patch DAP2 with `taskId`.
 
----
+**Custom Canvas Page:**
 
-## 🎯 Task ID Linking
+* ❌ Not required.
 
-* Every **Reval Sale Record** that requires verification has a **linked `TaskId`** (stored in DAP2, pointing to a Dynamics task).
-* This `TaskId` allows the canvas app (SVT custom page) to:
+**Integration:**
 
-  * Show task status, owner, title
-  * Filter and track sales via assigned jobs
-  * Navigate to the related Dataverse task record
+* 🔄 Virtual Table (`RevalSalesRecord`) backed by API via APIM.
+* 🔃 PATCH to DAP2 for SV outcome export.
 
 ---
 
-## 📌 Summary of Assignment Logic
+### ✅ **2. Sales Record Management and Decision Logging**
 
-* **Service Account** handles *daily ingestion and automatic task creation* for outliers.
-* **Team Manager** handles *task assignment*, *job creation*, *bulk allocation*, and *overrides*.
-* **Caseworkers** receive *assigned jobs* and cannot self-assign.
-* **QA Reviewer** can return *failed* verifications for reassignment.
+**Purpose:**
+Let caseworkers and managers view Reval sales, perform investigation, update decisions (condition score, source, PAD enhancement, etc.)
 
-Let me know if you’d like a visual flowchart for task assignment or swimlane diagram for persona activities.
+**Model-Driven Components:**
+
+* 🔷 **Dataverse Task entity (activity)** for job tracking.
+* 📌 **Task View** for assigned and unassigned jobs.
+* 📎 **Custom button** or navigation from Task form to canvas page.
+
+**Custom Canvas Page:**
+✅ **Main feature** is the embedded **custom page**:
+
+* View sales and PAD data via Virtual Table.
+* View & update fields like:
+
+  * Source
+  * Outlier reason
+  * Verification outcome
+  * Condition score
+  * PAD update flag
+  * Remarks
+
+**Integrations:**
+
+* 🔌 Virtual Table fetch (DAP2)
+* 📤 API PATCH to update DAP2 decisions.
+* 🔁 Manual call to create enhancement case in Dynamics if needed.
+
+---
+
+### ✅ **3. Role-Based Access and Permissions**
+
+**Purpose:**
+Show/hide UI elements and control action permissions for Caseworker, Team Manager, and QA Reviewer.
+
+**Model-Driven Components:**
+
+* 🔐 **Security Roles**: Caseworker, TeamManager, QAReviewer
+* 🔄 **Plugins/Audit** to record role-based interactions
+* ⚙️ **Task form customization** to restrict editing
+
+**Custom Canvas Page:**
+✅ **Role-aware rendering**
+
+* Use `User().Email` or WhoAmI to:
+
+  * Allow Create/Assign only for Team Manager
+  * Allow edit only if user is task owner
+  * Show Pass/Fail only for QA role
+
+**Integration:**
+
+* ✅ Dataverse security roles
+* 🧾 Audit tracking of role-based decisions/actions
+
+---
+
+### ✅ **4. Enhanced UI Navigation and Data Exploration**
+
+**Purpose:**
+Enable advanced search, filtering, and task navigation in dashboard view.
+
+**Model-Driven Components:**
+
+* 🧩 **Custom PCF Component** – `DetailsList` view using Virtual Table
+* 📊 **Dashboard View** of tasks by owner, team, status
+* 🔄 Custom page navigation buttons
+
+**Custom Canvas Page:**
+✅ **Used for drill-down navigation**
+
+* Open individual sales from task list
+* Display sale + linked task + PAD in one screen
+
+**Integration:**
+
+* 🧲 API filter queries on Virtual Table
+* 🔗 Navigation between pages
+* 🔘 Button to create task from unassigned sale
+
+---
+
+### ✅ **5. Data Enhancement Case Management (PAD / DLM)**
+
+**Purpose:**
+Enable PAD mismatch or dual list cases to be raised via Dynamics.
+
+**Model-Driven Components:**
+
+* 📋 **Dataverse Request Table** or Enhancement Case entity
+* 🔘 **"Raise PAD Update"** button on canvas page → creates record in Dynamics
+* 🧩 **Plugin** to block decision lock if enhancement case is still open
+
+**Custom Canvas Page:**
+✅ PAD Update reason capture
+
+* Fields: mismatched attributes, PAD comments
+* Trigger enhancement request creation
+
+**Integration:**
+
+* 🚀 API call or Dataverse connector to create request
+* 🔒 Pre-decision check plugin for unresolved cases
+
+---
+
+### ✅ **6. Structured Presentation of Sale Attributes (Multiple Sources)**
+
+**Purpose:**
+Display key sales metadata in consistent format – Reval, LRPPD, WLTT, MILO, PAD
+
+**Model-Driven Components:**
+
+* ❌ None directly (data not stored in Dataverse)
+
+**Custom Canvas Page:**
+✅ **Core display section**
+
+* Sections: Dwelling Info, Transaction, Location, PAD, Flags
+* Read-only and editable fields
+* Display tooltips for sources (flag if changed)
+
+**Integration:**
+
+* 🔄 Multiple Virtual Table endpoints or composite API
+* 📤 API PATCH to update editable fields (like source)
+
+---
+
+### ✅ **7. Quality Assurance Workflow for Sales Verification**
+
+**Purpose:**
+QA Reviewer reviews completed sales, applies Pass/Fail decision, adds comments.
+
+**Model-Driven Components:**
+
+* 📊 **QA Dashboard** (view-only task list)
+* 🔘 **Pass/Fail buttons** visible only for QA
+
+**Custom Canvas Page:**
+✅ Read-only view of verification screen with extra:
+
+* QA Comments
+* Pass/Fail toggle
+* Reassign task to caseworker if failed
+
+**Integration:**
+
+* PATCH to update DAP2 with QA decision
+* Dataverse audit log for timestamp and reviewer info
+
+---
+
+Let me know if you want this in tabular format or ready-to-paste ROM components too.
+
+
+Here's a **feature-by-feature breakdown** of the SVT Epic, detailing the **components to be developed** in the **Model-Driven App**, the **Canvas App custom pages**, assumptions, and **sections within each page**:
+
+---
+
+### **1. Data Ingestion and Output Integration**
+
+**Purpose**: Load Reval Sales Records from DAP2 daily and push final decisions back.
+
+#### 🔧 Model-Driven App Components:
+
+* None specific (data is **not stored in Dataverse**, just tasks).
+* One-time flow to **ingest outlier sales and create D365 Task** records.
+
+#### 🧩 Canvas Page Components:
+
+* Not directly applicable to ingestion; this supports downstream views.
+
+#### ✅ Assumptions:
+
+* No manual intervention required.
+* DAP2 is source of truth for sales data.
+* Historical decisions migrated once.
+* Final decisions stored in DAP2.
+
+---
+
+### **2. Sales Record Management and Decision Logging**
+
+**Purpose**: View a full sale, its data, audit log, and log verification decision.
+
+#### 🔧 Model-Driven App Components:
+
+* `Task` table (Dataverse): stores task assignment only.
+* Ribbon button: Open SVT Canvas page.
+* Plugin: Logs audit when updates are pushed to DAP2.
+
+#### 🧩 Canvas Page Sections:
+
+1. **Search/Filter View** (PCF DetailsList)
+
+   * Bind Reval Sales virtual table.
+   * Filters: UARN, Job ID, status, date, outlier.
+   * Link to canvas page via taskId/saleId.
+
+2. **Sales Details View**
+
+   * Tabs for: Dwelling Info, Transaction Info, PAD, Repeat Sales, Source selection.
+   * Editable fields: Source change, remarks.
+   * Show linked D365 Task info.
+
+3. **Decision Panel**
+
+   * Conditional score, final outcome dropdowns.
+   * Save triggers update to DAP2.
+   * Trigger PAD Enhancement if mismatch.
+
+#### ✅ Assumptions:
+
+* One Reval Sale may have many past transactions.
+* Source can be changed.
+* All edits update DAP2 only (audit included).
+* Decision screen used by Caseworker.
+
+---
+
+### **3. Role-Based Access and Permissions**
+
+**Purpose**: Secure access and limit capabilities based on user roles.
+
+#### 🔧 Model-Driven App Components:
+
+* Security Roles: `SVT Team Manager`, `SVT Caseworker`, `SVT QA`.
+* Command Bar logic (button visibility).
+* Plugin: captures user role on submission.
+
+#### 🧩 Canvas Page Adjustments:
+
+* Dynamic visibility per role:
+
+  * Caseworker: Edit allowed only on assigned tasks.
+  * Manager: Assign jobs, override, view all.
+  * QA: Read-only, Pass/Fail options.
+
+#### ✅ Assumptions:
+
+* Roles assigned at environment level.
+* QA access finalized later.
+* Caseworkers can see all tasks but work on only assigned ones.
+
+---
+
+### **4. Enhanced UI Navigation and Data Exploration**
+
+**Purpose**: Improve filtering, search, and drilldown across sales records.
+
+#### 🔧 Model-Driven App Components:
+
+* Navigation link to Canvas Page from sitemap.
+* Views (task-based): Assigned, Unassigned, All Tasks.
+* Task Lookup forms.
+
+#### 🧩 Canvas Page Sections:
+
+1. **Dashboard**
+
+   * Metrics: Assigned vs Unassigned, Completed vs In Progress.
+   * Drilldown by location/group.
+
+2. **Filters & Search Panel**
+
+   * Address, Postcode, Outlier, Job ID, Owner.
+   * Search triggers backend API or filters dataset.
+
+3. **Bulk Actions Panel**
+
+   * Select sales and create Tasks.
+   * Assign to users.
+
+#### ✅ Assumptions:
+
+* Managers can see team tasks + all jobs.
+* Caseworkers see all but work only on their own.
+* All Reval Sales with Outlier flag must have a Task.
+
+---
+
+### **5. Data Enhancement Case Management (via Dynamics)**
+
+**Purpose**: Let users raise cases to update PAD attributes or trigger DLM.
+
+#### 🔧 Model-Driven App Components:
+
+* `Case` table (Dynamics 365 standard).
+* Lookup to `Hereditament` or `PAD`.
+* View for active vs closed cases.
+
+#### 🧩 Canvas Page Integration:
+
+* Button: “Raise PAD Update Case” (opens new case form).
+* Display linked cases under Sales Record Details.
+* Disable final decision if case is open.
+
+#### ✅ Assumptions:
+
+* All cases raised in D365.
+* Final decision blocked if enhancement open.
+* Logic to resolve DLM decisions to be added post-AVM.
+
+---
+
+### **6. Structured Presentation of Sale Attributes**
+
+**Purpose**: Display full detail of each sale from DAP2 including source data.
+
+#### 🔧 Model-Driven App Components:
+
+* None (data from virtual table).
+* PCF optional for tab layout if needed.
+
+#### 🧩 Canvas Page Sections:
+
+1. **Header**: UARN, Address, Sale Type, Task ID
+
+2. **Data Tabs**:
+
+   * **Dwelling Info**
+   * **Transaction Info**
+   * **WLTT**
+   * **LRPPD**
+   * **MILO**
+   * **PAD**
+   * **Repeat Sales**
+   * **Flags**
+
+3. **Editable Controls**:
+
+   * Source dropdown.
+   * Remarks.
+   * Mismatch Indicators (PAD vs VOS ID).
+
+#### ✅ Assumptions:
+
+* Only source is editable; rest is display-only.
+* Fields finalized during build.
+* Display consistency required across VOS, CT, and SVT tools.
+
+---
+
+### **7. Quality Assurance Workflow for Sales Verification**
+
+**Purpose**: Let QA reviewers verify decisions made by caseworkers.
+
+#### 🔧 Model-Driven App Components:
+
+* QA-specific views (completed sales only).
+* Dashboard: Ready for QA, Passed, Failed.
+* Plugin: log pass/fail with timestamp.
+
+#### 🧩 Canvas Page Adjustments:
+
+* **QA View Only Mode**
+
+  * Read-only Sales Record.
+  * Tabs identical to Caseworker.
+  * Buttons: **Pass** / **Fail** / **Send Back**.
+
+* **QA Dashboard**
+
+  * Filters: Status, Owner, UARN, Date.
+  * See assigned and unassigned records.
+  * Bulk Pass/Fail optional.
+
+#### ✅ Assumptions:
+
+* QA access role distinct from Manager.
+* Reassignment allowed if failed.
+* Audit log retained per QA reviewer action.
+
+---
+
+Let me know if you'd like each of these visualized in a Figma-style mockup or component tree (for example, layout of the canvas app per feature).
