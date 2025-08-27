@@ -1,59 +1,56 @@
 SELECT
-    -- Portal Request Details
-    pr.voap_portalrequestid                AS PortalRequestId,
-    pr.voap_name                           AS PortalRequestName,
-    pr.statuscodename                     AS PortalRequestStatus,
-    pr.createdon                          AS RequestCreatedOn,
-    pr.createdbyname                      AS RequestCreatedBy,
-    pr.voap_billingauthorityreferencenumber AS CouncilReference,
-
-    -- Portal File Management Details
+    -- Portal File Management Details (Parent)
     pfm.voap_portalfilemanagementid        AS PortalFileManagementId,
     pfm.voap_filename                      AS FileName,
     pfm.voap_filenameoriginal             AS OriginalFileName,
-    pfm.statuscodename                   AS FileStatus,
+    pfm.statuscodename                   AS PortalFileStatus,
+    pfm.createdon                        AS FileCreatedOn,
+    pfm.createdbyname                    AS UploadedBy,
     pfm.voap_loggedinuser                AS LoggedInUser,
     pfm.voap_relatedbillingauthorityname AS CouncilName,
     pfm.voap_bacode                      AS BACode,
     pfm.voap_accountname                 AS AccountName,
 
-    -- FrontDoor Header Details (linked via PortalRequest)
-    fdh.voa_frontdoorheaderid             AS FrontDoorHeaderId,
-    fdh.voa_totalfrontdoorrowscount       AS TotalFrontDoorRows,
-    fdh.voa_validatedfrontdoorrowcount    AS ValidatedRows,
-    fdh.voa_unmatchedfrontdoorrowcount    AS UnmatchedRows,
+    -- Portal Request Details (Child of PFM)
+    pr.voap_portalrequestid              AS PortalRequestId,
+    pr.voap_name                         AS PortalRequestName,
+    pr.statuscodename                   AS PortalRequestStatus,
+    pr.createdon                        AS RequestCreatedOn,
+    pr.voap_billingauthorityreferencenumber AS CouncilReference,
 
-    CASE 
-        WHEN fdh.voa_frontdoorheaderid IS NOT NULL THEN 'Picked'
-        ELSE 'Not Picked'
-    END AS FrontDoorStatus,
+    -- FrontDoor Header Details (Linked via PortalRequest)
+    fdh.voa_frontdoorheaderid           AS FrontDoorHeaderId,
+    fdh.statuscodename                 AS FrontDoorHeaderStatus,
+    fdh.voa_totalfrontdoorrowscount    AS TotalFrontDoorRows,
+    fdh.voa_validatedfrontdoorrowcount AS ValidatedRows,
+    fdh.voa_unmatchedfrontdoorrowcount AS UnmatchedRows,
 
-    -- FrontDoor Row & Error Details
-    fdr.voa_frontdoorrowid               AS FrontDoorRowId,
-    fdr.statuscodename                  AS FrontDoorRowStatus,
-    fde.voa_frontdoorerrorid            AS FrontDoorErrorId,
-    fde.voa_error                       AS FrontDoorErrorCode,
-    fde.voa_description                AS FrontDoorErrorDescription
+    -- FrontDoor Row & Errors
+    fdr.voa_frontdoorrowid             AS FrontDoorRowId,
+    fdr.statuscodename                AS FrontDoorRowStatus,
+    fde.voa_frontdoorerrorid          AS FrontDoorErrorId,
+    fde.voa_error                     AS FrontDoorErrorCode,
+    fde.voa_description              AS FrontDoorErrorDescription
 
-FROM dbo.voap_portalrequest pr
+FROM dbo.voap_portalfilemanagement pfm
 
--- Link PortalRequest → PortalFileManagement
-LEFT JOIN dbo.voap_portalfilemanagement pfm
+-- Join Portal Requests (PFM → PR)
+LEFT JOIN dbo.voap_portalrequest pr
     ON pr.voap_portalrequestid = pfm.voap_portalrequestlookup
 
--- Link PortalRequest → FrontDoorHeader (new join path)
+-- Join FrontDoorHeader (PR → FDH)
 LEFT JOIN dbo.voa_frontdoorheader fdh
-    ON fdh.voa_submissionid = pr.voap_portalrequestid
+    ON fdh.voa_portalrequestid = pr.voap_portalrequestid
 
--- Link FrontDoorHeader → FrontDoorRow
+-- Join FrontDoorRow (FDH → FDR)
 LEFT JOIN dbo.voa_frontdoorrow fdr
     ON fdr.voa_frontdoorheaderid = fdh.voa_frontdoorheaderid
 
--- Link FrontDoorRow → FrontDoorError
+-- Join FrontDoorError (FDR → FDE)
 LEFT JOIN dbo.voa_frontdoorerror fde
     ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid
 
--- Exclude processed statuses
+-- Filter PortalRequest statuses - exclude submitted/validated ones
 WHERE ISNULL(pr.statuscodename, '') NOT IN (
         'Validation and Address Matching Errors',
         'Ready to Submit with Address Matching Errors',
@@ -61,4 +58,4 @@ WHERE ISNULL(pr.statuscodename, '') NOT IN (
         'Submitted'
     )
 
-ORDER BY pr.createdon DESC;
+ORDER BY pfm.createdon DESC;
