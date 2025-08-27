@@ -1,61 +1,15 @@
-SELECT
-    -- Portal File Management Details (Parent)
-    pfm.voap_portalfilemanagementid        AS PortalFileManagementId,
-    pfm.voap_filename                      AS FileName,
-    pfm.voap_filenameoriginal             AS OriginalFileName,
-    pfm.statuscodename                   AS PortalFileStatus,
-    pfm.createdon                        AS FileCreatedOn,
-    pfm.createdbyname                    AS UploadedBy,
-    pfm.voap_loggedinuser                AS LoggedInUser,
-    pfm.voap_relatedbillingauthorityname AS CouncilName,
-    pfm.voap_bacode                      AS BACode,
-    pfm.voap_accountname                 AS AccountName,
+Based on our current understanding of the SVT features and requirements, we would appreciate your confirmation on the following points:
 
-    -- Portal Request Details (Child of PFM)
-    pr.voap_portalrequestid              AS PortalRequestId,
-    pr.voap_name                         AS PortalRequestName,
-    pr.statuscodename                   AS PortalRequestStatus,
-    pr.createdon                        AS RequestCreatedOn,
-    pr.voap_billingauthorityreferencenumber AS CouncilReference,
+Task Assignment Process:
+Please confirm that the system will not auto-assign tasks to caseworkers. Our understanding is that:
 
-    -- FrontDoor Header Details (Linked via PortalRequest)
-    fdh.voa_frontdoorheaderid           AS FrontDoorHeaderId,
-    fdh.statuscodename                 AS FrontDoorHeaderStatus,
-    fdh.voa_totalfrontdoorrowscount    AS TotalFrontDoorRows,
-    fdh.voa_validatedfrontdoorrowcount AS ValidatedRows,
-    fdh.voa_unmatchedfrontdoorrowcount AS UnmatchedRows,
+The system will generate tasks and update the Task ID in VaaS (DAP2).
 
-    -- FrontDoor Row & Errors
-    fdr.voa_frontdoorrowid             AS FrontDoorRowId,
-    fdr.statuscodename                AS FrontDoorRowStatus,
-    fde.voa_frontdoorerrorid          AS FrontDoorErrorId,
-    fde.voa_error                     AS FrontDoorErrorCode,
-    fde.voa_description              AS FrontDoorErrorDescription
+Team Managers will manually allocate these tasks to caseworkers.
 
-FROM dbo.voap_portalfilemanagement pfm
+In the event of a QA "Fail", the QA reviewer will manually reassign the task back to the original caseworker.
 
--- Join Portal Requests (PFM → PR)
-LEFT JOIN dbo.voap_portalrequest pr
-    ON pr.voap_portalrequestid = pfm.voap_portalrequestlookup
+User Roles and Setup:
+Are the SVT users (Team Manager, Caseworker, QA Reviewer) existing internal users currently using the existing platform?
 
--- Join FrontDoorHeader (PR → FDH)
-LEFT JOIN dbo.voa_frontdoorheader fdh
-    ON fdh.voa_portalrequestid = pr.voap_portalrequestid
-
--- Join FrontDoorRow (FDH → FDR)
-LEFT JOIN dbo.voa_frontdoorrow fdr
-    ON fdr.voa_frontdoorheaderid = fdh.voa_frontdoorheaderid
-
--- Join FrontDoorError (FDR → FDE)
-LEFT JOIN dbo.voa_frontdoorerror fde
-    ON fde.voa_frontdoorrowid = fdr.voa_frontdoorrowid
-
--- Filter PortalRequest statuses - exclude submitted/validated ones
-WHERE ISNULL(pr.statuscodename, '') NOT IN (
-        'Validation and Address Matching Errors',
-        'Ready to Submit with Address Matching Errors',
-        'Submitted with Address Matching Errors',
-        'Submitted'
-    )
-
-ORDER BY pfm.createdon DESC;
+If not, and these are new users, we’ll need to consider Dataverse team creation, role-based access configuration, and SRS role provisioning as part of the setup.
