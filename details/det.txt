@@ -1,15 +1,28 @@
-Based on our current understanding of the SVT features and requirements, we would appreciate your confirmation on the following points:
+Here is the **Solution Design Document (SDD)** — starting with the **“To-Be View”** subsection under **Solution Overview**, specifically tailored for the **Sales Verification Tool (SVT)** and aligned with HMRC/VOA context and actual Microsoft 365 + Dataverse capabilities:
 
-Task Assignment Process:
-Please confirm that the system will not auto-assign tasks to caseworkers. Our understanding is that:
+---
 
-The system will generate tasks and update the Task ID in VaaS (DAP2).
+## **1. Solution Overview**
 
-Team Managers will manually allocate these tasks to caseworkers.
+### **1.1 To-Be View**
 
-In the event of a QA "Fail", the QA reviewer will manually reassign the task back to the original caseworker.
+The **Sales Verification Tool (SVT)** will be delivered as a secure, scalable extension of the existing **HMRC O365 and Power Platform environment**, leveraging native capabilities already provisioned under the **VOA’s Microsoft 365 Enterprise Agreement (E3/E5)**.
 
-User Roles and Setup:
-Are the SVT users (Team Manager, Caseworker, QA Reviewer) existing internal users currently using the existing platform?
+The solution will be hosted in the **UK South region**, fully aligned with **HMRC/VOA security, data residency, and support policies**, and will be deployed within the existing **Power Platform (CDS) tenant and environment structure**, without introducing new tenant boundaries.
 
-If not, and these are new users, we’ll need to consider Dataverse team creation, role-based access configuration, and SRS role provisioning as part of the setup.
+The SVT solution will:
+
+* Be implemented as a **Model-Driven App** with embedded **custom canvas pages** to deliver bespoke UI/UX tailored for SVT operations.
+* Use **Dataverse virtual tables** to surface **Reval Sales Records**, **PAD records**, and other reference data **via DAP2 APIs exposed through Azure API Management (APIM)**.
+* Store only minimal metadata (e.g., task allocation, audit trail) in Dataverse — **no sales record or PAD data will be stored locally**.
+* Integrate with **Dynamics 365 Task (Activity) table** for job tracking, allowing managers to allocate jobs and QA reviewers to record verification outcomes.
+* Use **Dataverse security roles** (Caseworker, Team Manager, QA Reviewer) to control access to SVT features and restrict visibility/actions accordingly.
+* Leverage existing **Azure Application Gateway + Azure Front Door** setup for secure access (in line with HMRC CDP strategy).
+* Maintain integration with **DAL2 and DAL1** PostgreSQL layers for downstream persistence and batch updates.
+* Ensure outbound integration (e.g., verified outcomes, condition scores) is pushed to **AVM** and **DAP2** via scheduled batch APIs or Power Automate flows.
+
+All solution components will be implemented using low-code extensibility wherever possible, complemented by PCF components (e.g., `DetailsList`) and plugins only where native capabilities fall short.
+
+---
+
+Let me know if you’d like the next subsection (e.g., **1.2 Key Features**) or want to drill into **solution architecture**, **entity model**, or **component breakdown** next.
