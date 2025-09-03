@@ -1,5 +1,122 @@
-We have logged a bug to investigate the issue reported by Ealing Council (Ref: LA Portal – Ealing Council BA 5270). The issue relates to a multiple-report XML file containing 274 BA reports, which has been stuck in processing since 19-Aug-25. A reattempt on 20-Aug-25 also failed. This was initially shared by Stuart via email.
+Epic: LA Portal – Schedules & Lists Page (Dataverse Integration)
 
-In today’s call with Michael, we confirmed that the problem occurs only in the production environment—the same file processes successfully in lower environments. The root cause is still unknown, but we have identified areas in the front-door code where additional logging will be added. These logs should help us pinpoint the exact reason for the failure.
 
-Please check and mark the PO signed on this bug. This will be treated as a high-priority bug, and we will work closely with Michael on the resolution. We may also require support from users as part of this investigation.
+---
+
+Task 1: Build Schedules Page UI
+
+Description:
+Implement the Schedules Calendar 2023 UI as per GOV.UK prototype.
+
+Create filter by month dropdown (All / Jan / Feb …).
+
+Display Council Tax and Non-Domestic Rates schedules in tabular format.
+
+Use GOV.UK Design System components for styling.
+
+Ensure tab navigation between Schedules and Lists.
+
+
+
+---
+
+Task 2: Build Lists Page UI
+
+Description:
+Implement the Lists Calendar UI based on the prototype.
+
+Render grouped list of “Council Tax full list” and “Non-domestic rates full list” with dates.
+
+Support multiple schedule types (1993, 2005, 2010, 2017, etc.).
+
+Follow GOV.UK accessible markup standards.
+
+
+
+---
+
+Task 3: Dataverse Data Model & API Setup
+
+Description:
+Design and configure Dataverse tables/entities for:
+
+Schedules (date, type, year, council tax/non-domestic rates).
+
+Lists (list type, schedule year, published dates).
+Expose data via API (or virtual table) for frontend consumption.
+
+
+
+---
+
+Task 4: Dataverse Integration (Frontend API Calls)
+
+Description:
+Integrate React frontend with Dataverse API to fetch and display schedules and lists dynamically.
+
+Implement filtering by month.
+
+Display multiple schedule types in table (1993, 2005, 2010, 2017).
+
+Map API data into UI components.
+
+
+
+---
+
+Task 5: Calendar Key & Colour Coding
+
+Description:
+Add colour coding for schedule types (as shown in prototype):
+
+Council Tax Schedules → Teal
+
+Non-domestic Rates (2017) → Blue
+
+Non-domestic Rates (2010) → Yellow
+Apply GOV.UK accessible colour palette.
+
+
+
+---
+
+Task 6: Print and Welsh Toggle Support
+
+Description:
+Enable:
+
+Print this page functionality (basic print CSS).
+
+English / Cymraeg language toggle using GOV.UK bilingual standards.
+
+
+
+---
+
+Task 7: Accessibility & WCAG 2.2 Compliance
+
+Description:
+Validate and fix accessibility issues:
+
+Ensure tables are accessible with screen readers.
+
+Provide clear headings and labels.
+
+Test GOV.UK tab component switching.
+
+
+
+---
+
+Task 8: Testing & QA
+
+Description:
+Write unit and integration tests for:
+
+Month filter behaviour.
+
+Correct mapping of schedule/list data from Dataverse.
+
+UI rendering in both English and Welsh.
+
+Print view correctness.
