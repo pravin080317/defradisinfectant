@@ -1,32 +1,211 @@
-SELECT
-    -- File details
-    pfm.voap_portalfilemanagementid        AS PortalFileManagementId,
-    pfm.voap_filename                      AS FileName,
-    pfm.voap_filenameoriginal             AS OriginalFileName,
-    pfm.statuscodename                   AS FileStatus,
-    pfm.createdon                        AS FileCreatedOn,
+Set(varSelectedUARN,"");
+Set(varSelectedRecord,{});
+ClearCollect(
+    colSVTSalesRecords,
+    {
+        uarn: "18741001",
+        address: "Small House, Bruno Avenue, MT84 2VY",
+        postCode: "MT84 2VY",
+        transactionDate: "17/08/2022",
+        salePrice: "£395,000",
+        outlierFlag: "Yes",
+        overallFlag: "Investigate – can use",
+        openRequest: "Open Request (0365)",
+        requestGUID: "e3df64ad-3f61-213b-56b4-b21db6f81462"
+    },
+    {
+        uarn: "10741001",
+        address: "12 Hilltop Close, Llanfair, LL11 3BB",
+        postCode: "LL11 3BB",
+        transactionDate: "21/05/2021",
+        salePrice: "£150,000",
+        outlierFlag: "No",
+        overallFlag: "Exclude",
+        openRequest: "",
+        requestGUID: ""
+    },
+    {
+        uarn: "20451022",
+        address: "78 Church Street, Bridgend, CF31 1EF",
+        postCode: "CF31 1EF",
+        transactionDate: "05/03/2020",
+        salePrice: "£210,000",
+        outlierFlag: "No",
+        overallFlag: "Can Use",
+        openRequest: "Open Request (0365)",
+        requestGUID: "a13f7e24-8fd3-4ac9-91c4-0b423c1be562"
+    },
+    {
+        uarn: "20993333",
+        address: "4 Greenfield Road, Bangor, LL57 2BN",
+        postCode: "LL57 2BN",
+        transactionDate: "28/09/2022",
+        salePrice: "£175,500",
+        outlierFlag: "Yes",
+        overallFlag: "Investigate",
+        openRequest: "",
+        requestGUID: ""
+    },
+    {
+        uarn: "18532044",
+        address: "19 Seaview Terrace, Aberystwyth, SY23 1DE",
+        postCode: "SY23 1DE",
+        transactionDate: "12/11/2019",
+        salePrice: "£320,000",
+        outlierFlag: "No",
+        overallFlag: "Can Use",
+        openRequest: "PAD Update Requested",
+        requestGUID: "bd18a08f-61d1-4035-a847-57f7814e73a2"
+    },
+    {
+        uarn: "19342187",
+        address: "22 Oak Drive, Wrexham, LL13 0DA",
+        postCode: "LL13 0DA",
+        transactionDate: "15/06/2023",
+        salePrice: "£270,000",
+        outlierFlag: "Yes",
+        overallFlag: "Exclude",
+        openRequest: "",
+        requestGUID: ""
+    },
+    {
+        uarn: "17222009",
+        address: "31 Cambrian Street, Rhyl, LL18 3AF",
+        postCode: "LL18 3AF",
+        transactionDate: "03/02/2022",
+        salePrice: "£180,000",
+        outlierFlag: "No",
+        overallFlag: "Can Use",
+        openRequest: "Open Request (0365)",
+        requestGUID: "2d905c2e-5bb7-4a91-8d1b-d2b23e8f8f3c"
+    },
+    {
+        uarn: "16211013",
+        address: "6 Market Square, Newtown, SY16 2BQ",
+        postCode: "SY16 2BQ",
+        transactionDate: "29/07/2020",
+        salePrice: "£310,000",
+        outlierFlag: "Yes",
+        overallFlag: "Investigate – Boundary Issue",
+        openRequest: "Boundary Review Triggered",
+        requestGUID: "9e2d4712-4e1a-4558-b7fc-cb801ec9e661"
+    },
+    {
+        uarn: "19988421",
+        address: "45 Riverbank Walk, Cardiff, CF10 5FB",
+        postCode: "CF10 5FB",
+        transactionDate: "10/01/2021",
+        salePrice: "£540,000",
+        outlierFlag: "No",
+        overallFlag: "Can Use",
+        openRequest: "",
+        requestGUID: ""
+    },
+    {
+        uarn: "18876500",
+        address: "1 Castle Lane, Swansea, SA1 3FG",
+        postCode: "SA1 3FG",
+        transactionDate: "18/04/2023",
+        salePrice: "£225,000",
+        outlierFlag: "Yes",
+        overallFlag: "Investigate",
+        openRequest: "Revaluation Trigger",
+        requestGUID: "c0841c0e-15c6-4d3c-9338-90c199b9ed00"
+    }
+);
+ClearCollect(colSVTMasterData,
+    {
+        uarn: "18741001",
+        address: "1 Bruno Avenue, MT84 2VY",
+        billingAuthority: "Cardiff",
+        coordinateStatus: "Centroid",
+        composite: false,
+        bandRefDate: "01/04/2025",
+        bandingId: "BR001",
+        band: "C",
+        salePrice: "£395,000",
+        transactionDate: "17/08/2022",
+        latestModelPrice: "£380,000",
+        latestAdjustedPrice: "£375,000",
+        overallFlag: "Investigate",
+        ratio: "1.05",
+        outlier: true,
+        flags: ["A1", "A5", "B2"],
+        previousRatio: "1.00",
+        laterRatio: "1.12",
+        usefulSale: "Yes",
+        whyNotUseful: "",
+        notes: "Needs kitchen age update",
+        kitchenAge: "2015",
+        kitchenSpec: "Modern",
+        bathroomAge: "2014",
+        bathroomSpec: "Basic",
+        glazing: "Double",
+        heating: "Gas",
+        decorativeFinishes: "Standard",
+        conditionScore: 82,
+        conditionCategory: "B",
+        sdltPrice: "£395,000",
+        sdltDate: "17/08/2022",
+        vendor: "Vendor A",
+        vendee: "Buyer A",
+        vendorAgent: "Agent A",
+        vendeeAgent: "Agent B",
+        tenureType: "Freehold",
+        lrAddress: "1 Bruno Avenue",
+        lrPrice: "£390,000",
+        lrDate: "20/08/2022",
+        propertyType: "Terraced",
+        pricePaidCategory: "A",
+        oldNew: "N"
+    },
+    {
+        uarn: "10741001",
+        address: "2 Bruno Avenue, MT84 2VY",
+        billingAuthority: "Swansea",
+        coordinateStatus: "Coordinate",
+        composite: true,
+        bandRefDate: "01/04/2025",
+        bandingId: "BR002",
+        band: "B",
+        salePrice: "£150,000",
+        transactionDate: "21/05/2021",
+        latestModelPrice: "£145,000",
+        latestAdjustedPrice: "£140,000",
+        overallFlag: "Use",
+        ratio: "1.07",
+        outlier: false,
+        flags: ["A2"],
+        previousRatio: "1.01",
+        laterRatio: "1.09",
+        usefulSale: "No",
+        whyNotUseful: "Unusual tenure",
+        notes: "Unverified vendor",
+        kitchenAge: "2009",
+        kitchenSpec: "Standard",
+        bathroomAge: "2010",
+        bathroomSpec: "Modern",
+        glazing: "Single",
+        heating: "Electric",
+        decorativeFinishes: "Below average",
+        conditionScore: 70,
+        conditionCategory: "C",
+        sdltPrice: "£150,000",
+        sdltDate: "21/05/2021",
+        vendor: "Vendor X",
+        vendee: "Buyer Y",
+        vendorAgent: "Agent X",
+        vendeeAgent: "Agent Y",
+        tenureType: "Leasehold",
+        lrAddress: "2 Bruno Avenue",
+        lrPrice: "£148,000",
+        lrDate: "23/05/2021",
+        propertyType: "Flat",
+        pricePaidCategory: "B",
+        oldNew: "O"
+    }
+);
 
-    -- User details
-    pfm.createdbyname                    AS UploadedBy,
-    pfm.voap_loggedinuser                AS LoggedInUser,
 
-    -- Council details
-    pfm.voap_relatedbillingauthorityname AS CouncilName,
-    pfm.voap_bacode                      AS BACode,
-    pfm.voap_accountname                 AS AccountName,
 
-    -- Portal Request summary
-    pr.voap_portalrequestid              AS PortalRequestId,
-    pr.voap_name                         AS PortalRequestName,
-    pr.statuscodename                   AS PortalRequestStatus,
-    pr.createdon                        AS RequestCreatedOn
-
-FROM dbo.voap_portalfilemanagement pfm
-
--- Join with portal request to see request-level info
-LEFT JOIN dbo.voap_portalrequest pr
-    ON pr.voap_portalrequestid = pfm.voap_portalrequestlookup
-
-WHERE pfm.statuscodename = 'Processing'
-
-ORDER BY pfm.createdon DESC;
+Set(varSVTRecord, LookUp(colSVTMasterData, uarn = varSelectedUARN))
