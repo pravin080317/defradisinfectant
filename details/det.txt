@@ -1,59 +1,250 @@
-    Table({
-        ColName: "uarn",
-        ColDisplayName: "UARN",
-        ColWidth: 150,
-        ColSortable: true,
-        ColIsBold: true,
-        ColResizable: true,
-        ColCellType: "link"
-    },
-    {
-        ColName: "address",
-        ColDisplayName: "Address",
-        ColWidth: 400,
-        ColSortable: false,
-        ColResizable: true
-    },
-    {
-        ColName: "postCode",
-        ColDisplayName: "Post Code",
-        ColWidth: 120,
-        ColSortable: true,
-        ColResizable: true
-    },
-    {
-        ColName: "transactionDate",
-        ColDisplayName: "Transaction Date",
-        ColWidth: 120,
-        ColSortable: true,
-        ColResizable: true
-    },
-    {
-        ColName: "salePrice",
-        ColDisplayName: "Sale Price",
-        ColWidth: 120,
-        ColSortable: false,
-        ColResizable: true
-    },
-    {
-        ColName: "outlierFlag",
-        ColDisplayName: "Outlier Flag",
-        ColWidth: 100,
-        ColSortable: false,
-        ColResizable: true
-    },
-    {
-        ColName: "overallFlag",
-        ColDisplayName: "Overall Flag",
-        ColWidth: 150,
-        ColSortable: false,
-        ColResizable: true
-    },
-    {
-        ColName: "openRequest",
-        ColDisplayName: "Request (D365)",
-        ColWidth: 200,
-        ColSortable: false,
-        ColResizable: true,
-        ColCellType: "link"
-    })
+- DataCard1:
+    Control: DataCard@1.0.2
+    Variant: BlankCard
+    Properties:
+      Height: =433
+      Width: =1366
+      X: =0
+      Y: =0
+    Children:
+      - Cont_HereditamentInfo:
+          Control: GroupContainer@1.3.0
+          Variant: ManualLayout
+          Properties:
+            Height: =354
+            Width: =405
+            X: =27
+            Y: =54
+          Children:
+            - Value_Composite_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  Text: =varSVTRecord.composite
+                  Width: =123
+                  X: =144
+                  Y: =245
+            - Label_Composite_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Text: ="Composite"
+                  Width: =123
+                  X: =5
+                  Y: =245
+            - Value_CoordStatus_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  Text: =varSVTRecord.coordinateStatus
+                  Width: =218
+                  X: =144
+                  Y: =192
+            - Label_CoordStatus_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Height: =56
+                  Text: ="Coordinate Status"
+                  Width: =124
+                  X: =5
+                  Y: =189
+            - Value_BillingAuthority_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  Text: = varSVTRecord.billingAuthority
+                  Width: =181
+                  X: =144
+                  Y: =145
+            - Label_BillingAuthority_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Text: ="Billing Authority"
+                  Width: =123
+                  X: =6
+                  Y: =145
+            - Value_Address_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  Height: =71
+                  Text: =varSVTRecord.address
+                  Width: =215
+                  X: =145
+                  Y: =74
+            - Label_Address_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Height: =40
+                  Text: ="Address"
+                  Width: =353
+                  X: =7
+                  Y: =74
+            - Label_HereditamentHeader_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  DisplayMode: =DisplayMode.Disabled
+                  FontSize: =20
+                  FontWeight: =FontWeight.Bold
+                  Height: =43
+                  Text: ="Hereditament Info:"
+                  TextRole: ='Label.TextRole'.Heading1
+                  Width: =286
+                  X: =5
+                  Y: =15
+      - Cont_Banding:
+          Control: GroupContainer@1.3.0
+          Variant: ManualLayout
+          Properties:
+            Height: =354
+            Width: =287
+            X: =466
+            Y: =54
+          Children:
+            - Value_Band_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  Height: =44
+                  Text: =varSVTRecord.band
+                  Width: =127
+                  X: =160
+                  Y: =189
+            - Label_Band_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Height: =56
+                  Text: ="Band"
+                  Width: =124
+                  X: =5
+                  Y: =189
+            - Value_BandingID_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  Height: =31
+                  Text: = varSVTRecord.bandingId
+                  Width: =115
+                  X: =160
+                  Y: =145
+            - Label_BandingID_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Text: ="Banding ID"
+                  Width: =123
+                  X: =6
+                  Y: =145
+            - Label_BandingReferenceDate_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Height: =71
+                  Text: ="Banding Reference Date"
+                  Width: =138
+                  X: =7
+                  Y: =74
+            - Value_BandingReferenceDate_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  Height: =45
+                  Text: =varSVTRecord.bandRefDate
+                  Width: =115
+                  X: =160
+                  Y: =87
+            - Label_BandingHeader_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  DisplayMode: =DisplayMode.Disabled
+                  FontSize: =20
+                  FontWeight: =FontWeight.Bold
+                  Height: =43
+                  Text: ="Banding:"
+                  TextRole: ='Label.TextRole'.Heading1
+                  Width: =286
+                  X: =1
+                  Y: =16
+      - Cont_SalesVerification_1:
+          Control: GroupContainer@1.3.0
+          Variant: ManualLayout
+          Properties:
+            Height: =354
+            Width: =571
+            X: =779
+            Y: =54
+          Children:
+            - Value_TextInput_AdditionalNotes_1:
+                Control: TextInput@0.0.54
+                Properties:
+                  Appearance: ='TextInputCanvas.Appearance'.Outline
+                  Height: =126
+                  Mode: ='TextInputCanvas.Mode'.Multiline
+                  Width: =370
+                  X: =173
+                  Y: =213
+            - Label_AdditionalNotes_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Height: =74
+                  Text: ="Additional Notes"
+                  Width: =140
+                  X: =5
+                  Y: =189
+            - Value_Dropdown_WhyNotUseful_1:
+                Control: DropDown@0.0.45
+                Properties:
+                  Appearance: ='DropdownCanvas.Appearance'.Outline
+                  X: =173
+                  Y: =151
+            - Label_WhyNotUseful_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Text: ="Why not useful:"
+                  Width: =123
+                  X: =6
+                  Y: =145
+            - Value_Dropdown_UsefulSale_1:
+                Control: DropDown@0.0.45
+                Properties:
+                  Appearance: ='DropdownCanvas.Appearance'.Outline
+                  Items: =["Yes", "No"]
+                  X: =173
+                  Y: =93
+            - Label_UsefulSale_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  FontSize: =14
+                  FontWeight: =FontWeight.Bold
+                  Height: =71
+                  Text: ="Useful Sale:"
+                  Width: =138
+                  X: =7
+                  Y: =74
+            - Label_SalesVerificationHeader_1:
+                Control: FluentV8/Label@1.8.6
+                Properties:
+                  DisplayMode: =DisplayMode.Disabled
+                  FontSize: =20
+                  FontWeight: =FontWeight.Bold
+                  Height: =43
+                  Text: ="Sales Verification:"
+                  TextRole: ='Label.TextRole'.Heading1
+                  Width: =286
+                  X: =1
+                  Y: =16
