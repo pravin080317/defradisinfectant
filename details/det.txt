@@ -1,201 +1,117 @@
- These are the backend services your app will call via API Mgmt (DAP2/VaaS/VOS/PGSQL-backed services).
+Perfect 👍 — let’s put it into a clear table format.
+Each Epic is a header, then the Features underneath with API, Method, Purpose, and Data store (read/write).
 
 
 ---
 
-1) PAD & Property (backed by PostgreSQL “PAD backbone”)
-
-API	Method	Purpose (where used)	Key fields
-
-/pads/{uarn}	GET	Read current PAD snapshot for banding, enquiries, DLM.	uarn
-/pads/{uarn}	PUT	Update PAD after BAU, CR-10, or Draft List enquiry.	uarn, PAD attributes, effectiveDate, source
-/pads/{uarn}/history	GET	Timeline for SBL/QA and compiled-list cutover checks.	uarn, date filters
-/properties/{uarn}	GET	Property header (status, list membership, on-hold flags).	uarn
-/properties/{uarn}/flags	PATCH	Set flags like “deleted but used in evidence”.	uarn, flags[]
-
-
-Notes: PAD is the shared backbone for 2005 & 2028; all banding services should reference it.
+📑 API Mapping per Epic & Feature
 
 
 ---
 
-2) Lists & Assessments (2005 & 2028 records)
+Epic: Material Increase Cases (CR-10 / CR-18)
 
-API	Method	Purpose (DLM writes/reads)	Key fields
+Feature	API Endpoint	Method	Purpose	Data Store
 
-/lists	GET	Discover list IDs/states (2005 live, 2028 draft/live).	query by country,year,state
-/lists/{listId}/assessments/{uarn}	GET	Read assessment (band, state, reasons).	listId, uarn
-/lists/{listId}/assessments:upsert	POST	Idempotent write of band & metadata (used by DLM forward/backward, compiled list).	listId,uarn,band,valuationDate,source,rationale
-/lists/sync/check	POST	Pre-cut-off reconciliation (diffs between 2005 & 2028).	array of uarn, filters
-/lists/compiled/commit	POST	Flip 2028 Draft → Compiled (freeze window; validations).	effectiveDate, guard flags
+Enhance CR-10 Process	/pads/{uarn}	PUT	Update PAD (2005 PGSQL) before CR-10 hold; include new attributes	PostgreSQL (PAD SoR)
+	/dlm/supplementary-jobs	POST	Create Forward DLM job for 2028 band review	Dataverse Jobs
+	/vaas/assessments:upsert	POST	Write 2028 band result (PAD snapshot + band)	VaaS SQL
+Existing CR-10 exercised	/pads?status=pending&list=2005	GET	Fetch all pending CR-10 PADs	PostgreSQL
+	/pads/{uarn}/commit	PUT	Commit PAD changes manually	PostgreSQL
+End-date inactive CR-10s	/cr10/{id}/enddate	PUT	Close inactive Welsh CR-10s on go-live	Dataverse Jobs
 
 
 
 ---
 
-3) VaaS / AVM (schemes, margins, band suggestion)
+Epic: Valuation Phase DLM
 
-API	Method	Purpose (valuation tools)	Key fields
+Feature	API Endpoint	Method	Purpose	Data Store
 
-/avm/band-suggestion	POST	Get 2028 band from schemes/AVM for a PAD snapshot.	uarn, embedded PAD, schemeId?, valuationDate
-/schemes	GET	Find candidate schemes by geography/type/age.	filters: laCode,propertyType,ageCode
-/schemes/{schemeId}	GET	Scheme metadata for UI.	schemeId
-/schemes/{schemeId}/margins	GET	Get acceptable range (band margins) for a scheme.	schemeId
-/schemes/{schemeId}/margins	PUT	Update margins after caseworker review (SBL/exception).	schemeId, margins payload, changeNote
-/schemes/allocate	POST	Auto-allocate best-fit scheme for property (after PAD change).	uarn, PAD features
-
-
-
----
-
-4) Batches (Draft valuation phase controls)
-
-API	Method	Purpose	Key fields
-
-/batches	GET	List batches with attributes (e.g., “detached houses in Cardiff”).	filters: laCode,status
-/batches/allocate	POST	Allocate/move property to correct batch after PAD change.	uarn, PAD features, rules version
-/batches/{batchId}/range-check	POST	Check property against batch acceptable range.	batchId, uarn
-/batches/{batchId}/split	POST	Split batch based on rule set (size/type/geography).	batchId, split rules
+PAD / Address / Hereditament Changes	/pads/{uarn}	PUT	Weekly PAD updates (trigger AVM rerun)	PostgreSQL
+	/valuation/avm/run	POST	Run AVM model with updated PAD	VaaS SQL (AVM)
+Property Batch Link Update	/properties/{uarn}/batch	PUT	Update property’s batch linkage	PostgreSQL + Dataverse
+Acceptable Range for Batch	/batches/{id}/range-check	POST	Check property against batch margin	VaaS SQL (schemes/margins)
+Split Batches	/batches/{id}/split	POST	Split batch by attributes	Dataverse + PostgreSQL
+SBL Impact	/sbl/anomalies	POST	Push anomalies (out-of-range, mis-batch)	Dataverse + SBL
 
 
 
 ---
 
-5) DLM Engine (supplementary jobs logic — no Dataverse calls here)
+Epic: Creating the Draft List
 
-API	Method	Purpose	Key fields
+Feature	API Endpoint	Method	Purpose	Data Store
 
-/dlm/eligibility/check	POST	Decide if change triggers Forward or Backward DLM, based on effective dates/DOLU/legislation.	uarn, change type, dates
-/dlm/supplementary-jobs	POST	Create a DLM Forward / Backward instruction for downstream processors.	uarn, direction, reason, primaryListId,secondaryListId
-/dlm/locks	POST	Place “main job cannot close while DLM open” guard (system-side).	uarn, TTL
-/dlm/reconcile	POST	Periodic check that both lists are aligned for touched properties.	array uarn, or rule window
-
-
-
----
-
-6) Sales Evidence / SVT Interface (read-only to valuation)
-
-API	Method	Purpose	Key fields
-
-/svt/sales	GET	Query verified sales for AVM (filters, comps pack).	laCode,dateRange,propertyType
-/svt/sales/{id}	GET	Single sale detail with verification flags.	id
-
-
-(SVT remains the authority for “verified” status; valuation & DLM only read.)
-
-
----
-
-7) Draft List Enquiries (customer-facing → internal hooks)
-
-API	Method	Purpose	Key fields
-
-/enquiries/draft	POST	Create Draft List enquiry (from portal/CSC).	customer refs, uarn, topic
-/enquiries/draft/{id}	PATCH	Update outcome → PAD change confirmed/declined.	outcome, notes
-/enquiries/draft/{id}/pad-update	POST	Atomic PAD update + raise 2028 band review flow.	id, PAD delta, effectiveDate
+Sync 2005 & 2028 Lists	/pads/syncTo2028	POST	Copy PAD updates from 2005 → 2028	PostgreSQL → VaaS SQL
+Migration into VOS	/draftList/migrate	POST	Bulk push 2028 assessments into VOS	VaaS SQL
+View Draft List Bands (internal)	/bands/{uarn}?list=2028&state=draft	GET	Caseworker views 2028 draft band	VaaS SQL
+Draft List Bands on Portal	/public/bands/{uarn}	GET	Show 2005 + 2028 draft bands	VaaS SQL (synced)
+BA Draft List Schedules	/ba/schedules/draft	POST	Send draft list to BAs	VaaS SQL
 
 
 
 ---
 
-8) Compiled List Go-Live / Cut-over ops
+Epic: Draft List Phase DLM
 
-API	Method	Purpose	Key fields
+Feature	API Endpoint	Method	Purpose	Data Store
 
-/compiled/close-draft-enquiries	POST	Stop accepting new DLEs (portal toggle propagated).	effectiveDate
-/compiled/pads/commit	POST	Convert Pending PADs → Committed (Welsh scope) on 01-Apr-2028.	scope, effectiveDate, dry-run flag
-/compiled/cr10/end-date	POST	Bulk end-date inactive Welsh CR-10s (WRT-117) with audit.	selection rules, effectiveDate
-/compiled/publish	POST	Publish 2028 Live List (state flip + integrity checks).	effectiveDate, checklist ids
-
-
-
----
-
-9) Billing Authority Schedules & Front-End Sync
-
-API	Method	Purpose	Key fields
-
-/ba/schedules/draft	POST	Send Draft List export (full or delta).	format, scope, fullOrDelta
-/ba/schedules/live	POST	Send Live List export (BAU cadence).	format, scope
-/public/bands/{uarn}	GET	Portal read: show 2005 & 2028 (draft/live) bands.	uarn
-/public/toggles	GET	Portal feature flags (accept DLE? show 2028 live?).	none
+Band Review Supplementary Job	/dlm/supplementary-jobs	POST	Create new 2028 band review job	Dataverse
+	/valuation/avm/getBand	POST	Get band from scheme	VaaS SQL
+Property Scheme Link Update	/properties/{uarn}/scheme	PUT	Update scheme allocation	VaaS SQL
+Acceptable Range for Scheme	/schemes/{id}/margins	GET	Read acceptable band margins	VaaS SQL
+	/schemes/{id}/margins	PUT	Update margins after review	VaaS SQL
+Update Band Margin for Scheme	/schemes/{id}/band-update	POST	Re-calculate band after margin change	VaaS SQL
 
 
 
 ---
 
-10) SBL / QA hooks (surface DLM anomalies)
+Epic: Creating the Compiled List
 
-API	Method	Purpose	Key fields
+Feature	API Endpoint	Method	Purpose	Data Store
 
-/sbl/anomalies	POST	Push anomalies (out-of-range, mis-scheme, mis-batch) for review.	uarn, anomaly type, context
-/sbl/anomalies/search	POST	Retrieve anomalies for dashboards.	filters (type, date, team)
-
-
-
----
-
-11) Migration utilities (once-off ops for Draft → VOS)
-
-API	Method	Purpose	Key fields
-
-/migration/draft/export	POST	Extract 2028 Draft assessments (staged CSV/Parquet).	slice, watermark
-/migration/draft/import	POST	Load into VOS PostgreSQL (bulk).	manifest, checksum
-/migration/health	GET	Counts, diffs, orphan checks pre-sign-off.	scope
+Stop Accepting DL Enquiries	/enquiries/draft/lock	PUT	Lock new DL enquiries after cut-off	Dataverse + Portal
+Bulk Close DL Enquiries	/enquiries/closeBulk	POST	Close all draft list enquiries with outcome	Dataverse
+Commit Pending PADs	/compiled/pads/commit	POST	Convert pending PADs → committed	PostgreSQL + VaaS SQL
+End-date inactive CR-10s	/compiled/cr10/end-date	POST	End-date open CR-10s at go-live	Dataverse
+Publish 2028 Live List	/compiled/publish	POST	Finalise 2028 Draft → Live	VaaS SQL
+Frontend Live List Band	/public/bands/{uarn}	GET	Customer views 2028 live band	VaaS SQL
+BA Live List Schedules	/ba/schedules/live	POST	Push 2028 live list to Billing Authorities	VaaS SQL
 
 
 
 ---
 
-Minimal payload sketches (illustrative)
+Epic: Live List Maintenance
 
-Band suggestion
+Feature	API Endpoint	Method	Purpose	Data Store
 
-POST /avm/band-suggestion
-{
-  "uarn": "100012345678",
-  "valuationDate": "2028-01-15",
-  "pad": { "propType":"DET", "beds":3, "ageCode":"B", "floorArea":112.4, "laCode":"W06000015" },
-  "schemeId": "SCH-Cardiff-DET-02"
-}
+Data Changes as BAU	/pads/{uarn}	PUT	Update PADs in live state	PostgreSQL
+	/dlm/supplementary-jobs	POST	Trigger backward/forward DLM based on date	Dataverse
+Material Increase Cases Post-2028	/pads/{uarn}	PUT	PAD update for material increase	PostgreSQL
+	/valuation/avm/getBand	POST	Run banding scheme again	VaaS SQL
+Using Banding Scheme	/schemes/allocate	POST	Allocate property to scheme	VaaS SQL
+Dashboard / BI	/dlm/jobs?status=open	GET	Show open DLM cases for MI dashboards	Dataverse + VaaS SQL
 
-Assessment upsert
-
-POST /lists/2028/assessments:upsert
-{
-  "uarn": "100012345678",
-  "band": "E",
-  "valuationDate": "2028-01-15",
-  "source": "DLM_FORWARD",
-  "rationale": "AVM within margins; PAD v2028.01.15"
-}
-
-DLM eligibility
-
-POST /dlm/eligibility/check
-{
-  "uarn":"100012345678",
-  "changeType":"PAD_UPDATE",
-  "effectiveDate":"2028-02-01",
-  "dolu":"2027-11-12"
-}
 
 
 ---
 
-Implementation notes (quick)
+✅ This table shows for each feature:
 
-Idempotency: make all writes idempotent (assessments:upsert, PAD PUT, compiled actions with run tokens).
+API endpoint
 
-Auth: API Mgmt with OAuth2/JWT; include correlationId for cross-system tracing.
+Method
 
-Versioning: prefix (/v1/...) to isolate revaluation changes.
+Purpose
 
-Audit: every mutating endpoint should persist performedBy, sourceSystem, changeNote.
-
-No Dynamics API here: model-driven app calls these via plugins/flows; keep Dynamics concerns separate.
+Where it reads/writes data
 
 
 
+---
+
+Would you like me to highlight which of these are completely new APIs vs. which are enhancements to DAL (existing PAD APIs) so you can present the deltas cleanly to architects?
 
