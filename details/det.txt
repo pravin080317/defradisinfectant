@@ -1,66 +1,93 @@
-"<div style='
-    font-family: ""Segoe UI"", sans-serif;
-    font-size: 13px;
-    color: #333;
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background-color: white;
-    width:" & Self.Width - 50 & "px;
-'>
+Absolutely—here’s an architect-level explanation of the **“SharePoint library is open to internal users only, via Canvas App”** scenario, written from the perspective of a SharePoint & Power Apps Solution Architect, using appropriate HMRC/VOA/DAP2 language:
 
-    <h3 style='margin-top: 0;'>Property Attributes:</h3>
+---
 
-    <table style='width: 100%; border-collapse: collapse;'>
-        <thead>
-            <tr style='border-bottom: 1px solid #ddd;'>
-                <th style='text-align: left; padding: 6px;'>✓</th>
-                <th style='text-align: left; padding: 6px;'>Effective Date</th>
-                <th style='text-align: left; padding: 6px;'>Effective To</th>
-                <th style='text-align: left; padding: 6px;'>Status</th>
-                <th style='text-align: left; padding: 6px;'>Attributes</th>
-                <th style='text-align: left; padding: 6px;'>Value Significant Codes</th>
-                <th style='text-align: left; padding: 6px;'>Source Codes</th>
-                <th style='text-align: left; padding: 6px;'>Geo Plot Size</th>
-                <th style='text-align: left; padding: 6px;'>Geo OS Area</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td style='padding: 6px;'>✔</td>
-                <td style='padding: 6px;'>18/03/2025</td>
-                <td style='padding: 6px;'>&nbsp;</td>
-                <td style='padding: 6px;'>
-                    <span style='
-                        background-color: #00897B;
-                        color: white;
-                        padding: 4px 8px;
-                        border-radius: 20px;
-                        font-size: 12px;'>Committed</span>
-                </td>
-                <td style='padding: 6px;'>
-                    <span style='background-color:#90CAF9;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>32</span>
-                    <span style='background-color:#FFB300;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>HD</span>
-                    <span style='background-color:#E53935;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>2025</span>
-                    <span style='background-color:#5E35B1;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>152</span>
-                    <span style='background-color:#8E24AA;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>Yes</span>
-                    <span style='background-color:#8E24AA;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>5</span>
-                    <span style='background-color:#8E24AA;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>4</span>
-                    <span style='background-color:#8E24AA;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>2</span>
-                    <span style='background-color:#8E24AA;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>2</span>
-                    <span style='background-color:#3949AB;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>G1</span>
-                    <span style='background-color:#D81B60;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>V</span>
-                    <span style='background-color:#546E7A;color:white;padding:4px 8px;border-radius:20px;margin-right:4px;'>N</span>
-                </td>
-                <td style='padding: 6px;'>
-                    <span style='background-color:#B0BEC5;color:white;padding:4px 8px;border-radius:20px;'>0</span>
-                </td>
-                <td style='padding: 6px;'>
-                    <span style='background-color:#D32F2F;color:white;padding:4px 8px;border-radius:20px;'>D2</span>
-                </td>
-                <td style='padding: 6px;'>235230</td>
-                <td style='padding: 6px;'>&nbsp;</td>
-            </tr>
-        </tbody>
-    </table>
-</div>"
+## **Architect’s Explanation: Use of SharePoint Library (Internal Only) for Public Images via Canvas App**
+
+### **Scenario Overview**
+
+We propose leveraging an existing SharePoint Document Library to host property condition images (e.g., marketing photos from Zoopla, Rightmove, etc.) and integrating this library into the Sales Verification Tool (SVT) Canvas App using the standard SharePoint connector. The app is strictly for internal use by HMRC/VOA users within the tenant.
+
+---
+
+### **Access & Security Model**
+
+* **Access Model:**
+  The SharePoint library is configured with **internal-only access**—i.e., permissions are restricted to authenticated users within the HMRC/VOA Entra ID (AAD) tenant.
+
+  * **No external/guest sharing** is enabled on the site or library.
+  * Users access images via the Canvas App, which authenticates through AAD SSO and inherits user permissions.
+
+* **User Permissions:**
+  Only users with explicit permissions (e.g., SVT Caseworker, Manager, QA) are able to access the app and, by extension, the associated image library. The library is not discoverable or accessible outside these user roles.
+
+* **Data Boundary & Compliance:**
+
+  * All images are either sourced from public marketing channels or have been verified as non-sensitive and copyright-compliant.
+  * No personal data, PII, or restricted information is held in the library.
+  * The SharePoint library, access logs, and app usage are subject to HMRC’s standard audit, retention, and data governance policies.
+
+* **Integration Method:**
+  The Canvas App connects to the SharePoint library using the out-of-the-box SharePoint connector, ensuring all access occurs via authenticated Microsoft Graph APIs and is fully logged within the Microsoft 365 compliance boundary.
+
+---
+
+### **HMRC/DAP2 Best Practice Alignment**
+
+* **RBAC (Role-Based Access Control):**
+  User access to images is enforced at both the app and SharePoint levels, mapped to official HMRC/VOA personas and roles.
+
+* **Data Residency:**
+  All data (including images) is stored and accessed within the HMRC/VOA Microsoft 365 tenant, ensuring compliance with UK data residency and GDS standards.
+
+* **No External Exposure:**
+  There is **zero risk of accidental external/anonymous access**—the SharePoint library and Canvas App do not support public sharing, and all endpoints are protected by AAD authentication and conditional access.
+
+* **Auditability:**
+  All access and modifications are logged via Microsoft 365 audit logs, supporting traceability for data usage and any access reviews.
+
+* **Copyright Compliance:**
+  Usage of images is documented, and, where required, copyright/terms-of-use for Zoopla/Rightmove images are checked and recorded in the solution register.
+
+---
+
+### **Summary Table**
+
+| Aspect              | Approach/Setting                                          |
+| ------------------- | --------------------------------------------------------- |
+| **Access Scope**    | Internal-only (HMRC/VOA users via Entra ID)               |
+| **Connector**       | Power Apps SharePoint Connector (AAD authenticated)       |
+| **Exposure**        | No external/guest/anonymous access                        |
+| **Content Type**    | Public-domain/non-sensitive property images               |
+| **Data Compliance** | HMRC/DAP2, GDS, and M365 standards applied                |
+| **RBAC**            | Aligned to Power App and SharePoint security groups/roles |
+| **Audit Logging**   | Microsoft 365 unified audit logs                          |
+| **Copyright**       | Sources documented, permissions verified as required      |
+
+---
+
+### **Architect’s Statement**
+
+> **“By restricting the SharePoint image library to internal HMRC/VOA users only and integrating it with the Canvas App via the SharePoint connector, we maintain full compliance with HMRC/DAP2 data boundary, security, and audit requirements. No external sharing is permitted, access is role-based and authenticated, and all data usage is logged. This approach leverages supported Microsoft 365 patterns and ensures images are only visible to authorized staff. There is no elevated security risk for using public property images in this model.”**
+
+---
+
+If you need a risk register entry, technical design justification, or a FAQ for submission to the architecture review board, let me know and I’ll draft those for you as well.
+
+
+
+Here's what happens under the hood when a canvas app uses the **out‑of‑the‑box SharePoint connector** and why it’s considered safe from an architectural perspective:
+
+1. **Underlying API (Microsoft Graph)** – SharePoint data isn’t accessed directly by your app; it goes through **Microsoft Graph**, which is Microsoft’s unified API for Microsoft 365 services.  The Graph SharePoint API provides read/write access to sites, lists, list items and document libraries.  Microsoft’s own SharePoint connector documentation states that it “**uses the Microsoft Graph API**”, so the connector is just a wrapper around Graph calls.
+
+2. **Authentication via Microsoft Entra ID (Azure AD)** – When a maker adds the SharePoint connector to a canvas app, Power Apps prompts the user to authenticate with Microsoft Entra ID.  The connector then uses a delegated OAuth token to call Microsoft Graph on the user’s behalf.  Because Graph enforces Microsoft 365 permissions, the user can only retrieve files or list items they already have rights to.
+
+3. **Unified Auditing and Compliance** – All Power Apps and connector activities are logged in the **Microsoft 365 unified audit log**:
+
+   * The SharePoint API calls made through Graph (e.g., reading list items or downloading images) are captured by the **Microsoft Graph Activity Logs** in Azure Monitor, which provide details of API requests made to Microsoft Graph.  Additionally, Microsoft provides a dedicated **PowerPlatformConnectorActivity** table that contains audit logs for connector operations.
+   * Documentation from Microsoft and government security guidance confirms that **Power Apps** and **Power Automate** activities (including connector usage) are “**written to unified audit log**”.  The official Power Apps activity‑logging guidance instructs administrators to use the **Microsoft Purview compliance portal** to search the unified audit log for Power Apps activities.  Likewise, Power Platform connector audit logs can be queried from the Microsoft Purview audit search or ingested into Azure Monitor.
+   * Microsoft announced that beginning in late 2024 all **Power Apps and Power Platform Connector activities** will be logged under a new unified activity type, reinforcing that connector usage is recorded for compliance.
+
+4. **Impact on your canvas app** – When the canvas app retrieves images from a SharePoint library, it does so through the SharePoint connector.  Every call travels through Graph, is authenticated, and is subject to the same RBAC controls as any other Microsoft 365 activity.  Because the images in your scenario come from public real‑estate sites (Zoopla, Rightmove etc.), there is no sensitive personal data being exposed.  The connector cannot access anything outside the user’s permissions, and all accesses are recorded in the unified audit logs for review and retention.
+
+**Summary:** Using the SharePoint connector in a canvas app is not only permitted but recommended.  The connector wraps Microsoft Graph calls to SharePoint sites, lists and libraries, uses the user’s Microsoft Entra identity for authentication, and records all operations in the Microsoft 365 unified audit log.  This ensures your image‑based condition‑scoring app remains within HMRC/DAP2 boundaries, with full traceability and compliance oversight.
