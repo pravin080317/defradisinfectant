@@ -47,3 +47,54 @@ Here’s the enhanced version of the **Core Applications Being Used** table for 
 
 Would you like a **diagram** next (physical or logical architecture), or shall we move on to the **Interfaces/APIs** section?
 
+
+Great. Let’s now draft the **Requirements** section for the SVT (Sales Verification Tool) within the context of the BST platform. This section should reflect both:
+
+* **Functional** needs (e.g., verifying sales, QA, PAD lookups)
+* **Non-functional** needs (e.g., reuse, security, performance, extensibility)
+
+---
+
+### **3.6.2 Requirements**
+
+The SVT solution has been designed based on a prioritised set of **functional**, **technical**, and **non-functional requirements** aligned with the goals of the Council Tax Revaluation Programme and BST’s enterprise architecture.
+
+These requirements have been collaboratively defined with business analysts, product owners, technical leads, and caseworker representatives—framed against existing Council Tax (CT) model-driven capabilities and extended via integration with external sales data sources.
+
+---
+
+#### **3.6.2.1 Functional Requirements**
+
+| **Category**                 | **Description**                                                                                                                                                                                                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sales Verification**       | Allow caseworkers and managers to view property-level sales data retrieved from VaaS via DAP2 APIs. Each sales record should show attributes like price, transaction date, agents, tenure, condition scoring, etc., with specific fields editable (e.g., useful sale, QA status, notes). |
+| **Dashboard Search**         | Ability to search for a sale by UARN, Postcode, or Address. Result grid must show UARN, address, postcode, transaction date, price, flag, and a “View” button to drill into detailed verification.                                                                                       |
+| **Condition Scoring**        | Capture subjective and objective details about kitchen, bathroom, finishes, etc., using dropdowns and image galleries sourced from SharePoint. Automatically calculate condition score and condition category based on selected attributes.                                              |
+| **Promote to Master**        | Enable managers or QAs to promote LR/MILO records to the Sale Summary section. This action triggers backend logic and updates VaaS SQL via API.                                                                                                                                          |
+| **PAD Data Reference**       | Read-only display of PAD attributes (e.g., composite status, coordinate quality) via PCF controls. Users must navigate to CT PAD screen for updates if required.                                                                                                                         |
+| **QA Review Workflow**       | Allow QA users to flag sales as Passed or Failed with mandatory notes. If Failed, the task must be reassigned to the original caseworker.                                                                                                                                                |
+| **Audit & Traceability**     | All actions including Promote to Master, QA status changes, dropdown selections, and notes should be auditable.                                                                                                                                                                          |
+| **User Role Access**         | Role-based control over editable fields, visibility of QA sections, promote buttons, and view-only components. Reuse of SRS roles (Manager, Caseworker, QA, Read-only).                                                                                                                  |
+| **SharePoint Image Library** | Show static reference images in a non-editable gallery (from SharePoint) linked to dropdowns in condition scoring. No upload or delete actions allowed for end users.                                                                                                                    |
+
+---
+
+#### **3.6.2.2 Non-Functional Requirements**
+
+| **Category**                 | **Description**                                                                                                                                                                                                        |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reusability**              | Leverage existing CT/VOS infrastructure (model-driven app, sitemap, Dataverse entities like Job/Request/Task). Where possible, reuse PAD components, plugins, and PCF.                                                 |
+| **Extensibility**            | New Canvas Pages, Virtual Tables, and APIs must be modular to allow future enhancements (e.g., extended scoring criteria, Welsh valuation workflows, comparative sale history).                                        |
+| **Performance**              | Ensure load times for Dashboard and View pages stay < 2 seconds on average. Use virtual tables optimally—paginated, filtered, and scoped to one sale record at a time to reduce latency.                               |
+| **Security & Compliance**    | All external API calls must pass Azure AD (Entra ID) context, Correlation ID, and use server-to-server (S2S) auth. DLP-compliant connector usage. No unapproved direct data writes to PostgreSQL or SQL from frontend. |
+| **Data Residency**           | All services and data must be hosted in **UK South** region.                                                                                                                                                           |
+| **Audit & Traceability**     | All user interactions (e.g., promote action, QA outcome) to be logged for audit purposes. Changes to virtual table data must be attributable to a user identity.                                                       |
+| **Role-Based Access**        | Fine-grained control across the UI components based on SRS role mappings. QA section and promote functionality must be hidden/disabled for users without appropriate permissions.                                      |
+| **Offline Support**          | Not required. All interactions are expected to occur within connected environments.                                                                                                                                    |
+| **Deployment & Maintenance** | SVT must be packaged and deployed via BST pipelines. Power Platform ALM (solution export/import) to be used for updates. API endpoints and virtual table changes must be version-controlled and documented.            |
+
+---
+
+Would you like me to continue next with the **Data Model and API Interfaces**, or should we prepare the **Physical & Logical Architecture Diagrams** first?
+
+
