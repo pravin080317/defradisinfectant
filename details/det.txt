@@ -145,3 +145,82 @@ Virtual tables are visible in the model-driven and canvas pages and respect Dyna
 
 This enables caseworkers to work with external data as if it were native to Dynamics, while retaining external data residency and control.
 
+
+
+
+Great — based on your comprehensive notes and request, here is the **enhanced “SharePoint” section** for your **SVT Application Architecture** document, written in the same formal and architect-grade language used throughout the rest of the SDD:
+
+---
+
+### **3.6.4 SharePoint Integration**
+
+#### **3.6.4.1 Purpose & Context**
+
+In the SVT (Sales Verification Tool) solution, SharePoint Online is used as a secure internal file repository to host **non-sensitive, public-domain property images** that support condition scoring and verification decisions. These images—sourced from channels such as **Zoopla**, **Rightmove**, or VOA's internal collections—serve as comparators and visual references for SVT caseworkers and QA users.
+
+This SharePoint integration enables a lightweight, low-cost, and secure approach for document management, **without duplicating storage within Dataverse** or external blob storage. It ensures that image references are always served from **within the HMRC/VOA tenant boundary**, aligning with DAP2 and GDS data governance standards.
+
+---
+
+#### **3.6.4.2 Access & Security Model**
+
+| Aspect                 | Configuration Details                                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Access Scope**       | Internal-only – access restricted to authenticated users within HMRC/VOA Microsoft Entra ID tenant                                    |
+| **Authentication**     | Enforced via Azure AD (OAuth2), leveraging delegated user tokens through Microsoft Graph API                                          |
+| **Connector Used**     | Power Apps **out-of-the-box SharePoint connector**                                                                                    |
+| **Access Method**      | All access occurs through the embedded **Canvas App (custom page)**, not via direct SharePoint UI                                     |
+| **User Roles**         | SVT users with proper permissions (Caseworker, Manager, QA) can view image galleries based on their existing Microsoft 365 access     |
+| **External Access**    | **Explicitly disabled** – no guest/external sharing is permitted at site/library/item level                                           |
+| **File Permissions**   | Managed via SharePoint security groups or manually mapped roles in sync with Power Platform RBAC (SRS)                                |
+| **Data Type Allowed**  | Only public-domain, copyright-verified images – no personal, sensitive, or restricted data allowed                                    |
+| **Consent Handling**   | Each user must authenticate to SharePoint at first access; access tokens are securely managed by Microsoft 365 session infrastructure |
+| **Audit Logging**      | All access to the library is recorded in Microsoft 365 **Unified Audit Log**, including file views/downloads                          |
+| **Copyright Handling** | Image sources are documented, and a review of terms-of-use (Zoopla/Rightmove) is maintained in the internal compliance register       |
+
+---
+
+#### **3.6.4.3 Integration Method**
+
+* The **Canvas App embedded within the SVT model-driven app** uses the SharePoint connector to **fetch files via Microsoft Graph**.
+* Images are displayed in a gallery control bound to a SharePoint document library filtered by metadata (e.g., `RoomType`, `ConditionScore`, etc.).
+* The integration ensures that **every file access is made in the context of the logged-in user**, respecting their AAD/Entra permissions.
+* There is **no impersonation, shared credentials, or static tokens** involved.
+
+---
+
+#### **3.6.4.4 Compliance Justification**
+
+* **All interactions** occur within the **Microsoft 365 boundary** (Dataverse → Canvas App → SharePoint).
+* The use of **Microsoft Graph APIs** ensures secure, token-based communication.
+* The solution adheres to **RBAC principles**, UK data residency laws, and internal governance controls.
+* This SharePoint usage model is **fully compliant** with HMRC, GDS, and DAP2 platform standards for internal applications.
+
+---
+
+#### **3.6.4.5 Frequently Asked Security Clarifications**
+
+| Question                                                                  | Answer                                                                                                                                        |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Does the Canvas App access SharePoint on behalf of the maker/developer?   | **No** – each end-user must authenticate with their own Entra ID (O365 login); access is enforced per-user.                                   |
+| Can users without SharePoint permissions access the files via Power Apps? | **No** – if a user lacks SharePoint permissions, the gallery will fail to load or show blank.                                                 |
+| Are any images or endpoints public-facing or anonymous?                   | **No** – neither the Canvas App nor SharePoint allows unauthenticated access; all access is internal-only and logged.                         |
+| Is usage of Zoopla/Rightmove images compliant?                            | **Yes** – only publicly available, non-sensitive images are used. Copyright checks are handled internally, and no resale/republishing occurs. |
+| Is image viewing activity auditable?                                      | **Yes** – access logs are captured via **Microsoft 365 Unified Audit Log**, searchable via Microsoft Purview or Azure Monitor.                |
+
+---
+
+#### **3.6.4.6 Architect’s Summary**
+
+> “The SVT Canvas App connects to the SharePoint image repository using the standard Microsoft Power Apps SharePoint connector, which delegates access via the Microsoft Graph API and authenticates each user through Azure AD. This ensures that **only authorized HMRC/VOA users** can view comparator images, with full traceability, logging, and adherence to data governance boundaries. There is **no elevated security risk** associated with this model, and it aligns with Microsoft 365 best practices for internal-only usage.”
+
+---
+
+Would you like to now generate:
+
+* A **diagram showing SharePoint connector flow**
+* A **risk register entry**
+* Or a **FAQ for submission to architecture review board**?
+
+Let me know how you'd like to proceed next.
+
