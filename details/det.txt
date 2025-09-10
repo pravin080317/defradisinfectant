@@ -98,3 +98,50 @@ These requirements have been collaboratively defined with business analysts, pro
 Would you like me to continue next with the **Data Model and API Interfaces**, or should we prepare the **Physical & Logical Architecture Diagrams** first?
 
 
+3.6.3 Application Platform – Dynamics 365 Power Platform
+
+The SVT (Sales Verification Tool) is built and hosted within the existing Council Tax (CT) model-driven Dynamics 365 environment, also referred to as VOS. It is a key extension of the BST platform, designed to support internal users (managers, caseworkers, QA) in the verification of property sale data and downstream PAD decision-making.
+
+The SVT solution leverages the Microsoft Power Platform, including Dynamics 365, Dataverse, Canvas Apps (custom pages), Virtual Tables, Power Automate, and PowerApps Component Framework (PCF). It integrates with external data systems such as VaaS SQL Server (for new sales decisions) and existing PostgreSQL PAD database, while complying with BST-wide architectural standards.
+
+3.6.3.1 Dynamics 365 Capabilities
+Capability	Usage in SVT
+Model-Driven App (VOS)	SVT is embedded within the existing Council Tax model-driven app (VOS). It reuses core sitemap areas for case management (Jobs, Requests, PAD) and extends them with new links to SVT dashboard and custom pages.
+Core Dataverse Entities	Reuses existing BST CT entities such as Job, Request, Task, and PAD. These are linked to SVT sales verification screens for navigation, assignment, and audit.
+Security Roles (SRS)	Inherits existing CT user roles (e.g., Caseworker, Manager, QA). Role-based access is enforced to control visibility and editability of dashboard/search screens, QA sections, and promote-to-master actions.
+Plugins	Used for logic that triggers backend interactions such as: auto-creating requests/tasks from SVT, post-validation triggers, and audit event generation. Written in .NET and registered server-side.
+Workflows	Used sparingly. Power Automate is preferred for non-synchronous flows. Workflows may be used for synchronous validation when appropriate (e.g., field checks, auto-setting job status).
+Custom API / Custom Action	Implemented to handle promote-to-master operation, and dynamic updates to VaaS SQL via APIM. These APIs are also used to retrieve PAD or comparable sale data and interact securely with DAL2/DAP2 endpoints.
+PCF Controls	Enhanced DetailsList control is reused for SVT dashboard listings. A modified PADS Viewer control is used to render PAD fields. Gallery components may also be used to show SharePoint-linked images.
+JavaScript / Form Logic	Used selectively for advanced field validation, dynamic field hiding (e.g., showing/hiding MILO toggle, LR fields), or API-triggered refreshes. Form scripting follows platform standards and does not break client-side security model.
+Business Rules	Used for lightweight field-level validation, for example: making QA notes mandatory on Fail, hiding condition notes unless specific dropdowns are selected.
+Business Process Flows	Not used in SVT initially. May be introduced in future if verification workflow across Job/Request entities needs to be explicitly modelled.
+3.6.3.2 Power Platform Extensions
+Component	Purpose in SVT
+Canvas App (Custom Page)	Hosts the SVT Dashboard (search & summary) and SVT View Screen (sales verification). Provides dynamic UX using Power FX, dropdowns, multi-section layout, and SharePoint-based image galleries.
+Power FX Expressions	Used within canvas app controls for logic, filtering, conditional styling, control visibility, and error messages. Enables rapid prototyping and dynamic interaction without complex coding.
+Power Automate	Used for async flows such as audit record logging, notification of QA completion, and pre-validation of external data (non-critical path only).
+SharePoint Integration	SharePoint is used to host a reference image library (~300 public images) for condition scoring (kitchen/bathroom/etc.). The canvas app accesses this via standard SharePoint connector. No direct uploads or editing is permitted.
+Connectors Used	- Dataverse – For all core Job/Task/Request interaction
+- Office 365 Users – For user profile/photo
+- SharePoint – For image galleries
+- HTTP (via Custom API) – For APIM communication to DAP2/DAL2
+3.6.3.3 Data Sources
+Source	Purpose in SVT
+PostgreSQL (PAD)	Used for PAD details of existing hereditaments. Accessed via existing virtual table and PCF viewer logic.
+VaaS SQL Server	Primary store for SVT sales verification decisions. Updates are written back here post-verification.
+Dataverse	Hosts Jobs, Tasks, Requests, security roles, audit logs, and supports integration with CT model-driven app.
+3.6.3.4 Virtual Tables and Data Provider
+
+SVT uses Virtual Tables and a Custom Virtual Entity Data Provider to surface external VaaS SQL data (via DAL2 APIs) within Dynamics.
+
+Tables are defined per logical group (e.g., SaleSummaryVT, SDLTVT, LRPPDVT, QAOutcomeVT).
+
+Read and write operations are supported where applicable (e.g., condition score updates).
+
+All calls use server-to-server auth with OAuth2 + Subscription Key (APIM secured).
+
+Virtual tables are visible in the model-driven and canvas pages and respect Dynamics metadata.
+
+This enables caseworkers to work with external data as if it were native to Dynamics, while retaining external data residency and control.
+
