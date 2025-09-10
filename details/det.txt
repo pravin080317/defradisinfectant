@@ -1,117 +1,28 @@
-Perfect 👍 — let’s put it into a clear table format.
-Each Epic is a header, then the Features underneath with API, Method, Purpose, and Data store (read/write).
-
+Here is the **rewritten and enhanced "Application Architecture" introduction section** tailored specifically for **SVT (Sales Verification Tool)** under the BST Council Tax platform, while reusing and building on your provided text:
 
 ---
 
-📑 API Mapping per Epic & Feature
+### **3.6 Application Architecture (Sales Verification Tool - SVT)**
 
+This section breaks down the architecture and design of the **Sales Verification Tool (SVT)** as part of the BST Council Tax (CT) platform, outlining the IT application components impacted, their associated systems, interfaces, and digital services. It includes all changes delivered by the Development and Test & Release teams, including logical and physical views of the solution, covering custom components, reused infrastructure, and integrations with downstream and upstream systems. The architecture identifies all functional elements, data sources, APIs, and user-facing apps required to deliver the SVT feature set within the Dynamics-based VOS platform.
 
----
+SVT is built to operate **within the existing Council Tax (CT) Dynamics 365 environment (VOS)** and leverages the core BST architecture—comprising **commercial off-the-shelf (COTS) Dynamics 365 products** and an **enterprise data layer** based on **PostgreSQL and SQL Server** for high-volume sales and property data. This architecture is underpinned by a suite of **Azure-based integration services**, including **Azure API Management (APIM)**, SharePoint for asset storage, and Entra ID for user authentication and auditing.
 
-Epic: Material Increase Cases (CR-10 / CR-18)
+The **initial scope** of SVT is to deliver a digital solution that enables internal caseworkers, QA personnel, and team managers to review, validate, score, and promote sales records that influence property valuation and Council Tax banding decisions. SVT fits within the broader “six-box” valuation model and integrates seamlessly with existing BST components, such as PAD, Jobs, and Requests, while introducing new virtual data access to VaaS sales data and enhanced UI for verification workflows.
 
-Feature	API Endpoint	Method	Purpose	Data Store
+Unlike standard Council Tax workflows which originate from customer requests, **SVT begins with external sales data**—fetched from **VaaS SQL via DAL2 APIs exposed through Azure APIM**—and integrates this seamlessly into the Dynamics interface via **Virtual Tables**. Updates from caseworkers (e.g., sale usefulness, condition scoring, QA outcomes) are written back securely to the VaaS database.
 
-Enhance CR-10 Process	/pads/{uarn}	PUT	Update PAD (2005 PGSQL) before CR-10 hold; include new attributes	PostgreSQL (PAD SoR)
-	/dlm/supplementary-jobs	POST	Create Forward DLM job for 2028 band review	Dataverse Jobs
-	/vaas/assessments:upsert	POST	Write 2028 band result (PAD snapshot + band)	VaaS SQL
-Existing CR-10 exercised	/pads?status=pending&list=2005	GET	Fetch all pending CR-10 PADs	PostgreSQL
-	/pads/{uarn}/commit	PUT	Commit PAD changes manually	PostgreSQL
-End-date inactive CR-10s	/cr10/{id}/enddate	PUT	Close inactive Welsh CR-10s on go-live	Dataverse Jobs
+SVT supports a **modular extension** of the VOS model-driven app through a combination of:
 
+* Embedded **Canvas Apps (Custom Pages)**
+* Reusable **Dataverse entities** for process tracking (Jobs, Tasks, Requests)
+* Sharable **security roles and RBAC models**
+* Modern **Power Platform connectors** and **custom APIs**
+* Bespoke UI components using **Power Apps Component Framework (PCF)**
+* Data-rich virtual entities backed by **virtual table data providers**
 
-
----
-
-Epic: Valuation Phase DLM
-
-Feature	API Endpoint	Method	Purpose	Data Store
-
-PAD / Address / Hereditament Changes	/pads/{uarn}	PUT	Weekly PAD updates (trigger AVM rerun)	PostgreSQL
-	/valuation/avm/run	POST	Run AVM model with updated PAD	VaaS SQL (AVM)
-Property Batch Link Update	/properties/{uarn}/batch	PUT	Update property’s batch linkage	PostgreSQL + Dataverse
-Acceptable Range for Batch	/batches/{id}/range-check	POST	Check property against batch margin	VaaS SQL (schemes/margins)
-Split Batches	/batches/{id}/split	POST	Split batch by attributes	Dataverse + PostgreSQL
-SBL Impact	/sbl/anomalies	POST	Push anomalies (out-of-range, mis-batch)	Dataverse + SBL
-
-
+The application design ensures SVT operates **natively within the existing VOS user experience**, without requiring a separate standalone app, aligning with existing licensing and platform patterns.
 
 ---
 
-Epic: Creating the Draft List
-
-Feature	API Endpoint	Method	Purpose	Data Store
-
-Sync 2005 & 2028 Lists	/pads/syncTo2028	POST	Copy PAD updates from 2005 → 2028	PostgreSQL → VaaS SQL
-Migration into VOS	/draftList/migrate	POST	Bulk push 2028 assessments into VOS	VaaS SQL
-View Draft List Bands (internal)	/bands/{uarn}?list=2028&state=draft	GET	Caseworker views 2028 draft band	VaaS SQL
-Draft List Bands on Portal	/public/bands/{uarn}	GET	Show 2005 + 2028 draft bands	VaaS SQL (synced)
-BA Draft List Schedules	/ba/schedules/draft	POST	Send draft list to BAs	VaaS SQL
-
-
-
----
-
-Epic: Draft List Phase DLM
-
-Feature	API Endpoint	Method	Purpose	Data Store
-
-Band Review Supplementary Job	/dlm/supplementary-jobs	POST	Create new 2028 band review job	Dataverse
-	/valuation/avm/getBand	POST	Get band from scheme	VaaS SQL
-Property Scheme Link Update	/properties/{uarn}/scheme	PUT	Update scheme allocation	VaaS SQL
-Acceptable Range for Scheme	/schemes/{id}/margins	GET	Read acceptable band margins	VaaS SQL
-	/schemes/{id}/margins	PUT	Update margins after review	VaaS SQL
-Update Band Margin for Scheme	/schemes/{id}/band-update	POST	Re-calculate band after margin change	VaaS SQL
-
-
-
----
-
-Epic: Creating the Compiled List
-
-Feature	API Endpoint	Method	Purpose	Data Store
-
-Stop Accepting DL Enquiries	/enquiries/draft/lock	PUT	Lock new DL enquiries after cut-off	Dataverse + Portal
-Bulk Close DL Enquiries	/enquiries/closeBulk	POST	Close all draft list enquiries with outcome	Dataverse
-Commit Pending PADs	/compiled/pads/commit	POST	Convert pending PADs → committed	PostgreSQL + VaaS SQL
-End-date inactive CR-10s	/compiled/cr10/end-date	POST	End-date open CR-10s at go-live	Dataverse
-Publish 2028 Live List	/compiled/publish	POST	Finalise 2028 Draft → Live	VaaS SQL
-Frontend Live List Band	/public/bands/{uarn}	GET	Customer views 2028 live band	VaaS SQL
-BA Live List Schedules	/ba/schedules/live	POST	Push 2028 live list to Billing Authorities	VaaS SQL
-
-
-
----
-
-Epic: Live List Maintenance
-
-Feature	API Endpoint	Method	Purpose	Data Store
-
-Data Changes as BAU	/pads/{uarn}	PUT	Update PADs in live state	PostgreSQL
-	/dlm/supplementary-jobs	POST	Trigger backward/forward DLM based on date	Dataverse
-Material Increase Cases Post-2028	/pads/{uarn}	PUT	PAD update for material increase	PostgreSQL
-	/valuation/avm/getBand	POST	Run banding scheme again	VaaS SQL
-Using Banding Scheme	/schemes/allocate	POST	Allocate property to scheme	VaaS SQL
-Dashboard / BI	/dlm/jobs?status=open	GET	Show open DLM cases for MI dashboards	Dataverse + VaaS SQL
-
-
-
----
-
-✅ This table shows for each feature:
-
-API endpoint
-
-Method
-
-Purpose
-
-Where it reads/writes data
-
-
-
----
-
-Would you like me to highlight which of these are completely new APIs vs. which are enhancements to DAL (existing PAD APIs) so you can present the deltas cleanly to architects?
-
+Let me know if you'd like me to continue with the **Logical Application View** or **Physical Component Diagram Description** next.
