@@ -222,5 +222,228 @@ Would you like to now generate:
 * A **risk register entry**
 * Or a **FAQ for submission to architecture review board**?
 
-Let me know how you'd like to proceed next.
+
+
+**3.6.1.9 Business Processes (SVT)**
+
+The **Sales Verification Tool (SVT)** application is embedded within the wider Council Tax (CT) model-driven app environment (referred to as VOS). It has been tailored to deliver a purpose-built verification journey for handling residential property sales, which feed into Council Tax banding valuation workflows.
+
+SVT reuses foundational elements from the BST platform — including task assignments, requests, job structures, and Dynamics-based queues — while introducing a new, **sales-centric verification lifecycle** aligned to dedicated roles: **Manager**, **Caseworker**, and **QA Reviewer**.
+
+SVT workflows ensure auditability, enforce gated progression across roles, and integrate external data from PostgreSQL (PGSQL) and SQL Server (VaaS SQL) through secured APIs.
+
+---
+
+### **A. Persona-Based Interaction Model**
+
+| **Persona**     | **Entry Point**                      | **Primary Actions**                                                                                     | **Output / Next Step**                                     |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Manager**     | “Outstanding Sales” Dashboard        | - Filter/search unallocated sales<br>- Bulk allocate to Caseworkers<br>- Reassign, override, or promote | Tasks assigned to Caseworkers; master record decision path |
+| **Caseworker**  | “My Allocated Sales” / Search Screen | - Verify sales<br>- Complete structured dropdowns<br>- Add notes and promote to master if valid         | Marked Ready for QA or sent to PAD                         |
+| **QA Reviewer** | “Quality Control” Dashboard          | - Filter records<br>- Add outcome (Pass/Fail)<br>- QA notes<br>- Return to Caseworker if needed         | QA Outcome locked; record archived                         |
+
+Each persona interacts through embedded **Canvas App custom pages** filtered by role, powered by Dynamics security roles and permission-bound data views.
+
+---
+
+### **B. Process Stages and Logic**
+
+| **Stage**              | **Description**                                                                                                                                     | **Role(s)**            |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Sales Allocation**   | Manager pulls sales data via DAL2 API (virtual table) and assigns tasks to caseworkers via job/request structures.                                  | Manager                |
+| **Sales Verification** | Caseworker completes all relevant sections: Sales Verification dropdowns, Sale Summary checks, attribute scoring, image review, etc.                | Caseworker             |
+| **Promote to Master**  | Promotes LR or MILO record into Sale Summary, finalizing key sale values; visible only when valid and complete.                                     | Caseworker, Manager    |
+| **QA Review**          | QA Reviewer inspects all sections, adds QA Outcome and notes, optionally returns to Caseworker if insufficient.                                     | QA Reviewer            |
+| **PAD Sync/Update**    | PAD sync status shown. If out of sync or PAD edits are required, user is prompted to **Create/View Request** in CT PAD editor (external deep link). | All Roles (if flagged) |
+
+---
+
+### **C. Record Locking and Audit Rules**
+
+* ❌ **Sales records cannot be modified unless assigned to a user.**
+* 🔒 Once QA is complete, the record becomes read-only unless manually re-opened.
+* 🧾 Every change (dropdown selection, notes, field update, reassignment) is tracked in **Dataverse audit logs**.
+* 🎯 Actions like **Promote to Master**, **Pass QA**, or **Create PAD Request** appear conditionally based on context.
+
+---
+
+### **D. View Screen Breakdown (Canvas Page)**
+
+#### **1. Hereditament & Banding** *(Read-only)*
+
+* Address
+* Billing Authority
+* Coordinate Status
+* Composite
+* Banding Reference Date
+* Banding ID
+* Band (from VOS)
+
+#### **2. Sale Summary** *(Partially read-only)*
+
+* Sale Price
+* Transaction Date
+* Model Price
+* Adjusted Price (can use)
+* Overall Flag
+* Ratio
+* Outlier
+
+#### **3. Sales Verification Section** *(Editable by Caseworker)*
+
+* Useful Sale (Dropdown)
+* Why Not Useful (Dropdown)
+* Additional Notes
+* Kitchen Age / Spec (Dropdown + 📸 Gallery popup)
+* Bathroom Age / Spec (Dropdown + 📸)
+* Decorative Finishes (Dropdown + 📸)
+* Glazing (Dropdown)
+* Heating (Dropdown)
+* Condition Notes
+* Condition Score (Auto-calculated)
+* Condition Category (Auto-calculated)
+
+#### **4. Sale Calculations** *(Read-only)*
+
+* Flags (A1, A4, A5, etc.)
+* Previous Ratio
+* Later Ratio
+
+#### **5. SDLT / WLTT Panel** *(Read-only)*
+
+* Toggle: SDLT ↔ WLTT (multi-record support with arrows)
+* ID
+* Transaction Price / Premium
+* Transaction Date
+* Vendor(s) / Vendee(s)
+* Agent(s)
+* Property Type / Tenure
+* Lease Info (From, Term, Ground Rent)
+
+#### **6. LR PPD / MILO Section** *(Editable: Promote to Master)*
+
+* ID
+* Address
+* Price
+* Transaction Date
+* Property Type / Tenure
+* Old/New
+* Price Paid Category
+* ✅ Promote to Master button appears if record not yet master and valid.
+
+#### **7. PAD Section** *(Read-only with linkout)*
+
+* PAD data fetched from PGSQL or VaaS SQL
+* PAD Sync Status: Shows if PGSQL ↔ VaaS SQL PAD records are in sync
+* 📎 Actions:
+
+  * View PAD Request (if exists)
+  * Create New PAD Request (launches CT PAD editor)
+
+#### **8. QA Section** *(Editable only by QA user)*
+
+* QA Outcome (Dropdown)
+* QA Notes
+
+#### **9. Hyperlinks and Property Metadata** *(Read-only)*
+
+* Links: EPC, Zoopla, GSV, Rightmove, Maps, VMS
+* Property Attributes (visual icons and tags)
+
+---
+
+### **E. Dynamic Controls & UX Features**
+
+| **Control**              | **Behavior**                                                          |
+| ------------------------ | --------------------------------------------------------------------- |
+| “Promote to Master”      | Appears only when required fields are filled and source is LR or MILO |
+| UARN Click               | Navigates to this full View Screen                                    |
+| Gallery Image Popups     | Open via icon click next to Kitchen/Bathroom fields                   |
+| Record Navigation Arrows | Used for SDLT/WLTT and MILO/LR multi-record toggle                    |
+| PAD Sync Badge           | Shows RED if PGSQL ↔ VaaS PAD records are out of sync                 |
+| QA Fields                | Read-only unless QA user                                              |
+| Audit Trail              | Background: all field-level changes are stored in Dynamics audit logs |
+
+---
+
+This completes the **SVT end-to-end process design** for personas, screens, and data sync logic.
+
+Would you like a printable summary, Excel-ready mapping sheet, or developer stories next?
+
+
+
+Excellent — building on the detailed architecture you've already structured for SVT in your SDD, here is the next section, **rewritten for the “Business Process”** heading — following the style, terminology, and granularity of the original CT platform document, but fully tailored for SVT.
+
+---
+
+### **3.6.1.9 Business Processes (SVT)**
+
+The SVT (Sales Verification Tool) application is embedded within the wider Council Tax (CT) model-driven app environment (VOS) and has been configured to deliver a **purpose-built verification process** for handling residential sales used in Council Tax banding valuation workflows. While reusing many foundational capabilities of the BST platform — such as task assignment, request/job linkage, and queue-based routing — SVT introduces a new sales-centric journey aligned to its verification use case.
+
+Business processes are aligned to **repeatable workflows** that are designed to ensure **auditability, gated progression, and role-specific decision logic**, enforcing quality standards for sales selection and verification.
+
+#### **Process-Oriented Application Experience**
+
+SVT users (Manager, Caseworker, and QA Reviewer) interact with the system through **role-specific dashboards and workspaces**. These surfaces are delivered via **Canvas App custom pages**, embedded within the VOS environment, and reflect the specific duties of each persona. For example:
+
+| Persona         | Dashboard Focus                                                                    | View Capabilities                                                                  |
+| --------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Manager**     | Sales awaiting assignment, batch oversight, override decisions, QA failure returns | Full read/write access; ability to reassign, override, and promote sales to master |
+| **Caseworker**  | Assigned sales verification tasks                                                  | Can review and edit specific sales sections (e.g., Sales Verification, LR/MILO)    |
+| **QA Reviewer** | Sales submitted for QA review (post-verification)                                  | Read-only for most fields; editable QA outcome section (pass/fail, notes)          |
+
+Each persona lands on a filtered **My Work dashboard** tied to their security role, surfacing only relevant records and actions. Sales verification cannot proceed unless it is assigned as a job/task in the system, thereby enforcing full audit lineage.
+
+---
+
+#### **SVT Process Flows**
+
+The following structured sub-processes are implemented within SVT, governed by Dynamics 365 workflow building blocks:
+
+| Process Flow            | Description                                                                                                   | Aligned Role(s)     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------- |
+| **Sales Allocation**    | Sales pulled via Virtual Table from DAL2 API. Manager assigns job/task via Dynamics queue or form manually.   | Manager             |
+| **Sales Verification**  | Caseworker completes structured review: attribute flags, condition scores, kitchen/bathroom review, etc.      | Caseworker          |
+| **Promote to Master**   | Data from LR/MILO can be promoted into master sale record within Sale Summary section using button trigger.   | Caseworker, Manager |
+| **QA Review**           | QA Reviewer reviews verified sale, enters outcome (pass/fail), adds QA notes. Can return task to caseworker.  | QA Reviewer         |
+| **PAD Update Link-Out** | Based on verification outcome or outlier flag, user is optionally directed to launch PAD Editor in CT system. | All (if required)   |
+
+---
+
+#### **Application Interactions & Restrictions**
+
+* **Sales records cannot be modified** outside of a transacted process (job/task). This restriction preserves approval stage gates and prevents data tampering.
+* Each business process is linked to a **case record structure** in the model-driven environment — consisting of Requests, Jobs, and Tasks — fully audit-tracked and timestamped.
+* Actions such as “Promote to Master”, “Pass QA”, or “Reassign” are surfaced via buttons only when allowed by the role-specific context.
+* Where appropriate, **deep links to existing BST modules** (e.g., PAD record editor) are included to enable corrections or alignment with valuation models.
+* All verification actions (e.g., drop-down selections, note entries, image reviews) are logged and subject to data retention policies.
+
+---
+
+#### **Application Entry Points**
+
+Each role accesses SVT via **navigation links embedded in the CT model-driven app site map**, grouped logically within a new **“Sales Verification” area**, which contains:
+
+* **Dashboard (Canvas App)** – Role-filtered sales task view with search/filter options
+* **My Work (Model-Driven)** – Native Dynamics work queue for assigned tasks
+* **Sales Record View (Canvas Page)** – Embedded view for structured review of sales attributes, image gallery, and decision sections
+
+All SVT activities are encapsulated within the existing VOS application shell and benefit from standard features such as:
+
+* Advanced Find for virtual and native Dataverse data
+* Recent and pinned records
+* Cross-app switching (e.g., between SVT and CT administration tools)
+
+---
+
+#### **Process Compliance and Auditability**
+
+* **Task Lifecycle**: Tasks follow a defined lifecycle: Assigned → In Progress → Verified → QA Review → Completed/Returned.
+* **Sales State Transitions**: Each state change (e.g., “Promoted”, “QA Failed”) is tracked via plugin logic and Power Automate where required.
+* **User Tracking**: All role-based actions are logged against the Entra ID of the user, surfaced via Office365Users connector and stored as part of the task audit trail.
+* **Data Isolation**: Any write-back to the DAL2 API (e.g., master data promotion, QA flag) is gated via server-side plugin logic to ensure validity and correct user permissions.
+
+---
+
+Would you like to move on to the next section — e.g., **“Data Flows and Entity Relationships”**, or would you prefer to expand this further with process diagrams or screen-to-process mappings?
 
