@@ -1,449 +1,90 @@
-Here is the **rewritten and enhanced "Application Architecture" introduction section** tailored specifically for **SVT (Sales Verification Tool)** under the BST Council Tax platform, while reusing and building on your provided text:
+**SVT Access Control and Security Model: Solution Design Summary**
 
 ---
 
-### **3.6 Application Architecture (Sales Verification Tool - SVT)**
+### 🔐 Core Design Principles
 
-This section breaks down the architecture and design of the **Sales Verification Tool (SVT)** as part of the BST Council Tax (CT) platform, outlining the IT application components impacted, their associated systems, interfaces, and digital services. It includes all changes delivered by the Development and Test & Release teams, including logical and physical views of the solution, covering custom components, reused infrastructure, and integrations with downstream and upstream systems. The architecture identifies all functional elements, data sources, APIs, and user-facing apps required to deliver the SVT feature set within the Dynamics-based VOS platform.
+* SVT is embedded within the existing **CT (Council Tax)** model-driven app and launched via a Canvas App custom page.
+* All access to SVT functionality is governed via:
 
-SVT is built to operate **within the existing Council Tax (CT) Dynamics 365 environment (VOS)** and leverages the core BST architecture—comprising **commercial off-the-shelf (COTS) Dynamics 365 products** and an **enterprise data layer** based on **PostgreSQL and SQL Server** for high-volume sales and property data. This architecture is underpinned by a suite of **Azure-based integration services**, including **Azure API Management (APIM)**, SharePoint for asset storage, and Entra ID for user authentication and auditing.
-
-The **initial scope** of SVT is to deliver a digital solution that enables internal caseworkers, QA personnel, and team managers to review, validate, score, and promote sales records that influence property valuation and Council Tax banding decisions. SVT fits within the broader “six-box” valuation model and integrates seamlessly with existing BST components, such as PAD, Jobs, and Requests, while introducing new virtual data access to VaaS sales data and enhanced UI for verification workflows.
-
-Unlike standard Council Tax workflows which originate from customer requests, **SVT begins with external sales data**—fetched from **VaaS SQL via DAL2 APIs exposed through Azure APIM**—and integrates this seamlessly into the Dynamics interface via **Virtual Tables**. Updates from caseworkers (e.g., sale usefulness, condition scoring, QA outcomes) are written back securely to the VaaS database.
-
-SVT supports a **modular extension** of the VOS model-driven app through a combination of:
-
-* Embedded **Canvas Apps (Custom Pages)**
-* Reusable **Dataverse entities** for process tracking (Jobs, Tasks, Requests)
-* Sharable **security roles and RBAC models**
-* Modern **Power Platform connectors** and **custom APIs**
-* Bespoke UI components using **Power Apps Component Framework (PCF)**
-* Data-rich virtual entities backed by **virtual table data providers**
-
-The application design ensures SVT operates **natively within the existing VOS user experience**, without requiring a separate standalone app, aligning with existing licensing and platform patterns.
+  * **SRS Roles** (for auditability and AD sync)
+  * **Dataverse Security Roles** (for model-driven access/navigation)
+  * **Canvas App Power FX Rules** (for screen visibility and edit control)
+* **All SVT users must be existing CSC users**, ensuring they have base access to the CT app.
 
 ---
 
-Let me know if you'd like me to continue with the **Logical Application View** or **Physical Component Diagram Description** next.
+### 🔄 Role-Based Access Model
 
-
-Here’s the enhanced version of the **Core Applications Being Used** table for SVT, now including **Azure API Management (APIM)**, **VaaS SQL**, and **PostgreSQL (PAD)** alongside Dynamics 365, Power Platform, and SharePoint:
-
----
-
-### **3.6.1 Core Applications Being Used**
-
-| **Application**           | **Description**                                                                                                                                                                                                     | **Usage in SVT**                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Dynamics 365 (VOS)**    | Case Management platform (model-driven app) within the Council Tax domain, used to manage requests, jobs, tasks, and PAD data. Exposes structured business logic, workflows, forms, and security via the Dataverse. | Hosts SVT within the existing CT model-driven app. SVT custom pages (Canvas Apps) and PCF controls are embedded here. Existing entities like Job, Request, and Task are reused. Navigation is integrated into the Council Tax sitemap. RBAC and SRS roles are reused for access control. SVT registers Virtual Tables inside Dynamics to fetch and update external sales records via DAP2 endpoints. |
-| **Power Platform**        | A suite of low-code tools including Canvas Apps, Power Automate, Power FX, PCF, and connectors to integrate external services. Enables agile business logic, UI customization, and workflow orchestration.          | Used extensively for SVT UI (Canvas Apps for dashboard and view), data binding, conditional rendering, and validation. Power Automate is used for background logic (e.g., audit records). PCF controls (e.g., DetailsList, PAD viewer) display structured tabular data. Connectors like Dataverse, SharePoint, and Office 365 Users are embedded to fetch user details, PAD info, or image assets.   |
-| **SharePoint Online**     | Microsoft 365-compliant document and image repository. Supports metadata, versioning, secure file access, and content preview via Microsoft Graph and SharePoint APIs.                                              | Used to host 300+ static comparable images (kitchen, bathroom, finishes) used in SVT for condition scoring. These are linked through dropdowns or gallery viewers in the view screen. Images are not user-uploaded and reside in a secure internal SharePoint library. End-users interact only via embedded image components in the Canvas App—never directly with SharePoint UI.                    |
-| **Azure API Management**  | Secure gateway layer that manages and exposes DAP2/DAL2 APIs used for sales data retrieval and update. Supports rate limiting, authentication (OAuth2.0, subscription key), and logging.                            | Exposes endpoints used by Virtual Table Providers and Custom APIs/Actions inside Dynamics. SVT reads sales verification data and writes back decisions through APIM-managed endpoints. Ensures consistent auth patterns and telemetry. Provides scalable API governance. All sales data flows into Dynamics via APIM, with no direct DB access from Dynamics.                                        |
-| **VaaS SQL Server**       | Structured data store for SVT sales data, holding verified records and outputs from caseworkers. Exposes stored procedures and views used by DAP2 APIs.                                                             | Acts as the **write destination** for sales verification decisions, QA notes, and promote-to-master actions. Data is accessed via stored procedures or API wrappers surfaced through DAL2/DAP2. Does **not** store PAD or legacy property data. Exclusively used for SVT verification pipelines. All updates are channeled through virtual tables or custom APIs within Dynamics via APIM.           |
-| **PostgreSQL (PAD PVDB)** | High-volume transactional database used to store property attribute data (PAD) and linked valuation records across BST CT.                                                                                          | Continues to serve as the **source of truth** for PAD details. PAD data is surfaced via existing virtual tables and PCF controls in Dynamics (e.g., PAD viewer). PAD updates are **not** performed within SVT; instead, users navigate to PAD editing functionality already embedded in CT/VOS. SVT references PAD as part of verification but doesn't own or update PAD data directly.              |
+| Layer                  | Role Type                                    | Purpose & Usage                                                      |
+| ---------------------- | -------------------------------------------- | -------------------------------------------------------------------- |
+| **SRS Role**           | `VO_SVT_USER`, `VO_SVT_QA`, `VO_SVT_MANAGER` | Grants access to corresponding AD groups synced to D365.             |
+| **Azure AD Group**     | Synced from SRS                              | Used by Power Platform for evaluating user role at runtime.          |
+| **D365 Security Role** | `SVT User`, `SVT QA`, `SVT Manager`          | Allows access to CT App + SVT navigation + Dataverse data if needed. |
+| **Base CT Role**       | `CSC_User_<env>`                             | Mandatory base access to the CT app (e.g., `CSC_User_MO`).           |
+| **Canvas App Logic**   | Power FX expressions                         | Controls section visibility/edit access within SVT UI.               |
 
 ---
 
-Would you like a **diagram** next (physical or logical architecture), or shall we move on to the **Interfaces/APIs** section?
+### 📄 User Access Journey
 
+1. **User Setup**:
 
-Great. Let’s now draft the **Requirements** section for the SVT (Sales Verification Tool) within the context of the BST platform. This section should reflect both:
+   * Must already be a `CSC_User_<env>` (CT app base role).
+   * Manager requests **SRS assignment** for one of the SVT roles.
 
-* **Functional** needs (e.g., verifying sales, QA, PAD lookups)
-* **Non-functional** needs (e.g., reuse, security, performance, extensibility)
+2. **SRS Workflow**:
 
----
+   * SRS assigns user to corresponding AD group.
+   * AD group syncs to Power Platform.
 
-### **3.6.2 Requirements**
+3. **Canvas App Enforcement**:
 
-The SVT solution has been designed based on a prioritised set of **functional**, **technical**, and **non-functional requirements** aligned with the goals of the Council Tax Revaluation Programme and BST’s enterprise architecture.
-
-These requirements have been collaboratively defined with business analysts, product owners, technical leads, and caseworker representatives—framed against existing Council Tax (CT) model-driven capabilities and extended via integration with external sales data sources.
-
----
-
-#### **3.6.2.1 Functional Requirements**
-
-| **Category**                 | **Description**                                                                                                                                                                                                                                                                          |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Sales Verification**       | Allow caseworkers and managers to view property-level sales data retrieved from VaaS via DAP2 APIs. Each sales record should show attributes like price, transaction date, agents, tenure, condition scoring, etc., with specific fields editable (e.g., useful sale, QA status, notes). |
-| **Dashboard Search**         | Ability to search for a sale by UARN, Postcode, or Address. Result grid must show UARN, address, postcode, transaction date, price, flag, and a “View” button to drill into detailed verification.                                                                                       |
-| **Condition Scoring**        | Capture subjective and objective details about kitchen, bathroom, finishes, etc., using dropdowns and image galleries sourced from SharePoint. Automatically calculate condition score and condition category based on selected attributes.                                              |
-| **Promote to Master**        | Enable managers or QAs to promote LR/MILO records to the Sale Summary section. This action triggers backend logic and updates VaaS SQL via API.                                                                                                                                          |
-| **PAD Data Reference**       | Read-only display of PAD attributes (e.g., composite status, coordinate quality) via PCF controls. Users must navigate to CT PAD screen for updates if required.                                                                                                                         |
-| **QA Review Workflow**       | Allow QA users to flag sales as Passed or Failed with mandatory notes. If Failed, the task must be reassigned to the original caseworker.                                                                                                                                                |
-| **Audit & Traceability**     | All actions including Promote to Master, QA status changes, dropdown selections, and notes should be auditable.                                                                                                                                                                          |
-| **User Role Access**         | Role-based control over editable fields, visibility of QA sections, promote buttons, and view-only components. Reuse of SRS roles (Manager, Caseworker, QA, Read-only).                                                                                                                  |
-| **SharePoint Image Library** | Show static reference images in a non-editable gallery (from SharePoint) linked to dropdowns in condition scoring. No upload or delete actions allowed for end users.                                                                                                                    |
+   * App checks AD membership or Dataverse team mapping.
+   * Section controls (QA, Sales Verification, Manager actions) are conditionally enabled using Power FX.
 
 ---
 
-#### **3.6.2.2 Non-Functional Requirements**
+### 📊 Technical Integration Points
 
-| **Category**                 | **Description**                                                                                                                                                                                                        |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reusability**              | Leverage existing CT/VOS infrastructure (model-driven app, sitemap, Dataverse entities like Job/Request/Task). Where possible, reuse PAD components, plugins, and PCF.                                                 |
-| **Extensibility**            | New Canvas Pages, Virtual Tables, and APIs must be modular to allow future enhancements (e.g., extended scoring criteria, Welsh valuation workflows, comparative sale history).                                        |
-| **Performance**              | Ensure load times for Dashboard and View pages stay < 2 seconds on average. Use virtual tables optimally—paginated, filtered, and scoped to one sale record at a time to reduce latency.                               |
-| **Security & Compliance**    | All external API calls must pass Azure AD (Entra ID) context, Correlation ID, and use server-to-server (S2S) auth. DLP-compliant connector usage. No unapproved direct data writes to PostgreSQL or SQL from frontend. |
-| **Data Residency**           | All services and data must be hosted in **UK South** region.                                                                                                                                                           |
-| **Audit & Traceability**     | All user interactions (e.g., promote action, QA outcome) to be logged for audit purposes. Changes to virtual table data must be attributable to a user identity.                                                       |
-| **Role-Based Access**        | Fine-grained control across the UI components based on SRS role mappings. QA section and promote functionality must be hidden/disabled for users without appropriate permissions.                                      |
-| **Offline Support**          | Not required. All interactions are expected to occur within connected environments.                                                                                                                                    |
-| **Deployment & Maintenance** | SVT must be packaged and deployed via BST pipelines. Power Platform ALM (solution export/import) to be used for updates. API endpoints and virtual table changes must be version-controlled and documented.            |
+* **SVT data is stored in external VAST SQL**, surfaced via **Dataverse Virtual Tables**.
+* Security is enforced at the UI level using Power FX expressions.
+* `systemuser` and `team` Dataverse tables will be exported via **Azure Synapse Link** to VAST SQL to:
+
+  * Populate ownership fields (systemuser ID, team ID)
+  * Support record-level traceability and access control in downstream systems.
 
 ---
 
-Would you like me to continue next with the **Data Model and API Interfaces**, or should we prepare the **Physical & Logical Architecture Diagrams** first?
+### ✉️ Assumptions (to be confirmed in SDG)
 
-
-3.6.3 Application Platform – Dynamics 365 Power Platform
-
-The SVT (Sales Verification Tool) is built and hosted within the existing Council Tax (CT) model-driven Dynamics 365 environment, also referred to as VOS. It is a key extension of the BST platform, designed to support internal users (managers, caseworkers, QA) in the verification of property sale data and downstream PAD decision-making.
-
-The SVT solution leverages the Microsoft Power Platform, including Dynamics 365, Dataverse, Canvas Apps (custom pages), Virtual Tables, Power Automate, and PowerApps Component Framework (PCF). It integrates with external data systems such as VaaS SQL Server (for new sales decisions) and existing PostgreSQL PAD database, while complying with BST-wide architectural standards.
-
-3.6.3.1 Dynamics 365 Capabilities
-Capability	Usage in SVT
-Model-Driven App (VOS)	SVT is embedded within the existing Council Tax model-driven app (VOS). It reuses core sitemap areas for case management (Jobs, Requests, PAD) and extends them with new links to SVT dashboard and custom pages.
-Core Dataverse Entities	Reuses existing BST CT entities such as Job, Request, Task, and PAD. These are linked to SVT sales verification screens for navigation, assignment, and audit.
-Security Roles (SRS)	Inherits existing CT user roles (e.g., Caseworker, Manager, QA). Role-based access is enforced to control visibility and editability of dashboard/search screens, QA sections, and promote-to-master actions.
-Plugins	Used for logic that triggers backend interactions such as: auto-creating requests/tasks from SVT, post-validation triggers, and audit event generation. Written in .NET and registered server-side.
-Workflows	Used sparingly. Power Automate is preferred for non-synchronous flows. Workflows may be used for synchronous validation when appropriate (e.g., field checks, auto-setting job status).
-Custom API / Custom Action	Implemented to handle promote-to-master operation, and dynamic updates to VaaS SQL via APIM. These APIs are also used to retrieve PAD or comparable sale data and interact securely with DAL2/DAP2 endpoints.
-PCF Controls	Enhanced DetailsList control is reused for SVT dashboard listings. A modified PADS Viewer control is used to render PAD fields. Gallery components may also be used to show SharePoint-linked images.
-JavaScript / Form Logic	Used selectively for advanced field validation, dynamic field hiding (e.g., showing/hiding MILO toggle, LR fields), or API-triggered refreshes. Form scripting follows platform standards and does not break client-side security model.
-Business Rules	Used for lightweight field-level validation, for example: making QA notes mandatory on Fail, hiding condition notes unless specific dropdowns are selected.
-Business Process Flows	Not used in SVT initially. May be introduced in future if verification workflow across Job/Request entities needs to be explicitly modelled.
-3.6.3.2 Power Platform Extensions
-Component	Purpose in SVT
-Canvas App (Custom Page)	Hosts the SVT Dashboard (search & summary) and SVT View Screen (sales verification). Provides dynamic UX using Power FX, dropdowns, multi-section layout, and SharePoint-based image galleries.
-Power FX Expressions	Used within canvas app controls for logic, filtering, conditional styling, control visibility, and error messages. Enables rapid prototyping and dynamic interaction without complex coding.
-Power Automate	Used for async flows such as audit record logging, notification of QA completion, and pre-validation of external data (non-critical path only).
-SharePoint Integration	SharePoint is used to host a reference image library (~300 public images) for condition scoring (kitchen/bathroom/etc.). The canvas app accesses this via standard SharePoint connector. No direct uploads or editing is permitted.
-Connectors Used	- Dataverse – For all core Job/Task/Request interaction
-- Office 365 Users – For user profile/photo
-- SharePoint – For image galleries
-- HTTP (via Custom API) – For APIM communication to DAP2/DAL2
-3.6.3.3 Data Sources
-Source	Purpose in SVT
-PostgreSQL (PAD)	Used for PAD details of existing hereditaments. Accessed via existing virtual table and PCF viewer logic.
-VaaS SQL Server	Primary store for SVT sales verification decisions. Updates are written back here post-verification.
-Dataverse	Hosts Jobs, Tasks, Requests, security roles, audit logs, and supports integration with CT model-driven app.
-3.6.3.4 Virtual Tables and Data Provider
-
-SVT uses Virtual Tables and a Custom Virtual Entity Data Provider to surface external VaaS SQL data (via DAL2 APIs) within Dynamics.
-
-Tables are defined per logical group (e.g., SaleSummaryVT, SDLTVT, LRPPDVT, QAOutcomeVT).
-
-Read and write operations are supported where applicable (e.g., condition score updates).
-
-All calls use server-to-server auth with OAuth2 + Subscription Key (APIM secured).
-
-Virtual tables are visible in the model-driven and canvas pages and respect Dynamics metadata.
-
-This enables caseworkers to work with external data as if it were native to Dynamics, while retaining external data residency and control.
-
-
-
-
-Great — based on your comprehensive notes and request, here is the **enhanced “SharePoint” section** for your **SVT Application Architecture** document, written in the same formal and architect-grade language used throughout the rest of the SDD:
+1. All SVT users already hold a valid **CSC user SRS role**.
+2. One set of **SVT SRS roles** will be reused across environments (Dev, PreProd, Prod).
+3. SVT will only be accessible from within the CT app; no standalone access planned.
+4. Canvas App logic is responsible for enforcing role-based access control.
+5. SVT will not manage roles via Teams; all access is SRS + AD + D365 role based.
 
 ---
 
-### **3.6.4 SharePoint Integration**
+### ❌ Deprecated Options (Discarded)
 
-#### **3.6.4.1 Purpose & Context**
-
-In the SVT (Sales Verification Tool) solution, SharePoint Online is used as a secure internal file repository to host **non-sensitive, public-domain property images** that support condition scoring and verification decisions. These images—sourced from channels such as **Zoopla**, **Rightmove**, or VOA's internal collections—serve as comparators and visual references for SVT caseworkers and QA users.
-
-This SharePoint integration enables a lightweight, low-cost, and secure approach for document management, **without duplicating storage within Dataverse** or external blob storage. It ensures that image references are always served from **within the HMRC/VOA tenant boundary**, aligning with DAP2 and GDS data governance standards.
-
----
-
-#### **3.6.4.2 Access & Security Model**
-
-| Aspect                 | Configuration Details                                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Access Scope**       | Internal-only – access restricted to authenticated users within HMRC/VOA Microsoft Entra ID tenant                                    |
-| **Authentication**     | Enforced via Azure AD (OAuth2), leveraging delegated user tokens through Microsoft Graph API                                          |
-| **Connector Used**     | Power Apps **out-of-the-box SharePoint connector**                                                                                    |
-| **Access Method**      | All access occurs through the embedded **Canvas App (custom page)**, not via direct SharePoint UI                                     |
-| **User Roles**         | SVT users with proper permissions (Caseworker, Manager, QA) can view image galleries based on their existing Microsoft 365 access     |
-| **External Access**    | **Explicitly disabled** – no guest/external sharing is permitted at site/library/item level                                           |
-| **File Permissions**   | Managed via SharePoint security groups or manually mapped roles in sync with Power Platform RBAC (SRS)                                |
-| **Data Type Allowed**  | Only public-domain, copyright-verified images – no personal, sensitive, or restricted data allowed                                    |
-| **Consent Handling**   | Each user must authenticate to SharePoint at first access; access tokens are securely managed by Microsoft 365 session infrastructure |
-| **Audit Logging**      | All access to the library is recorded in Microsoft 365 **Unified Audit Log**, including file views/downloads                          |
-| **Copyright Handling** | Image sources are documented, and a review of terms-of-use (Zoopla/Rightmove) is maintained in the internal compliance register       |
+| Option                          | Reason for Discarding                                                |
+| ------------------------------- | -------------------------------------------------------------------- |
+| Canvas App + Team-based control | Insufficient auditability and difficult to manage revocation.        |
+| App-only logic without SRS      | Breaks compliance with HMRC IAM patterns and lacks governance trail. |
 
 ---
 
-#### **3.6.4.3 Integration Method**
+### 📊 Next Steps & Actions
 
-* The **Canvas App embedded within the SVT model-driven app** uses the SharePoint connector to **fetch files via Microsoft Graph**.
-* Images are displayed in a gallery control bound to a SharePoint document library filtered by metadata (e.g., `RoomType`, `ConditionScore`, etc.).
-* The integration ensures that **every file access is made in the context of the logged-in user**, respecting their AAD/Entra permissions.
-* There is **no impersonation, shared credentials, or static tokens** involved.
-
----
-
-#### **3.6.4.4 Compliance Justification**
-
-* **All interactions** occur within the **Microsoft 365 boundary** (Dataverse → Canvas App → SharePoint).
-* The use of **Microsoft Graph APIs** ensures secure, token-based communication.
-* The solution adheres to **RBAC principles**, UK data residency laws, and internal governance controls.
-* This SharePoint usage model is **fully compliant** with HMRC, GDS, and DAP2 platform standards for internal applications.
+| Task                                     | Owner/Team         | Notes                                                 |
+| ---------------------------------------- | ------------------ | ----------------------------------------------------- |
+| Create SRS Roles (`VO_SVT_*`)            | IAM / Roles Team   | Align naming to existing VO role standards.           |
+| Define D365 Security Roles               | CT Platform Team   | Clone from CSC base role + restrict SVT access areas. |
+| Implement Canvas App Role Checks         | SVT Dev Team       | Power FX based logic for section visibility.          |
+| Enable Synapse Link for User/Team tables | DataOps            | Required for ownership tracking in VAST SQL.          |
+| Capture all access logic in SDG          | Solution Architect | Link assumptions, flow diagrams, user story mapping.  |
 
 ---
 
-#### **3.6.4.5 Frequently Asked Security Clarifications**
-
-| Question                                                                  | Answer                                                                                                                                        |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Does the Canvas App access SharePoint on behalf of the maker/developer?   | **No** – each end-user must authenticate with their own Entra ID (O365 login); access is enforced per-user.                                   |
-| Can users without SharePoint permissions access the files via Power Apps? | **No** – if a user lacks SharePoint permissions, the gallery will fail to load or show blank.                                                 |
-| Are any images or endpoints public-facing or anonymous?                   | **No** – neither the Canvas App nor SharePoint allows unauthenticated access; all access is internal-only and logged.                         |
-| Is usage of Zoopla/Rightmove images compliant?                            | **Yes** – only publicly available, non-sensitive images are used. Copyright checks are handled internally, and no resale/republishing occurs. |
-| Is image viewing activity auditable?                                      | **Yes** – access logs are captured via **Microsoft 365 Unified Audit Log**, searchable via Microsoft Purview or Azure Monitor.                |
-
----
-
-#### **3.6.4.6 Architect’s Summary**
-
-> “The SVT Canvas App connects to the SharePoint image repository using the standard Microsoft Power Apps SharePoint connector, which delegates access via the Microsoft Graph API and authenticates each user through Azure AD. This ensures that **only authorized HMRC/VOA users** can view comparator images, with full traceability, logging, and adherence to data governance boundaries. There is **no elevated security risk** associated with this model, and it aligns with Microsoft 365 best practices for internal-only usage.”
-
----
-
-Would you like to now generate:
-
-* A **diagram showing SharePoint connector flow**
-* A **risk register entry**
-* Or a **FAQ for submission to architecture review board**?
-
-
-
-**3.6.1.9 Business Processes (SVT)**
-
-The **Sales Verification Tool (SVT)** application is embedded within the wider Council Tax (CT) model-driven app environment (referred to as VOS). It has been tailored to deliver a purpose-built verification journey for handling residential property sales, which feed into Council Tax banding valuation workflows.
-
-SVT reuses foundational elements from the BST platform — including task assignments, requests, job structures, and Dynamics-based queues — while introducing a new, **sales-centric verification lifecycle** aligned to dedicated roles: **Manager**, **Caseworker**, and **QA Reviewer**.
-
-SVT workflows ensure auditability, enforce gated progression across roles, and integrate external data from PostgreSQL (PGSQL) and SQL Server (VaaS SQL) through secured APIs.
-
----
-
-### **A. Persona-Based Interaction Model**
-
-| **Persona**     | **Entry Point**                      | **Primary Actions**                                                                                     | **Output / Next Step**                                     |
-| --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Manager**     | “Outstanding Sales” Dashboard        | - Filter/search unallocated sales<br>- Bulk allocate to Caseworkers<br>- Reassign, override, or promote | Tasks assigned to Caseworkers; master record decision path |
-| **Caseworker**  | “My Allocated Sales” / Search Screen | - Verify sales<br>- Complete structured dropdowns<br>- Add notes and promote to master if valid         | Marked Ready for QA or sent to PAD                         |
-| **QA Reviewer** | “Quality Control” Dashboard          | - Filter records<br>- Add outcome (Pass/Fail)<br>- QA notes<br>- Return to Caseworker if needed         | QA Outcome locked; record archived                         |
-
-Each persona interacts through embedded **Canvas App custom pages** filtered by role, powered by Dynamics security roles and permission-bound data views.
-
----
-
-### **B. Process Stages and Logic**
-
-| **Stage**              | **Description**                                                                                                                                     | **Role(s)**            |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| **Sales Allocation**   | Manager pulls sales data via DAL2 API (virtual table) and assigns tasks to caseworkers via job/request structures.                                  | Manager                |
-| **Sales Verification** | Caseworker completes all relevant sections: Sales Verification dropdowns, Sale Summary checks, attribute scoring, image review, etc.                | Caseworker             |
-| **Promote to Master**  | Promotes LR or MILO record into Sale Summary, finalizing key sale values; visible only when valid and complete.                                     | Caseworker, Manager    |
-| **QA Review**          | QA Reviewer inspects all sections, adds QA Outcome and notes, optionally returns to Caseworker if insufficient.                                     | QA Reviewer            |
-| **PAD Sync/Update**    | PAD sync status shown. If out of sync or PAD edits are required, user is prompted to **Create/View Request** in CT PAD editor (external deep link). | All Roles (if flagged) |
-
----
-
-### **C. Record Locking and Audit Rules**
-
-* ❌ **Sales records cannot be modified unless assigned to a user.**
-* 🔒 Once QA is complete, the record becomes read-only unless manually re-opened.
-* 🧾 Every change (dropdown selection, notes, field update, reassignment) is tracked in **Dataverse audit logs**.
-* 🎯 Actions like **Promote to Master**, **Pass QA**, or **Create PAD Request** appear conditionally based on context.
-
----
-
-### **D. View Screen Breakdown (Canvas Page)**
-
-#### **1. Hereditament & Banding** *(Read-only)*
-
-* Address
-* Billing Authority
-* Coordinate Status
-* Composite
-* Banding Reference Date
-* Banding ID
-* Band (from VOS)
-
-#### **2. Sale Summary** *(Partially read-only)*
-
-* Sale Price
-* Transaction Date
-* Model Price
-* Adjusted Price (can use)
-* Overall Flag
-* Ratio
-* Outlier
-
-#### **3. Sales Verification Section** *(Editable by Caseworker)*
-
-* Useful Sale (Dropdown)
-* Why Not Useful (Dropdown)
-* Additional Notes
-* Kitchen Age / Spec (Dropdown + 📸 Gallery popup)
-* Bathroom Age / Spec (Dropdown + 📸)
-* Decorative Finishes (Dropdown + 📸)
-* Glazing (Dropdown)
-* Heating (Dropdown)
-* Condition Notes
-* Condition Score (Auto-calculated)
-* Condition Category (Auto-calculated)
-
-#### **4. Sale Calculations** *(Read-only)*
-
-* Flags (A1, A4, A5, etc.)
-* Previous Ratio
-* Later Ratio
-
-#### **5. SDLT / WLTT Panel** *(Read-only)*
-
-* Toggle: SDLT ↔ WLTT (multi-record support with arrows)
-* ID
-* Transaction Price / Premium
-* Transaction Date
-* Vendor(s) / Vendee(s)
-* Agent(s)
-* Property Type / Tenure
-* Lease Info (From, Term, Ground Rent)
-
-#### **6. LR PPD / MILO Section** *(Editable: Promote to Master)*
-
-* ID
-* Address
-* Price
-* Transaction Date
-* Property Type / Tenure
-* Old/New
-* Price Paid Category
-* ✅ Promote to Master button appears if record not yet master and valid.
-
-#### **7. PAD Section** *(Read-only with linkout)*
-
-* PAD data fetched from PGSQL or VaaS SQL
-* PAD Sync Status: Shows if PGSQL ↔ VaaS SQL PAD records are in sync
-* 📎 Actions:
-
-  * View PAD Request (if exists)
-  * Create New PAD Request (launches CT PAD editor)
-
-#### **8. QA Section** *(Editable only by QA user)*
-
-* QA Outcome (Dropdown)
-* QA Notes
-
-#### **9. Hyperlinks and Property Metadata** *(Read-only)*
-
-* Links: EPC, Zoopla, GSV, Rightmove, Maps, VMS
-* Property Attributes (visual icons and tags)
-
----
-
-### **E. Dynamic Controls & UX Features**
-
-| **Control**              | **Behavior**                                                          |
-| ------------------------ | --------------------------------------------------------------------- |
-| “Promote to Master”      | Appears only when required fields are filled and source is LR or MILO |
-| UARN Click               | Navigates to this full View Screen                                    |
-| Gallery Image Popups     | Open via icon click next to Kitchen/Bathroom fields                   |
-| Record Navigation Arrows | Used for SDLT/WLTT and MILO/LR multi-record toggle                    |
-| PAD Sync Badge           | Shows RED if PGSQL ↔ VaaS PAD records are out of sync                 |
-| QA Fields                | Read-only unless QA user                                              |
-| Audit Trail              | Background: all field-level changes are stored in Dynamics audit logs |
-
----
-
-This completes the **SVT end-to-end process design** for personas, screens, and data sync logic.
-
-Would you like a printable summary, Excel-ready mapping sheet, or developer stories next?
-
-
-
-Excellent — building on the detailed architecture you've already structured for SVT in your SDD, here is the next section, **rewritten for the “Business Process”** heading — following the style, terminology, and granularity of the original CT platform document, but fully tailored for SVT.
-
----
-
-### **3.6.1.9 Business Processes (SVT)**
-
-The SVT (Sales Verification Tool) application is embedded within the wider Council Tax (CT) model-driven app environment (VOS) and has been configured to deliver a **purpose-built verification process** for handling residential sales used in Council Tax banding valuation workflows. While reusing many foundational capabilities of the BST platform — such as task assignment, request/job linkage, and queue-based routing — SVT introduces a new sales-centric journey aligned to its verification use case.
-
-Business processes are aligned to **repeatable workflows** that are designed to ensure **auditability, gated progression, and role-specific decision logic**, enforcing quality standards for sales selection and verification.
-
-#### **Process-Oriented Application Experience**
-
-SVT users (Manager, Caseworker, and QA Reviewer) interact with the system through **role-specific dashboards and workspaces**. These surfaces are delivered via **Canvas App custom pages**, embedded within the VOS environment, and reflect the specific duties of each persona. For example:
-
-| Persona         | Dashboard Focus                                                                    | View Capabilities                                                                  |
-| --------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **Manager**     | Sales awaiting assignment, batch oversight, override decisions, QA failure returns | Full read/write access; ability to reassign, override, and promote sales to master |
-| **Caseworker**  | Assigned sales verification tasks                                                  | Can review and edit specific sales sections (e.g., Sales Verification, LR/MILO)    |
-| **QA Reviewer** | Sales submitted for QA review (post-verification)                                  | Read-only for most fields; editable QA outcome section (pass/fail, notes)          |
-
-Each persona lands on a filtered **My Work dashboard** tied to their security role, surfacing only relevant records and actions. Sales verification cannot proceed unless it is assigned as a job/task in the system, thereby enforcing full audit lineage.
-
----
-
-#### **SVT Process Flows**
-
-The following structured sub-processes are implemented within SVT, governed by Dynamics 365 workflow building blocks:
-
-| Process Flow            | Description                                                                                                   | Aligned Role(s)     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------- |
-| **Sales Allocation**    | Sales pulled via Virtual Table from DAL2 API. Manager assigns job/task via Dynamics queue or form manually.   | Manager             |
-| **Sales Verification**  | Caseworker completes structured review: attribute flags, condition scores, kitchen/bathroom review, etc.      | Caseworker          |
-| **Promote to Master**   | Data from LR/MILO can be promoted into master sale record within Sale Summary section using button trigger.   | Caseworker, Manager |
-| **QA Review**           | QA Reviewer reviews verified sale, enters outcome (pass/fail), adds QA notes. Can return task to caseworker.  | QA Reviewer         |
-| **PAD Update Link-Out** | Based on verification outcome or outlier flag, user is optionally directed to launch PAD Editor in CT system. | All (if required)   |
-
----
-
-#### **Application Interactions & Restrictions**
-
-* **Sales records cannot be modified** outside of a transacted process (job/task). This restriction preserves approval stage gates and prevents data tampering.
-* Each business process is linked to a **case record structure** in the model-driven environment — consisting of Requests, Jobs, and Tasks — fully audit-tracked and timestamped.
-* Actions such as “Promote to Master”, “Pass QA”, or “Reassign” are surfaced via buttons only when allowed by the role-specific context.
-* Where appropriate, **deep links to existing BST modules** (e.g., PAD record editor) are included to enable corrections or alignment with valuation models.
-* All verification actions (e.g., drop-down selections, note entries, image reviews) are logged and subject to data retention policies.
-
----
-
-#### **Application Entry Points**
-
-Each role accesses SVT via **navigation links embedded in the CT model-driven app site map**, grouped logically within a new **“Sales Verification” area**, which contains:
-
-* **Dashboard (Canvas App)** – Role-filtered sales task view with search/filter options
-* **My Work (Model-Driven)** – Native Dynamics work queue for assigned tasks
-* **Sales Record View (Canvas Page)** – Embedded view for structured review of sales attributes, image gallery, and decision sections
-
-All SVT activities are encapsulated within the existing VOS application shell and benefit from standard features such as:
-
-* Advanced Find for virtual and native Dataverse data
-* Recent and pinned records
-* Cross-app switching (e.g., between SVT and CT administration tools)
-
----
-
-#### **Process Compliance and Auditability**
-
-* **Task Lifecycle**: Tasks follow a defined lifecycle: Assigned → In Progress → Verified → QA Review → Completed/Returned.
-* **Sales State Transitions**: Each state change (e.g., “Promoted”, “QA Failed”) is tracked via plugin logic and Power Automate where required.
-* **User Tracking**: All role-based actions are logged against the Entra ID of the user, surfaced via Office365Users connector and stored as part of the task audit trail.
-* **Data Isolation**: Any write-back to the DAL2 API (e.g., master data promotion, QA flag) is gated via server-side plugin logic to ensure validity and correct user permissions.
-
----
-
-Would you like to move on to the next section — e.g., **“Data Flows and Entity Relationships”**, or would you prefer to expand this further with process diagrams or screen-to-process mappings?
-
+Would you like the accompanying Confluence page headings or an SDG table-of-contents generated from this?
