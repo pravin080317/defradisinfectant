@@ -1,113 +1,76 @@
-Great question — and an important design decision.
+let
+    // Step 1: Filter Header
+    SourceHeader = voa_frontdoorheader,
+    FilteredHeader = Table.SelectRows(
+        SourceHeader,
+        each [voa_typecodename] = "EBARS" and
+             [voa_isvestibulename] = "No" and
+             [createdon] >= #datetime(2025, 8, 1, 0, 0, 0) and
+             [createdon] <  #datetime(2025, 9, 1, 0, 0, 0)
+    ),
 
----
+    // Step 2: Filter Row
+    SourceRow = voa_frontdoorrow,
+    FilteredRow = Table.SelectRows(
+        SourceRow,
+        each [statuscodename] = "Completed Sent To Case"
+    ),
 
-## ✅ **Recommendation: Use Stored Procedure to Generate Task Number**
+    // Step 3: Join Row → Account (billing authority lookup)
+    RowWithAccount = Table.NestedJoin(
+        FilteredRow,
+        {"voa_billingauthorityid"},
+        account,
+        {"accountid"},
+        "AccountTable",
+        JoinKind.Inner
+    ),
+    ExpandedRowAccount = Table.ExpandTableColumn(
+        RowWithAccount,
+        "AccountTable",
+        {"voa_baccodeacc"},
+        {"voa_baccodeacc"}
+    ),
 
-### Why?
+    // Step 4: Keep only slim columns
+    RowSlim = Table.SelectColumns(
+        ExpandedRowAccount,
+        {"voa_frontdoorheaderid", "voa_baccodeacc"}
+    ),
 
-Because **task creation** involves:
+    // Step 5: Join Header → RowSlim
+    Joined = Table.NestedJoin(
+        FilteredHeader,
+        {"voa_frontdoorheaderid"},
+        RowSlim,
+        {"voa_frontdoorheaderid"},
+        "RowSlimTable",
+        JoinKind.Inner
+    ),
+    ExpandedJoined = Table.ExpandTableColumn(
+        Joined,
+        "RowSlimTable",
+        {"voa_baccodeacc"},
+        {"voa_baccodeacc"}
+    ),
 
-* **Auto-incrementing Task ID** (sequential, unique, visible to users)
-* **Insert into Task Table**
-* **Audit + Ownership fields**
-* **Conditional logic** (e.g., check if task already exists for that UPRN)
+    // Step 6: Remove null BA Codes
+    Cleaned = Table.SelectRows(
+        ExpandedJoined,
+        each [voa_baccodeacc] <> null
+    ),
 
-A **SQL stored procedure** is the **most scalable, auditable, and concurrency-safe** way to handle this.
+    // Step 7: Group by BA Code → Count files
+    Grouped = Table.Group(
+        Cleaned,
+        {"voa_baccodeacc"},
+        {{"Count Of Files", each Table.RowCount(_), Int64.Type}}
+    ),
 
----
-
-## 💡 Suggested Architecture
-
-### 🔧 **Stored Procedure**: `usp_CreateSVTTask`
-
-**Inputs:**
-
-* `@uprn`
-* `@origin` (`SystemGenerated` or `Manual`)
-* `@createdBy`
-* (Optionally: `@initialOwner` if assigning directly)
-
-**Logic:**
-
-* Check if a task already exists for the given UPRN (`AND IsActive = 1`)
-* If not:
-
-  * Get next task number (e.g., via identity or sequence)
-  * Insert new row into `SVTTask` table:
-
-    * `TaskId` (auto number)
-    * `UPRN`, `Origin`, `Owner`, `Status`, `CreatedBy`, `CreatedOn`
-* Return the new `TaskId` and status message
-
----
-
-### 🔄 **Called From**:
-
-#### Option 1: **Power Automate**
-
-* Trigger: Scheduled flow (e.g. for overnight outlier batch)
-* Action: HTTP call to Azure Function or Power Platform custom connector → calls the stored procedure
-* Advantage: No-code/low-code usage
-* Caution: Avoid complex loops in Power Automate due to timeout risks
-
-#### Option 2: **Custom API (preferred for manual creation from canvas page)**
-
-* Canvas page (Manager screen or Caseworker screen) → custom connector → API (Dataverse Custom API or Azure Function) → stored procedure
-* Advantage: Controlled logic, scalable, easy to call from multiple front ends (Canvas App, MDA, etc.)
-
----
-
-## ✅ Benefits of Using Stored Procedure
-
-| Feature               | Why It Helps                                                         |
-| --------------------- | -------------------------------------------------------------------- |
-| **Atomicity**         | Prevents duplicate Task creation                                     |
-| **Concurrency-safe**  | Handles multiple calls in parallel (no Task ID conflict)             |
-| **Centralised Logic** | Easier to maintain and audit                                         |
-| **Auto-numbering**    | Uses SQL identity or sequence, not client-side GUID or random IDs    |
-| **Auditing**          | You can log inserts and changes in a separate Audit table or trigger |
-
----
-
-## 🛠️ Example: Stored Procedure Structure (Simplified)
-
-```sql
-CREATE PROCEDURE usp_CreateSVTTask
-    @uprn VARCHAR(20),
-    @origin VARCHAR(20), -- 'Manual' or 'SystemGenerated'
-    @createdBy VARCHAR(50),
-    @owner VARCHAR(50) = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    IF EXISTS (
-        SELECT 1 FROM SVTTask WHERE uprn = @uprn AND IsActive = 1
+    // Step 8: Rename column
+    Final = Table.RenameColumns(
+        Grouped,
+        {{"voa_baccodeacc", "Ba Code"}}
     )
-    BEGIN
-        SELECT 'Task already exists' AS Message;
-        RETURN;
-    END
-
-    INSERT INTO SVTTask (
-        uprn, origin, createdBy, createdOn, owner
-    )
-    VALUES (
-        @uprn, @origin, @createdBy, GETDATE(), @owner
-    );
-
-    SELECT SCOPE_IDENTITY() AS NewTaskId, 'Success' AS Message;
-END
-```
-
----
-
-## 🔚 Final Suggestion
-
-✅ **Use Stored Procedure to handle core logic**
-✅ **Expose via API** (for Canvas Apps or Manual creation)
-✅ **Use Power Automate for batch-based generation**
-✅ **Use SQL identity or custom sequence for task numbers**
-
-Would you like a version with audit table logging or rollback support too?
+in
+    Final
