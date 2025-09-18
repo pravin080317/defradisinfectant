@@ -1,48 +1,113 @@
-Here’s a **rewritten version** of your SharePoint usage section, **tailored for the SVT (Sales Verification Tool)** scenario where SharePoint is used to store a static image library for reference (e.g., kitchen, bathroom, finishes) — aligned to your provided structure:
+Great question — and an important design decision.
 
 ---
 
-## **SharePoint Usage – Sales Verification Tool (SVT)**
+## ✅ **Recommendation: Use Stored Procedure to Generate Task Number**
 
-The SVT solution leverages HMRC’s existing M365 tenant which hosts multiple SharePoint sites. A dedicated **SharePoint document library** is used in SVT to **permanently store static property reference images** (unstructured data), such as photographs of kitchens, bathrooms, glazing, and finishes. These are used solely for **reference** during the sales verification process, to help standardise **condition scoring** and assessment of attributes.
+### Why?
 
-Unlike traditional case-related files, the SVT image library is not tied to a specific UPRN or request. Instead, it acts as a **central reference gallery**, accessible within the **Power Apps Canvas UI** embedded in the SVT custom pages.
+Because **task creation** involves:
 
----
+* **Auto-incrementing Task ID** (sequential, unique, visible to users)
+* **Insert into Task Table**
+* **Audit + Ownership fields**
+* **Conditional logic** (e.g., check if task already exists for that UPRN)
 
-### **Use**
-
-| Use Case                 | Description                                                                                                                                     |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reference Images**     | A curated set of sample images to support condition scoring (e.g., kitchen age, spec, finishes, etc.). Each image includes structured metadata. |
-| **Image Metadata**       | Metadata fields include: `Image Type`, `Room Type`, `Age`, `Specification Level`, `Condition`, `Image URL`, and `Alt Description`.              |
-| **Lookup and Filtering** | Used within SVT Canvas Apps to filter and preview reference images based on selected verification fields.                                       |
-| **Non-UPRN-bound**       | These images are **not associated with any UPRN, request, or job** and serve purely as guidance visuals.                                        |
+A **SQL stored procedure** is the **most scalable, auditable, and concurrency-safe** way to handle this.
 
 ---
 
-### **SVT SharePoint Usage Table**
+## 💡 Suggested Architecture
 
-| Principle                          | Rationale                                                                                                                                                                                                                                 |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Authentication & Authorisation** | Access is secured via HMRC's **Microsoft Entra ID (AAD)** with **Single Sign-On (SSO)**. Role-based access is controlled via **SRS security roles**. Only internal SVT users within the tenant can access these galleries.                |
-| **Access via Power Apps**          | The document library is **not accessed directly**. Instead, it is surfaced within the **SVT Canvas App** using the **SharePoint connector**. The image gallery control presents files to the user with associated metadata for filtering. |
-| **UI Access**                      | No direct user interaction with SharePoint UI is expected or required. The document library is designed for **read-only consumption** within the SVT app. Upload and tagging are **admin-controlled**.                                    |
-| **Structured Metadata**            | Each image includes metadata for filtering, e.g.: `Room Type (Kitchen, Bathroom)`, `Age (year)`, `Spec (Basic, Modern, High-end)`, `Condition Category (A, B, C)` etc.                                                                    |
-| **Logging**                        | Access to SharePoint is logged via **Microsoft 365 Unified Audit Logs**. Image access via Power Apps is routed through Microsoft Graph, ensuring **audit traceability**.                                                                  |
-| **Monitoring**                     | SharePoint site health and availability are monitored using **Log Analytics** and **App Insights** under standard M365 service-level tooling.                                                                                             |
-| **Error Handling**                 | The Power Apps SharePoint connector uses **native error messages** from the SharePoint API, which can be caught and surfaced for admin use.                                                                                               |
-| **Backups**                        | As part of SharePoint Online’s resilience strategy:                                                                                                                                                                                       |
+### 🔧 **Stored Procedure**: `usp_CreateSVTTask`
 
-* Files are **geo-redundant**, stored in **2 regions**.
-* A **3-stage delete model** ensures safety against accidental loss:
+**Inputs:**
 
-  1. First delete → site recycle bin
-  2. Second delete → site collection recycle bin (retained for 90 days)
-  3. Third delete → permanent deletion
-* Additionally, **14-day retention** is available beyond deletion. |
-  \| **Compliance**      | As with all HMRC file storage, SharePoint usage in SVT adheres to GDS and internal data handling standards. Images are **internal only**, used for **visual guidance**, and not linked to any personal or case-specific data. |
+* `@uprn`
+* `@origin` (`SystemGenerated` or `Manual`)
+* `@createdBy`
+* (Optionally: `@initialOwner` if assigning directly)
+
+**Logic:**
+
+* Check if a task already exists for the given UPRN (`AND IsActive = 1`)
+* If not:
+
+  * Get next task number (e.g., via identity or sequence)
+  * Insert new row into `SVTTask` table:
+
+    * `TaskId` (auto number)
+    * `UPRN`, `Origin`, `Owner`, `Status`, `CreatedBy`, `CreatedOn`
+* Return the new `TaskId` and status message
 
 ---
 
-Would you like me to create a **table of image metadata fields**, or include a **diagram showing flow from SharePoint to Canvas UI** for this image gallery?
+### 🔄 **Called From**:
+
+#### Option 1: **Power Automate**
+
+* Trigger: Scheduled flow (e.g. for overnight outlier batch)
+* Action: HTTP call to Azure Function or Power Platform custom connector → calls the stored procedure
+* Advantage: No-code/low-code usage
+* Caution: Avoid complex loops in Power Automate due to timeout risks
+
+#### Option 2: **Custom API (preferred for manual creation from canvas page)**
+
+* Canvas page (Manager screen or Caseworker screen) → custom connector → API (Dataverse Custom API or Azure Function) → stored procedure
+* Advantage: Controlled logic, scalable, easy to call from multiple front ends (Canvas App, MDA, etc.)
+
+---
+
+## ✅ Benefits of Using Stored Procedure
+
+| Feature               | Why It Helps                                                         |
+| --------------------- | -------------------------------------------------------------------- |
+| **Atomicity**         | Prevents duplicate Task creation                                     |
+| **Concurrency-safe**  | Handles multiple calls in parallel (no Task ID conflict)             |
+| **Centralised Logic** | Easier to maintain and audit                                         |
+| **Auto-numbering**    | Uses SQL identity or sequence, not client-side GUID or random IDs    |
+| **Auditing**          | You can log inserts and changes in a separate Audit table or trigger |
+
+---
+
+## 🛠️ Example: Stored Procedure Structure (Simplified)
+
+```sql
+CREATE PROCEDURE usp_CreateSVTTask
+    @uprn VARCHAR(20),
+    @origin VARCHAR(20), -- 'Manual' or 'SystemGenerated'
+    @createdBy VARCHAR(50),
+    @owner VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1 FROM SVTTask WHERE uprn = @uprn AND IsActive = 1
+    )
+    BEGIN
+        SELECT 'Task already exists' AS Message;
+        RETURN;
+    END
+
+    INSERT INTO SVTTask (
+        uprn, origin, createdBy, createdOn, owner
+    )
+    VALUES (
+        @uprn, @origin, @createdBy, GETDATE(), @owner
+    );
+
+    SELECT SCOPE_IDENTITY() AS NewTaskId, 'Success' AS Message;
+END
+```
+
+---
+
+## 🔚 Final Suggestion
+
+✅ **Use Stored Procedure to handle core logic**
+✅ **Expose via API** (for Canvas Apps or Manual creation)
+✅ **Use Power Automate for batch-based generation**
+✅ **Use SQL identity or custom sequence for task numbers**
+
+Would you like a version with audit table logging or rollback support too?
