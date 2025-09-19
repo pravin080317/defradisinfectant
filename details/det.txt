@@ -1,76 +1,135 @@
-let
-    // Step 1: Filter Header
-    SourceHeader = voa_frontdoorheader,
-    FilteredHeader = Table.SelectRows(
-        SourceHeader,
-        each [voa_typecodename] = "EBARS" and
-             [voa_isvestibulename] = "No" and
-             [createdon] >= #datetime(2025, 8, 1, 0, 0, 0) and
-             [createdon] <  #datetime(2025, 9, 1, 0, 0, 0)
-    ),
+Here is the **rewritten Solution Overview** section for **SVT (Sales Verification Tool)** in a polished and SDD-ready format, consolidating your provided text with enterprise design language and structured layout:
 
-    // Step 2: Filter Row
-    SourceRow = voa_frontdoorrow,
-    FilteredRow = Table.SelectRows(
-        SourceRow,
-        each [statuscodename] = "Completed Sent To Case"
-    ),
+---
 
-    // Step 3: Join Row → Account (billing authority lookup)
-    RowWithAccount = Table.NestedJoin(
-        FilteredRow,
-        {"voa_billingauthorityid"},
-        account,
-        {"accountid"},
-        "AccountTable",
-        JoinKind.Inner
-    ),
-    ExpandedRowAccount = Table.ExpandTableColumn(
-        RowWithAccount,
-        "AccountTable",
-        {"voa_baccodeacc"},
-        {"voa_baccodeacc"}
-    ),
+## 🔍 1.1 Solution Overview – Sales Verification Tool (SVT)
 
-    // Step 4: Keep only slim columns
-    RowSlim = Table.SelectColumns(
-        ExpandedRowAccount,
-        {"voa_frontdoorheaderid", "voa_baccodeacc"}
-    ),
+The **Sales Verification Tool (SVT)** is a core component of the **Council Tax Revaluation 2028 programme**, designed to provide the **Valuation Office Agency (VOA)** with a structured, auditable mechanism to assess the validity and reliability of residential property sales data used for banding decisions.
 
-    // Step 5: Join Header → RowSlim
-    Joined = Table.NestedJoin(
-        FilteredHeader,
-        {"voa_frontdoorheaderid"},
-        RowSlim,
-        {"voa_frontdoorheaderid"},
-        "RowSlimTable",
-        JoinKind.Inner
-    ),
-    ExpandedJoined = Table.ExpandTableColumn(
-        Joined,
-        "RowSlimTable",
-        {"voa_baccodeacc"},
-        {"voa_baccodeacc"}
-    ),
+SVT enables **caseworkers, managers, and QA reviewers** to collaboratively review and classify sales such as SDLT, WLTT, LR PPD, and MILO records, based on model deviation, outlier status, and property condition. The insights generated through SVT directly feed into **automated banding logic, data enhancement pipelines, and future model training processes**.
 
-    // Step 6: Remove null BA Codes
-    Cleaned = Table.SelectRows(
-        ExpandedJoined,
-        each [voa_baccodeacc] <> null
-    ),
+---
 
-    // Step 7: Group by BA Code → Count files
-    Grouped = Table.Group(
-        Cleaned,
-        {"voa_baccodeacc"},
-        {{"Count Of Files", each Table.RowCount(_), Int64.Type}}
-    ),
+### ✅ SVT Core Functions
 
-    // Step 8: Rename column
-    Final = Table.RenameColumns(
-        Grouped,
-        {{"voa_baccodeacc", "Ba Code"}}
-    )
-in
-    Final
+SVT helps the VOA to:
+
+* ✅ **Identify and flag outlier sales** using model-predicted vs actual price deviation, accounting for HPI-adjusted benchmarks.
+* ✅ **Allow caseworkers to verify condition and classification** of individual sales as *Useful*, *Not Useful*, or *Inconclusive*.
+* ✅ **Capture room-by-room condition scores**, computing a weighted aggregate used in analytics and audit.
+* ✅ **Trigger downstream actions** such as CR10 cases, PAD enhancements, or reassignments based on verification results.
+* ✅ **Enable managers to oversee verification progress**, assign sales to team members, and perform Quality Assurance (QA) reviews.
+* ✅ **Maintain full audit history** of verification outcomes, condition inputs, and user actions.
+
+---
+
+## 🧱 1.2 To-Be Architecture (Target View)
+
+At a high level, the SVT solution comprises the following components:
+
+| **Component**                                | **Description**                                                                                                                                                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sales Pipeline (PostgreSQL)**              | Consolidates and transforms data from SDLT, WLTT, LR PPD, and MILO sources into a **master sales dataset**, including derived fields such as *Outlier Flag*, *Model Deviation*, and *HPI Adjustments*.              |
+| **Azure SQL (VaaS)**                         | Stores verification task metadata, ownership details, task statuses, and audit logs. Task IDs are generated via **SQL Stored Procedures**, orchestrated by API or Power Automate.                                   |
+| **Power Platform (Dataverse)**               | Hosts metadata for task assignments, condition scoring outcomes, verification statuses, and QA tracking. Acts as the glue between model-driven UI and backend data operations.                                      |
+| **Model-Driven App (Dynamics 365)**          | Embedded into the existing **Council Tax (CT) model-driven app**, this app presents dashboards, task grids, assignment screens, and verification forms tailored to each persona (Caseworker, Manager, QA Reviewer). |
+| **Canvas App (Condition Score UI)**          | Custom Power App launched from the model-driven app, used to capture room-level scores for Kitchen, Bathroom, Decor, etc., and compute an **overall property condition score**.                                     |
+| **Power Automate (Flow)**                    | Automates key workflows, including overnight task generation, assignment changes, syncing of scoring data, and QA transitions.                                                                                      |
+| **Azure API Management (APIM)**              | Exposes secure, rate-limited APIs to access sales pipeline data from PostgreSQL. Also supports writebacks from the Power Platform.                                                                                  |
+| **Power BI (Optional)**                      | Enables reporting on volume, outcomes, SLA compliance, and performance metrics, using data fed from both Dataverse and VaaS SQL.                                                                                    |
+| **Azure Data Factory / Ingestion Framework** | Handles the ingestion of monthly LR PPD data and applies change detection logic before updating PostgreSQL master tables.                                                                                           |
+
+---
+
+## 🚀 1.3 Key Capabilities
+
+| **Capability**                        | **Details**                                                                                                                                                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📌 **Unified Sales Dataset**          | SDLT, WLTT, LR PPD, and MILO records are matched, cleaned, and combined into a single **Master Sales Dataset** within PostgreSQL.                                                                          |
+| 🚩 **Automated Outlier Detection**    | Deviation from model-predicted values is analysed; records exceeding thresholds are automatically flagged as Outliers.                                                                                     |
+| 📝 **Verification Task Lifecycle**    | Tasks may be **auto-generated (overnight)** or **manually initiated**. Tasks move through states like: `Unallocated`, `Allocated`, `In Progress`, `Submitted for QA`, `QA Complete`, `Returned`, `Closed`. |
+| 🧠 **Condition Scoring Engine**       | Canvas App inputs for Kitchen, Bathroom, Decoration, etc. are compiled into a composite score (e.g., 1–5 scale), saved to Dataverse and SQL.                                                               |
+| ✅ **Quality Assurance Process**       | QA users review submitted verifications, provide outcomes and comments, and can return records for correction.                                                                                             |
+| 🔄 **Data Refresh & Change Tracking** | Sales records updated in upstream systems (e.g., new HPI factors or property attribute changes) are reflagged for verification. All changes are tracked.                                                   |
+| 🔗 **UARN-Based Navigation**          | Every interaction is **UARN-centric**: verifications, sales grouping, condition scoring, and audit all align under the same property reference key.                                                        |
+
+---
+
+Would you like to proceed to section **“1.4 Personas & User Journeys”**, or continue updating another area like **“Security and Access Design”** or **“Functional Components Mapping”**?
+
+
+Here is the **updated “To-Be View”** for the **SVT Solution Overview section** of the **System Design Document (SDD)**—incorporating the format you provided, referencing HMRC architectural policies, Power Platform elements, Dynamics 365 custom pages, and task generation using VaaS SQL.
+
+---
+
+### 1.2 To-Be View
+
+The **SVT (Sales Verification Tool)** solution has been architected using existing **HMRC M365 (0365)** subscription capabilities, extending the Azure-based Power Platform footprint, and aligning with current HMRC-approved architectural patterns and conditional access policies. No new physical infrastructure is introduced in this solution. The preference is to utilise **PaaS and SaaS services** wherever possible, with **IaaS** considered only where strictly necessary.
+
+The core design supports the strategic goals of reuse, modular extensibility, and low-code productivity, enabling rapid iteration and delivery of sales verification workflows.
+
+---
+
+#### 🔹 Platform Hosting and Infrastructure
+
+* **Power Platform (Dataverse + Model-Driven App)**
+  A new custom page built within the existing **Council Tax Model-Driven App** provides the UI for SVT. This page uses standard Power Platform controls (grids, forms, Canvas App components) to display assigned tasks, sales records, and verification outcomes.
+
+* **VaaS SQL (PostgreSQL)**
+  VaaS SQL is the master source for enriched sales data (SDLT, WLTT, LR PPD, MILO), and is also used for storing **task metadata**, verification statuses, QA assignments, and historical audits.
+
+  > **Task ID Generation** is implemented via **SQL stored procedures**, invoked either via a secure API or through **Power Automate**, ensuring consistent sequencing and auditability.
+
+* **Azure API Management (APIM)**
+  Used to expose PostgreSQL queries securely to the Power Platform. Any downstream services (e.g., DAP2, BARS) or upstream data consumers (e.g., AVM, Power BI) will use this managed gateway.
+
+* **Azure Logic Apps / Power Automate Flows**
+  Handle:
+
+  * Overnight outlier scan and task creation via stored procedures.
+  * Assignment updates from UI events.
+  * QA workflow transitions and manual overrides.
+
+* **Microsoft Dynamics 365 (0365 Instance)**
+  SVT is embedded within the **existing Dynamics 365 CT solution** using custom pages, custom tables (as needed), and relationships with UARN/master property datasets. No new D365 instances are introduced.
+
+---
+
+#### 🔹 Identity, Access, and Integration
+
+* **Conditional Access**
+  Access to Dynamics 365 and Power Platform is governed via HMRC’s existing **Entra ID conditional access policies**. Role-based visibility (Manager, Caseworker, QA) is driven by **Dataverse security roles** augmented by metadata stored in PostgreSQL.
+
+* **0365 Routing & Scrubbing Centre**
+  While current policy requires 0365 traffic to route through the Scrubbing Centre, a CSTS review may remove this dependency. The solution is built to support both modes.
+
+* **Integration Framework**
+  If MOTP, SDES, or external print/sms services are introduced in later phases, they will be connected using the **HMRC Integration Framework**. Internal APIs (e.g., PostgreSQL or DAP2) are exposed via **Azure APIM**.
+
+---
+
+#### 🔹 Resilience and Redundancy
+
+* **UK South** Azure Region hosts all PaaS components (Power Platform, PostgreSQL, APIM, Logic Apps).
+* **Geo-Redundancy** is supported via:
+
+  * **Dynamics 365**: built-in failover across UK South and UK West.
+  * **Azure SQL/PostgreSQL**: zone-redundant, geo-paired with point-in-time recovery.
+  * **Power Platform**: follows Microsoft’s SLA-backed regional architecture.
+
+---
+
+#### 🔹 Geospatial Support (Future)
+
+Although not part of the MVP, the broader program design anticipates using **ArcGIS Online** or **ArcGIS Enterprise** for geospatial overlays, allowing caseworkers to visualise sales against property boundaries and valuation zones. This capability will be accessed via embedded components within the Dynamics UI.
+
+---
+
+#### 🔹 Legacy Interface Repointing
+
+Existing Council Tax endpoints (e.g., BARS, EBARs) will be redirected to integrate with the new SVT-enabled CT solution. Public-facing interfaces will remain unchanged during Phase 1 to ensure continuity for external users.
+
+---
+
+Would you like to proceed with updating **“1.3 Key Capabilities”** or define the **“1.4 Personas and Screens”** section next?
+
