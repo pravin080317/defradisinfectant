@@ -1,135 +1,117 @@
-Here is the **rewritten Solution Overview** section for **SVT (Sales Verification Tool)** in a polished and SDD-ready format, consolidating your provided text with enterprise design language and structured layout:
+
 
 ---
 
-## 🔍 1.1 Solution Overview – Sales Verification Tool (SVT)
+### **Usability in Dynamics 365 – Implemented Platform (SVT Context)**
 
-The **Sales Verification Tool (SVT)** is a core component of the **Council Tax Revaluation 2028 programme**, designed to provide the **Valuation Office Agency (VOA)** with a structured, auditable mechanism to assess the validity and reliability of residential property sales data used for banding decisions.
+The Sales Verification Tool (SVT) user interface has been developed within the existing **Dynamics 365 Model-Driven App**, using **Canvas App Custom Pages** to deliver flexible, role-based screens aligned to VOA personas (Caseworker, Manager, QC). The design follows GOV.UK and HMRC usability guidelines while leveraging Microsoft Power Platform's rapid prototyping capabilities.
 
-SVT enables **caseworkers, managers, and QA reviewers** to collaboratively review and classify sales such as SDLT, WLTT, LR PPD, and MILO records, based on model deviation, outlier status, and property condition. The insights generated through SVT directly feed into **automated banding logic, data enhancement pipelines, and future model training processes**.
+* ✅ The solution uses **Canvas App-based Custom Pages**, embedded into the Council Tax model-driven app. These pages are built using **standard Power Apps controls**, which are **WCAG-compliant by design**, providing accessibility support for screen readers, keyboard navigation, and other assistive technologies.
 
----
+* ✅ Rather than starting with Miro wireframes, the prototype was rapidly built using **Power Apps Out-of-the-Box (OOB) components**, enabling early user feedback and accelerated business engagement.
 
-### ✅ SVT Core Functions
+* ✅ Screens are structured around **persona roles** (Caseworker, Manager, QC), with access-controlled dashboards and workflows tailored to each role's responsibilities.
 
-SVT helps the VOA to:
+* ✅ The **Low-Level Design (LLD)** phase will finalise the UI layout, focusing on interaction flows, tab ordering, field validations, and context-aware help or hints where necessary.
 
-* ✅ **Identify and flag outlier sales** using model-predicted vs actual price deviation, accounting for HPI-adjusted benchmarks.
-* ✅ **Allow caseworkers to verify condition and classification** of individual sales as *Useful*, *Not Useful*, or *Inconclusive*.
-* ✅ **Capture room-by-room condition scores**, computing a weighted aggregate used in analytics and audit.
-* ✅ **Trigger downstream actions** such as CR10 cases, PAD enhancements, or reassignments based on verification results.
-* ✅ **Enable managers to oversee verification progress**, assign sales to team members, and perform Quality Assurance (QA) reviews.
-* ✅ **Maintain full audit history** of verification outcomes, condition inputs, and user actions.
+* ✅ The **View Sales Record** screen has multiple data sections (Hereditament, Banding, Sale Summary, LR/MILO/WLTT data, Property Attributes, Hyperlinks, QA, etc.), which requires **vertical scrolling** due to content volume. This trade-off ensures clarity without overloading the user on a single view.
 
----
+* ✅ Pages make use of **Power Platform components** like:
 
-## 🧱 1.2 To-Be Architecture (Target View)
+  * Power Apps form and gallery controls
+  * **PCF components** for tabular layout and formatting (e.g., DetailsList)
+  * SharePoint image galleries for room condition display
+  * Custom command buttons with role-aware logic (e.g., ‘Promote to Master’, ‘Submit’, ‘Calculate’)
 
-At a high level, the SVT solution comprises the following components:
+* ✅ The application complies with **HTML5 standards** and provides **device-agnostic UI support**, including:
 
-| **Component**                                | **Description**                                                                                                                                                                                                     |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Sales Pipeline (PostgreSQL)**              | Consolidates and transforms data from SDLT, WLTT, LR PPD, and MILO sources into a **master sales dataset**, including derived fields such as *Outlier Flag*, *Model Deviation*, and *HPI Adjustments*.              |
-| **Azure SQL (VaaS)**                         | Stores verification task metadata, ownership details, task statuses, and audit logs. Task IDs are generated via **SQL Stored Procedures**, orchestrated by API or Power Automate.                                   |
-| **Power Platform (Dataverse)**               | Hosts metadata for task assignments, condition scoring outcomes, verification statuses, and QA tracking. Acts as the glue between model-driven UI and backend data operations.                                      |
-| **Model-Driven App (Dynamics 365)**          | Embedded into the existing **Council Tax (CT) model-driven app**, this app presents dashboards, task grids, assignment screens, and verification forms tailored to each persona (Caseworker, Manager, QA Reviewer). |
-| **Canvas App (Condition Score UI)**          | Custom Power App launched from the model-driven app, used to capture room-level scores for Kitchen, Bathroom, Decor, etc., and compute an **overall property condition score**.                                     |
-| **Power Automate (Flow)**                    | Automates key workflows, including overnight task generation, assignment changes, syncing of scoring data, and QA transitions.                                                                                      |
-| **Azure API Management (APIM)**              | Exposes secure, rate-limited APIs to access sales pipeline data from PostgreSQL. Also supports writebacks from the Power Platform.                                                                                  |
-| **Power BI (Optional)**                      | Enables reporting on volume, outcomes, SLA compliance, and performance metrics, using data fed from both Dataverse and VaaS SQL.                                                                                    |
-| **Azure Data Factory / Ingestion Framework** | Handles the ingestion of monthly LR PPD data and applies change detection logic before updating PostgreSQL master tables.                                                                                           |
+  * Compatibility with all HMRC-supported browsers: **Chrome, Edge, Mobile Safari**
+  * Usability across **desktop, laptop, tablet, and mobile**
+  * No dependency on browser plugins or client-side installations
+
+* ✅ The primary user interaction mode is **desktop browser**, but mobile usability is also supported in read-only or basic input scenarios.
+
+* ✅ All screens and navigation are designed for **clarity and consistency**, minimizing cognitive load and improving user efficiency.
+
+* ✅ **Accessibility and usability testing** will be validated during the test phases, with any improvements fed back into iteration cycles. SRF usability engagement is required as internal-facing UI has been amended.
 
 ---
 
-## 🚀 1.3 Key Capabilities
-
-| **Capability**                        | **Details**                                                                                                                                                                                                |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 📌 **Unified Sales Dataset**          | SDLT, WLTT, LR PPD, and MILO records are matched, cleaned, and combined into a single **Master Sales Dataset** within PostgreSQL.                                                                          |
-| 🚩 **Automated Outlier Detection**    | Deviation from model-predicted values is analysed; records exceeding thresholds are automatically flagged as Outliers.                                                                                     |
-| 📝 **Verification Task Lifecycle**    | Tasks may be **auto-generated (overnight)** or **manually initiated**. Tasks move through states like: `Unallocated`, `Allocated`, `In Progress`, `Submitted for QA`, `QA Complete`, `Returned`, `Closed`. |
-| 🧠 **Condition Scoring Engine**       | Canvas App inputs for Kitchen, Bathroom, Decoration, etc. are compiled into a composite score (e.g., 1–5 scale), saved to Dataverse and SQL.                                                               |
-| ✅ **Quality Assurance Process**       | QA users review submitted verifications, provide outcomes and comments, and can return records for correction.                                                                                             |
-| 🔄 **Data Refresh & Change Tracking** | Sales records updated in upstream systems (e.g., new HPI factors or property attribute changes) are reflagged for verification. All changes are tracked.                                                   |
-| 🔗 **UARN-Based Navigation**          | Every interaction is **UARN-centric**: verifications, sales grouping, condition scoring, and audit all align under the same property reference key.                                                        |
+Certainly — here is a detailed **usability design breakdown for SVT**, structured in standard documentation format under:
 
 ---
 
-Would you like to proceed to section **“1.4 Personas & User Journeys”**, or continue updating another area like **“Security and Access Design”** or **“Functional Components Mapping”**?
+## **Navigation Within the Application – SVT**
 
-
-Here is the **updated “To-Be View”** for the **SVT Solution Overview section** of the **System Design Document (SDD)**—incorporating the format you provided, referencing HMRC architectural policies, Power Platform elements, Dynamics 365 custom pages, and task generation using VaaS SQL.
-
----
-
-### 1.2 To-Be View
-
-The **SVT (Sales Verification Tool)** solution has been architected using existing **HMRC M365 (0365)** subscription capabilities, extending the Azure-based Power Platform footprint, and aligning with current HMRC-approved architectural patterns and conditional access policies. No new physical infrastructure is introduced in this solution. The preference is to utilise **PaaS and SaaS services** wherever possible, with **IaaS** considered only where strictly necessary.
-
-The core design supports the strategic goals of reuse, modular extensibility, and low-code productivity, enabling rapid iteration and delivery of sales verification workflows.
+The SVT solution follows consistent and accessible navigation principles aligned to GOV.UK and HMRC standards, delivered using **Dynamics 365 with embedded Canvas App Custom Pages**. The navigation experience is streamlined for ease of use by VOA internal staff personas (Caseworker, Manager, QC), with contextual access and clearly segregated workflows.
 
 ---
 
-#### 🔹 Platform Hosting and Infrastructure
+### **Navigation Within the Application**
 
-* **Power Platform (Dataverse + Model-Driven App)**
-  A new custom page built within the existing **Council Tax Model-Driven App** provides the UI for SVT. This page uses standard Power Platform controls (grids, forms, Canvas App components) to display assigned tasks, sales records, and verification outcomes.
-
-* **VaaS SQL (PostgreSQL)**
-  VaaS SQL is the master source for enriched sales data (SDLT, WLTT, LR PPD, MILO), and is also used for storing **task metadata**, verification statuses, QA assignments, and historical audits.
-
-  > **Task ID Generation** is implemented via **SQL stored procedures**, invoked either via a secure API or through **Power Automate**, ensuring consistent sequencing and auditability.
-
-* **Azure API Management (APIM)**
-  Used to expose PostgreSQL queries securely to the Power Platform. Any downstream services (e.g., DAP2, BARS) or upstream data consumers (e.g., AVM, Power BI) will use this managed gateway.
-
-* **Azure Logic Apps / Power Automate Flows**
-  Handle:
-
-  * Overnight outlier scan and task creation via stored procedures.
-  * Assignment updates from UI events.
-  * QA workflow transitions and manual overrides.
-
-* **Microsoft Dynamics 365 (0365 Instance)**
-  SVT is embedded within the **existing Dynamics 365 CT solution** using custom pages, custom tables (as needed), and relationships with UARN/master property datasets. No new D365 instances are introduced.
+* The **left navigation pane** of the Dynamics 365 Model-Driven App provides entry points into “**SVT (Sales Verification Tool)**” and “**Valuation Tool**”.
+* Navigation labels avoid acronyms (e.g., "Search Reval Sales Record" instead of "SRR").
+* Navigation structure is kept **simple and role-segregated**, with grouping by function (e.g., Caseworker tools vs QC tools).
+* **Icons are supported with clear labels** to aid screen reader accessibility.
+* Power Platform’s responsive layout ensures navigation works seamlessly on different screen sizes, though core use is expected via desktop.
 
 ---
 
-#### 🔹 Identity, Access, and Integration
+### **Pages (Canvas Custom Pages in Dynamics)**
 
-* **Conditional Access**
-  Access to Dynamics 365 and Power Platform is governed via HMRC’s existing **Entra ID conditional access policies**. Role-based visibility (Manager, Caseworker, QA) is driven by **Dataverse security roles** augmented by metadata stored in PostgreSQL.
+Custom Pages have been created and embedded within the Dynamics app, with persona-based access:
 
-* **0365 Routing & Scrubbing Centre**
-  While current policy requires 0365 traffic to route through the Scrubbing Centre, a CSTS review may remove this dependency. The solution is built to support both modes.
+| **Page Title**               | **Accessible by** | **Purpose**                                                                        |
+| ---------------------------- | ----------------- | ---------------------------------------------------------------------------------- |
+| `Search Reval Sales Record`  | All personas      | Advanced search screen to query and filter sales from PostgreSQL via virtual table |
+| `My Allocated Work`          | Caseworker        | Grid of assigned tasks; launches into verification journey                         |
+| `Manager Dashboard`          | Manager           | KPIs, summaries, and quick stats on overall progress                               |
+| `Manager Assignment`         | Manager           | Interface to bulk-assign or reassign verification tasks                            |
+| `Quality Control Dashboard`  | QC Reviewer       | Overview of submitted verifications; status-wise and reviewer progress             |
+| `Quality Control Assignment` | QC Reviewer       | Screen to self-assign QC tasks or review others' submitted work                    |
 
-* **Integration Framework**
-  If MOTP, SDES, or external print/sms services are introduced in later phases, they will be connected using the **HMRC Integration Framework**. Internal APIs (e.g., PostgreSQL or DAP2) are exposed via **Azure APIM**.
-
----
-
-#### 🔹 Resilience and Redundancy
-
-* **UK South** Azure Region hosts all PaaS components (Power Platform, PostgreSQL, APIM, Logic Apps).
-* **Geo-Redundancy** is supported via:
-
-  * **Dynamics 365**: built-in failover across UK South and UK West.
-  * **Azure SQL/PostgreSQL**: zone-redundant, geo-paired with point-in-time recovery.
-  * **Power Platform**: follows Microsoft’s SLA-backed regional architecture.
+Each page loads within the Dynamics context, offering single-click return navigation and breadcrumb paths for easy tracking.
 
 ---
 
-#### 🔹 Geospatial Support (Future)
+### **Sales Verification Form – Subpages/Sections**
 
-Although not part of the MVP, the broader program design anticipates using **ArcGIS Online** or **ArcGIS Enterprise** for geospatial overlays, allowing caseworkers to visualise sales against property boundaries and valuation zones. This capability will be accessed via embedded components within the Dynamics UI.
+The **Sales Record Form** (Canvas or Form component) consists of multiple collapsible/scrollable sections:
+
+| **Section**                | **Purpose**                                                           |
+| -------------------------- | --------------------------------------------------------------------- |
+| `Hereditament Info`        | Basic property identifiers: Address, Coordinates, Billing Authority   |
+| `Banding`                  | Band reference, Band ID, and current/proposed band                    |
+| `Sale Summary`             | Sale price, transaction date, outlier flag, ratio, model comparison   |
+| `Sales Verification`       | "Useful" toggle, reasons for non-usefulness, and notes                |
+| `Condition Score (Canvas)` | Detailed room condition entries (Kitchen, Bathroom, Decoration, etc.) |
+| `Sale Calculations`        | Previous/Current ratio, flags, HPI factors                            |
+| `LR PPD / MILO`            | LR PPD details or MILO fields (conditionally hidden)                  |
+| `WLTT`                     | WLTT details (Transaction price, lease, tenure, agents, etc.)         |
+| `Hyperlinks`               | Clickable buttons to EPC, GSV, Zoopla, RightMove, VMS                 |
+| `Property Attributes`      | Attribute string for audit/debug reference                            |
+| `QA Section`               | Comments box, decision dropdown, and submit button for QC stage       |
+
+Pages are expected to scroll due to the number of logical sections. Navigation between records (next/prev) is offered for efficiency during verification.
 
 ---
 
-#### 🔹 Legacy Interface Repointing
+### **Dashboards and Views**
 
-Existing Council Tax endpoints (e.g., BARS, EBARs) will be redirected to integrate with the new SVT-enabled CT solution. Public-facing interfaces will remain unchanged during Phase 1 to ensure continuity for external users.
+SVT includes **role-specific dashboards** using Power Apps components and standard Dynamics dashboard controls:
+
+| **Dashboard**          | **Audience** | **Features**                                                       |
+| ---------------------- | ------------ | ------------------------------------------------------------------ |
+| `Manager Dashboard`    | Manager      | Charts, filters, stats on total assigned/completed/QA failed tasks |
+| `Caseworker Dashboard` | Caseworker   | My work status (New, In Progress), filter by sale type or area     |
+| `QC Dashboard`         | QC Reviewer  | Items awaiting review, pass/fail ratio, workload tracking          |
+
+**Views** (via PCF grid or gallery control) provide:
+
+* Filtering by Outlier, Postcode, UPRN, and Sale Status
+* Inline “View Record” buttons for deep dive
+* Visual indicators (flags, badges) for quick scanning
 
 ---
 
-Would you like to proceed with updating **“1.3 Key Capabilities”** or define the **“1.4 Personas and Screens”** section next?
 
