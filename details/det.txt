@@ -1,60 +1,50 @@
+let isCouncilSwitching = false;
+
 function selectAccount(event) {
   event.preventDefault();
 
-  const account = event.target.closest('[data-council-id]');
-  if (!account) {
-    console.warn("Council selection failed: no valid target found.");
-    return;
-  }
+  if (isCouncilSwitching) return; // prevent double trigger
+  isCouncilSwitching = true;
 
+  const account = event.target.closest('[data-council-id]');
   const newCouncilId = account.getAttribute("data-council-id");
   const newCouncilName = account.innerText?.trim();
   const prevCouncilId = sessionStorage.getItem("activeCouncilId");
 
   updateNewActiveAccount(newCouncilId)
     .then(() => {
-      // Only update sessionStorage and track event if new council is different
       if (newCouncilId && newCouncilId !== prevCouncilId) {
         sessionStorage.setItem("activeCouncilId", newCouncilId);
         sessionStorage.setItem("activeCouncilName", newCouncilName);
 
-        // Attempt to send telemetry before redirect
         try {
           if (window.appInsights && typeof window.appInsights.trackEvent === "function") {
-            window.appInsights.trackEvent(
-              {
-                name: "CouncilSwitched",
-                properties: {
-                  userId: "{{ user.id | default: 'Anonymous' }}",
-                  userName: "{{ user.fullname | default: 'N/A' }}",
-                  previousCouncilId: prevCouncilId || "Unknown",
-                  newCouncilId: newCouncilId,
-                  newCouncilName: newCouncilName,
-                  userCouncil: newCouncilName,
-                  switchTime: new Date().toISOString(),
-                  sessionId: sessionStorage.getItem("customSessionId") || ""
-                }
-              },
-              null, // measurements (not needed here)
-              () => {
-                // Callback after tracking is sent → then redirect
-                newAccountPage();
+            window.appInsights.trackEvent({
+              name: "CouncilSwitched",
+              properties: {
+                userId: "{{ user.id | default: 'Anonymous' }}",
+                userName: "{{ user.fullname | default: 'N/A' }}",
+                previousCouncilId: prevCouncilId || "Unknown",
+                newCouncilId: newCouncilId,
+                newCouncilName: newCouncilName,
+                userCouncil: newCouncilName,
+                switchTime: new Date().toISOString(),
+                sessionId: sessionStorage.getItem("customSessionId") || ""
               }
-            );
-          } else {
-            console.warn("App Insights not available, redirecting anyway.");
-            newAccountPage();
+            });
           }
         } catch (err) {
           console.error("App Insights tracking failed for Multi User:", err);
-          newAccountPage();
         }
-      } else {
-        // No council change, just redirect
-        newAccountPage();
       }
+
+      // ✅ Only redirect once
+      newAccountPage();
     })
     .catch(function (error) {
       console.error("Error updating council:", error);
+    })
+    .finally(() => {
+      isCouncilSwitching = false;
     });
 }
