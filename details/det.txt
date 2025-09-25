@@ -1,21 +1,3 @@
-
-
-Defensive handling of click targets
-
-Robust .then() with .catch()
-
-Safe trackEvent() logic
-
-Ensures switchTime, previousCouncilId, and userCouncil are captured
-
-Ensures sessionStorage is updated properly
-
-
-
----
-
-✅ selectAccount() Full Updated Function (Council Switch Handler)
-
 function selectAccount(event) {
   event.preventDefault();
 
@@ -31,99 +13,48 @@ function selectAccount(event) {
 
   updateNewActiveAccount(newCouncilId)
     .then(() => {
-      // Update active council in session storage
+      // Only update sessionStorage and track event if new council is different
       if (newCouncilId && newCouncilId !== prevCouncilId) {
         sessionStorage.setItem("activeCouncilId", newCouncilId);
         sessionStorage.setItem("activeCouncilName", newCouncilName);
 
+        // Attempt to send telemetry before redirect
         try {
-          if (
-            window.appInsights &&
-            typeof window.appInsights.trackEvent === "function"
-          ) {
-            window.appInsights.trackEvent({
-              name: "CouncilSwitched",
-              properties: {
-                userId: "{{ user.id | default: 'Anonymous' }}",
-                userName: "{{ user.fullname | default: 'N/A' }}",
-                previousCouncilId: prevCouncilId || "Unknown",
-                newCouncilId: newCouncilId,
-                newCouncilName: newCouncilName,
-                userCouncil: newCouncilName,
-                switchTime: new Date().toISOString(),
-                sessionId: sessionStorage.getItem("customSessionId") || ""
+          if (window.appInsights && typeof window.appInsights.trackEvent === "function") {
+            window.appInsights.trackEvent(
+              {
+                name: "CouncilSwitched",
+                properties: {
+                  userId: "{{ user.id | default: 'Anonymous' }}",
+                  userName: "{{ user.fullname | default: 'N/A' }}",
+                  previousCouncilId: prevCouncilId || "Unknown",
+                  newCouncilId: newCouncilId,
+                  newCouncilName: newCouncilName,
+                  userCouncil: newCouncilName,
+                  switchTime: new Date().toISOString(),
+                  sessionId: sessionStorage.getItem("customSessionId") || ""
+                }
+              },
+              null, // measurements (not needed here)
+              () => {
+                // Callback after tracking is sent → then redirect
+                newAccountPage();
               }
-            });
+            );
           } else {
-            console.warn("App Insights not available on this page.");
+            console.warn("App Insights not available, redirecting anyway.");
+            newAccountPage();
           }
         } catch (err) {
           console.error("App Insights tracking failed for Multi User:", err);
+          newAccountPage();
         }
+      } else {
+        // No council change, just redirect
+        newAccountPage();
       }
-
-      // Redirect to dashboard
-      newAccountPage();
     })
     .catch(function (error) {
       console.error("Error updating council:", error);
     });
 }
-
-
----
-
-✅ App Insights Setup (Telemetry Initializer Excerpt)
-
-Update your telemetryInitializer like below to respect values from trackEvent, not overwrite them:
-
-var telemetryInitializer = (envelope) => {
-  envelope.tags["ai.cloud.role"] = window.Microsoft?.Dynamic365?.Portal?.type;
-  envelope.tags["ai.cloud.roleInstance"] = window.Microsoft?.Dynamic365?.Portal?.version;
-  envelope.tags["ai.session.id"] = sessionStorage.getItem("customSessionId") || "AnonymousSession";
-
-  envelope.data.baseData.properties = envelope.data.baseData.properties || {};
-
-  // Avoid overwriting council if already set by trackEvent
-  if (!envelope.data.baseData.properties["userCouncil"]) {
-    envelope.data.baseData.properties["userCouncil"] =
-      "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}" || sessionStorage.getItem("activeCouncilName") || "Unknown";
-  }
-
-  envelope.data.baseData.properties["sessionId"] =
-    sessionStorage.getItem("customSessionId") || "Unknown";
-
-  {% if user %}
-    envelope.tags["ai.user.id"] = "{{ user.id }}";
-    envelope.data.baseData.properties["userId"] = "{{ user.id }}";
-    envelope.data.baseData.properties["userName"] = "{{ user.fullname }}";
-    envelope.data.baseData.properties["userStatus"] = "Logged In";
-    envelope.data.baseData.properties["isUserRepresentsMultipleCouncil"] = "{{ user.voap_representsmultiple }}";
-  {% else %}
-    envelope.data.baseData.properties["userId"] = "Anonymous";
-    envelope.data.baseData.properties["userName"] = "N/A";
-    envelope.data.baseData.properties["userStatus"] = "Guest";
-  {% endif %}
-
-  envelope.data.baseData.properties["PortalPageLoadTime"] = new Date().toISOString();
-};
-
-appInsights.addTelemetryInitializer(telemetryInitializer);
-
-
----
-
-✅ To Debug in Browser
-
-If the event is still missing:
-
-Use console.log("Switch triggered") in selectAccount() to confirm it's firing.
-
-Open Dev Tools > Application > sessionStorage and verify activeCouncilId and activeCouncilName are set.
-
-Check Network tab > beacon request to ensure trackEvent sends correct values.
-
-
-
----
-
