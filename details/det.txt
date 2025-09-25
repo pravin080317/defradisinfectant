@@ -1,31 +1,31 @@
-Here’s a rewritten and refined version of the section 2.2 Summary & Scope of Proposed Change, aligned with the SVT context and your architectural direction:
+Here’s an updated version of the Data Flow Item Detail section based on your image and notes, rewritten for clarity and accuracy specific to SVT (Sales Verification Tool), Power Platform, and SharePoint integration.
 
 
 ---
 
-2.2 Summary & Scope of Proposed Change
+Data Flow Item Detail
 
-The current ("As-Is") solution relies on a legacy architecture and does not meet evolving business or technical requirements. The proposed ("To-Be") change aims to modernize the solution using Microsoft Power Platform and cloud-native services to support the verification of approximately 1.5 million council property sales as part of the Welsh Council Tax Revaluation 2028 programme.
+Field	Updated Details
 
-The scope of the proposed change includes:
+1. Data Flow Item Detail	Dynamics 365 (Canvas App Custom Page embedded within CT Case Management App)
+2. Invoked API/Service Name	Power Platform SharePoint Connector (which internally uses Microsoft Graph API for document access and management)
+3. New/Reuse/Enhance	New
+4. Format	JSON (internally handled via Graph API by Power Platform connectors)
+5. Protocol	HTTPS
+6. Trigger	Retrieval and listing of SharePoint documents triggered by GUI actions within the SVT Canvas App page
+7. Input / Submitted Data	Static images and documents uploaded once by Admin users (per list or valuation cycle) to a SharePoint document library
+8. Output / Response Data	Read-only documents (PDFs, images) displayed to Caseworkers for reference during Sales Verification
+9. Purpose & Outcome	To enable document management and secure access to external reference documents stored in SharePoint Online. This allows caseworkers to view relevant images (e.g. RightMove, Zoopla, GSV, etc.) as supporting context during the verification of sales records.
+10. Exception / Error Handling	Errors and connection failures are logged into Application Insights and Log Analytics.
+11. CRUD Operations	Read, Get List of Files – No Create/Update/Delete from user interface. Documents are pre-uploaded by admin.
+12. GUI or Workflow Trigger	Read operation is initiated from within the Canvas App interface by Caseworker or system workflow.
+13. Delivery Group Impacts	- Dynamics Team: Implements and manages Canvas App UI and Power Platform integrations. <br> - SharePoint Team: Manages site and document library.<br> - Integration Team: Ensures correct token authentication and access via Power Platform.<br> - Test Team: Validates read-only file access and size limits.<br> - Data Migration Team: Performs one-time upload of documents if needed.
+14. Maximum File Size	Up to 100 MB per document
+15. Authentication Method	Power Platform SharePoint connector uses OAuth 2.0 with Microsoft Graph API, passing the user context token and App-registered service token
 
-Development of a Power Platform Canvas App (Custom Page) embedded within the existing Council Tax Case Management Model-Driven App, to support persona-driven workflows for caseworkers, managers, and QA reviewers.
-
-Redesign of sales verification processes to allow seamless task assignment, condition scoring, verification tracking, and QA activities through the Power Platform.
-
-Task generation and metadata storage in VaaS SQL, using stored procedures invoked via Power Automate or secure APIs.
-
-Integration with Azure API Management, reusing the existing CT DAL (Data Access Layer) to expose PostgreSQL and VaaS SQL data to the Power Platform securely.
-
-Deployment of SharePoint Online to manage static images and reference documents, integrated with the verification interface.
-
-Reuse of the existing DAP platform, including Azure Data Factory and optional Databricks pipelines, to ingest and transform sales data from SDLT, WLTT, LR PPD, and MILO sources into a Master Sales Dataset.
-
-
-The SVT platform will deliver a scalable, cloud-native, low-code solution designed to be reusable for future revaluation exercises and adaptable to other regions.
 
 
 ---
 
-Let me know if you'd like to follow up with 2.3 Business Drivers or the Scope Exclusions section next.
+Let me know if you'd like a diagram or appendix reference for this.
 
