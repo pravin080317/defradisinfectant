@@ -1,50 +1,39 @@
-let isCouncilSwitching = false;
+Here’s a rewritten version of your 1.1 High-Level Overview for SVT, keeping it clear, professional, and aligned with your target audience (solution design reviewers, business stakeholders, and delivery teams):
 
-function selectAccount(event) {
-  event.preventDefault();
 
-  if (isCouncilSwitching) return; // prevent double trigger
-  isCouncilSwitching = true;
+---
 
-  const account = event.target.closest('[data-council-id]');
-  const newCouncilId = account.getAttribute("data-council-id");
-  const newCouncilName = account.innerText?.trim();
-  const prevCouncilId = sessionStorage.getItem("activeCouncilId");
+1.1 High-Level Overview
 
-  updateNewActiveAccount(newCouncilId)
-    .then(() => {
-      if (newCouncilId && newCouncilId !== prevCouncilId) {
-        sessionStorage.setItem("activeCouncilId", newCouncilId);
-        sessionStorage.setItem("activeCouncilName", newCouncilName);
+The Sales Verification Tool (SVT) will serve as a unified platform that enables VOA caseworkers and managers to manage the end-to-end process of sales data validation. Caseworkers can search, review, and verify sales records originating from multiple sources such as LR PPD, WLTT, SDLT, and MILO. They will record outcomes and, where necessary, trigger data enhancement actions. Managers will conduct Quality Assurance (QA) using a dedicated workflow.
 
-        try {
-          if (window.appInsights && typeof window.appInsights.trackEvent === "function") {
-            window.appInsights.trackEvent({
-              name: "CouncilSwitched",
-              properties: {
-                userId: "{{ user.id | default: 'Anonymous' }}",
-                userName: "{{ user.fullname | default: 'N/A' }}",
-                previousCouncilId: prevCouncilId || "Unknown",
-                newCouncilId: newCouncilId,
-                newCouncilName: newCouncilName,
-                userCouncil: newCouncilName,
-                switchTime: new Date().toISOString(),
-                sessionId: sessionStorage.getItem("customSessionId") || ""
-              }
-            });
-          }
-        } catch (err) {
-          console.error("App Insights tracking failed for Multi User:", err);
-        }
-      }
+Verified and quality-assured results will be fed into downstream systems such as the Automated Valuation Model (AVM) and Valuation Tools, ensuring consistent, defensible, and auditable property valuations across the end-to-end Council Tax revaluation process.
 
-      // ✅ Only redirect once
-      newAccountPage();
-    })
-    .catch(function (error) {
-      console.error("Error updating council:", error);
-    })
-    .finally(() => {
-      isCouncilSwitching = false;
-    });
-}
+The strategic objectives of SVT are to:
+
+Support accurate, explainable, and efficient property valuations for the Welsh Revaluation 2028 programme
+
+Enable structured validation of outlier and high-impact sales
+
+Ensure auditability and traceability of sale verification decisions
+
+Facilitate productivity improvements through a digital-first approach using Power Platform and Azure services
+
+
+
+---
+
+Phased Business Area Alignment
+
+SVT delivery is aligned to broader Council Tax Revaluation (CT Welsh) phases. This Solution Design Document (SDD) specifically covers the Welsh Revaluation Phase, with future scalability in mind for other regions and business areas.
+
+Business Area	Overview	Go-Live Phase
+
+Council Tax (Wales)	Enables sales verification for Welsh properties as part of the 2028 Council Tax revaluation.	Covered in current SDD scope
+
+
+
+---
+
+Let me know if you’d like to follow this up with a 1.2 Functional Scope or 1.3 Personas & Use Cases.
+
