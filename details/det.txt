@@ -1,159 +1,129 @@
 
 
----
+Defensive handling of click targets
 
-### **Usability in Dynamics 365 – Implemented Platform (SVT Context)**
+Robust .then() with .catch()
 
-The Sales Verification Tool (SVT) user interface has been developed within the existing **Dynamics 365 Model-Driven App**, using **Canvas App Custom Pages** to deliver flexible, role-based screens aligned to VOA personas (Caseworker, Manager, QC). The design follows GOV.UK and HMRC usability guidelines while leveraging Microsoft Power Platform's rapid prototyping capabilities.
+Safe trackEvent() logic
 
-* ✅ The solution uses **Canvas App-based Custom Pages**, embedded into the Council Tax model-driven app. These pages are built using **standard Power Apps controls**, which are **WCAG-compliant by design**, providing accessibility support for screen readers, keyboard navigation, and other assistive technologies.
+Ensures switchTime, previousCouncilId, and userCouncil are captured
 
-* ✅ Rather than starting with Miro wireframes, the prototype was rapidly built using **Power Apps Out-of-the-Box (OOB) components**, enabling early user feedback and accelerated business engagement.
+Ensures sessionStorage is updated properly
 
-* ✅ Screens are structured around **persona roles** (Caseworker, Manager, QC), with access-controlled dashboards and workflows tailored to each role's responsibilities.
 
-* ✅ The **Low-Level Design (LLD)** phase will finalise the UI layout, focusing on interaction flows, tab ordering, field validations, and context-aware help or hints where necessary.
-
-* ✅ The **View Sales Record** screen has multiple data sections (Hereditament, Banding, Sale Summary, LR/MILO/WLTT data, Property Attributes, Hyperlinks, QA, etc.), which requires **vertical scrolling** due to content volume. This trade-off ensures clarity without overloading the user on a single view.
-
-* ✅ Pages make use of **Power Platform components** like:
-
-  * Power Apps form and gallery controls
-  * **PCF components** for tabular layout and formatting (e.g., DetailsList)
-  * SharePoint image galleries for room condition display
-  * Custom command buttons with role-aware logic (e.g., ‘Promote to Master’, ‘Submit’, ‘Calculate’)
-
-* ✅ The application complies with **HTML5 standards** and provides **device-agnostic UI support**, including:
-
-  * Compatibility with all HMRC-supported browsers: **Chrome, Edge, Mobile Safari**
-  * Usability across **desktop, laptop, tablet, and mobile**
-  * No dependency on browser plugins or client-side installations
-
-* ✅ The primary user interaction mode is **desktop browser**, but mobile usability is also supported in read-only or basic input scenarios.
-
-* ✅ All screens and navigation are designed for **clarity and consistency**, minimizing cognitive load and improving user efficiency.
-
-* ✅ **Accessibility and usability testing** will be validated during the test phases, with any improvements fed back into iteration cycles. SRF usability engagement is required as internal-facing UI has been amended.
 
 ---
 
-Certainly — here is a detailed **usability design breakdown for SVT**, structured in standard documentation format under:
+✅ selectAccount() Full Updated Function (Council Switch Handler)
+
+function selectAccount(event) {
+  event.preventDefault();
+
+  const account = event.target.closest('[data-council-id]');
+  if (!account) {
+    console.warn("Council selection failed: no valid target found.");
+    return;
+  }
+
+  const newCouncilId = account.getAttribute("data-council-id");
+  const newCouncilName = account.innerText?.trim();
+  const prevCouncilId = sessionStorage.getItem("activeCouncilId");
+
+  updateNewActiveAccount(newCouncilId)
+    .then(() => {
+      // Update active council in session storage
+      if (newCouncilId && newCouncilId !== prevCouncilId) {
+        sessionStorage.setItem("activeCouncilId", newCouncilId);
+        sessionStorage.setItem("activeCouncilName", newCouncilName);
+
+        try {
+          if (
+            window.appInsights &&
+            typeof window.appInsights.trackEvent === "function"
+          ) {
+            window.appInsights.trackEvent({
+              name: "CouncilSwitched",
+              properties: {
+                userId: "{{ user.id | default: 'Anonymous' }}",
+                userName: "{{ user.fullname | default: 'N/A' }}",
+                previousCouncilId: prevCouncilId || "Unknown",
+                newCouncilId: newCouncilId,
+                newCouncilName: newCouncilName,
+                userCouncil: newCouncilName,
+                switchTime: new Date().toISOString(),
+                sessionId: sessionStorage.getItem("customSessionId") || ""
+              }
+            });
+          } else {
+            console.warn("App Insights not available on this page.");
+          }
+        } catch (err) {
+          console.error("App Insights tracking failed for Multi User:", err);
+        }
+      }
+
+      // Redirect to dashboard
+      newAccountPage();
+    })
+    .catch(function (error) {
+      console.error("Error updating council:", error);
+    });
+}
+
 
 ---
 
-## **Navigation Within the Application – SVT**
+✅ App Insights Setup (Telemetry Initializer Excerpt)
 
-The SVT solution follows consistent and accessible navigation principles aligned to GOV.UK and HMRC standards, delivered using **Dynamics 365 with embedded Canvas App Custom Pages**. The navigation experience is streamlined for ease of use by VOA internal staff personas (Caseworker, Manager, QC), with contextual access and clearly segregated workflows.
+Update your telemetryInitializer like below to respect values from trackEvent, not overwrite them:
 
----
+var telemetryInitializer = (envelope) => {
+  envelope.tags["ai.cloud.role"] = window.Microsoft?.Dynamic365?.Portal?.type;
+  envelope.tags["ai.cloud.roleInstance"] = window.Microsoft?.Dynamic365?.Portal?.version;
+  envelope.tags["ai.session.id"] = sessionStorage.getItem("customSessionId") || "AnonymousSession";
 
-### **Navigation Within the Application**
+  envelope.data.baseData.properties = envelope.data.baseData.properties || {};
 
-* The **left navigation pane** of the Dynamics 365 Model-Driven App provides entry points into “**SVT (Sales Verification Tool)**” and “**Valuation Tool**”.
-* Navigation labels avoid acronyms (e.g., "Search Reval Sales Record" instead of "SRR").
-* Navigation structure is kept **simple and role-segregated**, with grouping by function (e.g., Caseworker tools vs QC tools).
-* **Icons are supported with clear labels** to aid screen reader accessibility.
-* Power Platform’s responsive layout ensures navigation works seamlessly on different screen sizes, though core use is expected via desktop.
+  // Avoid overwriting council if already set by trackEvent
+  if (!envelope.data.baseData.properties["userCouncil"]) {
+    envelope.data.baseData.properties["userCouncil"] =
+      "{{ user.voap_contact_ActiveAccount_account.voa_baccodeacc }}" || sessionStorage.getItem("activeCouncilName") || "Unknown";
+  }
 
----
+  envelope.data.baseData.properties["sessionId"] =
+    sessionStorage.getItem("customSessionId") || "Unknown";
 
-### **Pages (Canvas Custom Pages in Dynamics)**
+  {% if user %}
+    envelope.tags["ai.user.id"] = "{{ user.id }}";
+    envelope.data.baseData.properties["userId"] = "{{ user.id }}";
+    envelope.data.baseData.properties["userName"] = "{{ user.fullname }}";
+    envelope.data.baseData.properties["userStatus"] = "Logged In";
+    envelope.data.baseData.properties["isUserRepresentsMultipleCouncil"] = "{{ user.voap_representsmultiple }}";
+  {% else %}
+    envelope.data.baseData.properties["userId"] = "Anonymous";
+    envelope.data.baseData.properties["userName"] = "N/A";
+    envelope.data.baseData.properties["userStatus"] = "Guest";
+  {% endif %}
 
-Custom Pages have been created and embedded within the Dynamics app, with persona-based access:
+  envelope.data.baseData.properties["PortalPageLoadTime"] = new Date().toISOString();
+};
 
-| **Page Title**               | **Accessible by** | **Purpose**                                                                        |
-| ---------------------------- | ----------------- | ---------------------------------------------------------------------------------- |
-| `Search Reval Sales Record`  | All personas      | Advanced search screen to query and filter sales from PostgreSQL via virtual table |
-| `My Allocated Work`          | Caseworker        | Grid of assigned tasks; launches into verification journey                         |
-| `Manager Dashboard`          | Manager           | KPIs, summaries, and quick stats on overall progress                               |
-| `Manager Assignment`         | Manager           | Interface to bulk-assign or reassign verification tasks                            |
-| `Quality Control Dashboard`  | QC Reviewer       | Overview of submitted verifications; status-wise and reviewer progress             |
-| `Quality Control Assignment` | QC Reviewer       | Screen to self-assign QC tasks or review others' submitted work                    |
+appInsights.addTelemetryInitializer(telemetryInitializer);
 
-Each page loads within the Dynamics context, offering single-click return navigation and breadcrumb paths for easy tracking.
-
----
-
-### **Sales Verification Form – Subpages/Sections**
-
-The **Sales Record Form** (Canvas or Form component) consists of multiple collapsible/scrollable sections:
-
-| **Section**                | **Purpose**                                                           |
-| -------------------------- | --------------------------------------------------------------------- |
-| `Hereditament Info`        | Basic property identifiers: Address, Coordinates, Billing Authority   |
-| `Banding`                  | Band reference, Band ID, and current/proposed band                    |
-| `Sale Summary`             | Sale price, transaction date, outlier flag, ratio, model comparison   |
-| `Sales Verification`       | "Useful" toggle, reasons for non-usefulness, and notes                |
-| `Condition Score (Canvas)` | Detailed room condition entries (Kitchen, Bathroom, Decoration, etc.) |
-| `Sale Calculations`        | Previous/Current ratio, flags, HPI factors                            |
-| `LR PPD / MILO`            | LR PPD details or MILO fields (conditionally hidden)                  |
-| `WLTT`                     | WLTT details (Transaction price, lease, tenure, agents, etc.)         |
-| `Hyperlinks`               | Clickable buttons to EPC, GSV, Zoopla, RightMove, VMS                 |
-| `Property Attributes`      | Attribute string for audit/debug reference                            |
-| `QA Section`               | Comments box, decision dropdown, and submit button for QC stage       |
-
-Pages are expected to scroll due to the number of logical sections. Navigation between records (next/prev) is offered for efficiency during verification.
 
 ---
 
-### **Dashboards and Views**
+✅ To Debug in Browser
 
-SVT includes **role-specific dashboards** using Power Apps components and standard Dynamics dashboard controls:
+If the event is still missing:
 
-| **Dashboard**          | **Audience** | **Features**                                                       |
-| ---------------------- | ------------ | ------------------------------------------------------------------ |
-| `Manager Dashboard`    | Manager      | Charts, filters, stats on total assigned/completed/QA failed tasks |
-| `Caseworker Dashboard` | Caseworker   | My work status (New, In Progress), filter by sale type or area     |
-| `QC Dashboard`         | QC Reviewer  | Items awaiting review, pass/fail ratio, workload tracking          |
+Use console.log("Switch triggered") in selectAccount() to confirm it's firing.
 
-**Views** (via PCF grid or gallery control) provide:
+Open Dev Tools > Application > sessionStorage and verify activeCouncilId and activeCouncilName are set.
 
-* Filtering by Outlier, Postcode, UPRN, and Sale Status
-* Inline “View Record” buttons for deep dive
-* Visual indicators (flags, badges) for quick scanning
+Check Network tab > beacon request to ensure trackEvent sends correct values.
+
+
 
 ---
-
-Certainly. Below is a **ready-to-use documentation section** tailored specifically for the **SVT (Sales Verification Tool)** solution, focusing on **User Interface Design and Layout Approach** and **Overarching Principles / Guidelines**, considering Power Platform, Canvas Custom Pages, and Dynamics 365 standards.
-
----
-
-## **User Interface Design and Layout Approach – SVT**
-
-The user interface for SVT has been developed using **Power Platform’s low-code capabilities**, primarily leveraging **Canvas Custom Pages**, embedded into a Dynamics 365 Model-Driven App. The approach aims to deliver **persona-specific, intuitive, and consistent user experiences** across all internal roles involved in the sales verification process (Caseworker, Manager, Quality Control).
-
-### Key Considerations in UI Design
-
-* **Canvas Custom Pages** are built using **Power Apps Controls** (e.g., galleries, data cards, forms, custom components), ensuring they are **WCAG-compliant** and **responsive by default**.
-* Where possible, **out-of-the-box Power Platform components** are used to streamline accessibility, support low-code maintainability, and accelerate iteration.
-* UI wireframing was **skipped at the prototype stage** to rapidly deliver working screens for review, with final screen layouts to be validated and locked during **Low-Level Design (LLD)** walkthroughs.
-* Each custom page aligns with a **single persona** and clearly presents only the fields and controls relevant to that persona's workflow, reducing cognitive load.
-
-### Layout Patterns
-
-* Each screen maintains a **left-to-right, top-to-bottom reading order**, aligned to GOV.UK layout guidance and HMRC internal accessibility policies.
-* **Sales verification record forms** are split into **multiple logical sections** (e.g., Banding, Sale Summary, Condition Score, LR/WLTT/MILO, QA), allowing progressive disclosure of data while maintaining structure.
-* Pages with a high number of data sections (e.g., View Sales Record) include **scrolling**, but maintain consistent padding, headings, and landmark ARIA roles for screen readers.
-* **Submit, Assign, and Promote actions** are consistently placed at the **bottom-right** of the form or section, aligned to user action flow.
-
----
-
-## **Overarching Principles / Guidelines – SVT UI**
-
-The following overarching principles were adopted in the design and build of SVT:
-
-| Principle                     | Description                                                                                                                                                      |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Clarity over Complexity**   | Each screen is designed to show only what the user needs. Complex interactions (like "Promote to Master") are visually isolated and contextual.                  |
-| **Persona-driven Screens**    | All screens and controls are built for a specific role (Caseworker, Manager, or QC), reducing cross-persona confusion and avoiding permission-related UX issues. |
-| **No Acronyms in UI**         | User-facing text avoids internal abbreviations (e.g., “Useful Sale” instead of “USF”), aligning with GOV.UK content style guidelines.                            |
-| **Consistent Navigation**     | Menu entries, dashboards, and views follow a consistent naming convention and layout order. Canvas pages and embedded views reuse common header/footer patterns. |
-| **Reusable Components**       | Where needed, PCF components or shared Canvas components are used (e.g., condition scoring, badge displays) to maintain design consistency.                      |
-| **Color and Accessibility**   | All buttons, charts, and alerts adhere to VOA color branding and WCAG 2.2 contrast standards. Focus states and keyboard navigation are tested during UAT.        |
-| **Minimal Training Required** | UI is designed such that users can perform verification, assignment, and QA actions without requiring extensive documentation or training.                       |
-| **Mobile Support (Optional)** | While optimized for desktop, all Canvas Custom Pages are **responsive** and can technically run on tablets or mobile devices for secondary scenarios.            |
-
----
-
-Let me know if you want this section inserted into your **SDD/LLD Word file**, styled with headings and references, or broken down by **individual persona screen mockups**.
 
