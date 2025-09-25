@@ -1,39 +1,31 @@
-Here’s a rewritten version of your 1.1 High-Level Overview for SVT, keeping it clear, professional, and aligned with your target audience (solution design reviewers, business stakeholders, and delivery teams):
+Here’s a rewritten and refined version of the section 2.2 Summary & Scope of Proposed Change, aligned with the SVT context and your architectural direction:
 
 
 ---
 
-1.1 High-Level Overview
+2.2 Summary & Scope of Proposed Change
 
-The Sales Verification Tool (SVT) will serve as a unified platform that enables VOA caseworkers and managers to manage the end-to-end process of sales data validation. Caseworkers can search, review, and verify sales records originating from multiple sources such as LR PPD, WLTT, SDLT, and MILO. They will record outcomes and, where necessary, trigger data enhancement actions. Managers will conduct Quality Assurance (QA) using a dedicated workflow.
+The current ("As-Is") solution relies on a legacy architecture and does not meet evolving business or technical requirements. The proposed ("To-Be") change aims to modernize the solution using Microsoft Power Platform and cloud-native services to support the verification of approximately 1.5 million council property sales as part of the Welsh Council Tax Revaluation 2028 programme.
 
-Verified and quality-assured results will be fed into downstream systems such as the Automated Valuation Model (AVM) and Valuation Tools, ensuring consistent, defensible, and auditable property valuations across the end-to-end Council Tax revaluation process.
+The scope of the proposed change includes:
 
-The strategic objectives of SVT are to:
+Development of a Power Platform Canvas App (Custom Page) embedded within the existing Council Tax Case Management Model-Driven App, to support persona-driven workflows for caseworkers, managers, and QA reviewers.
 
-Support accurate, explainable, and efficient property valuations for the Welsh Revaluation 2028 programme
+Redesign of sales verification processes to allow seamless task assignment, condition scoring, verification tracking, and QA activities through the Power Platform.
 
-Enable structured validation of outlier and high-impact sales
+Task generation and metadata storage in VaaS SQL, using stored procedures invoked via Power Automate or secure APIs.
 
-Ensure auditability and traceability of sale verification decisions
+Integration with Azure API Management, reusing the existing CT DAL (Data Access Layer) to expose PostgreSQL and VaaS SQL data to the Power Platform securely.
 
-Facilitate productivity improvements through a digital-first approach using Power Platform and Azure services
+Deployment of SharePoint Online to manage static images and reference documents, integrated with the verification interface.
+
+Reuse of the existing DAP platform, including Azure Data Factory and optional Databricks pipelines, to ingest and transform sales data from SDLT, WLTT, LR PPD, and MILO sources into a Master Sales Dataset.
 
 
-
----
-
-Phased Business Area Alignment
-
-SVT delivery is aligned to broader Council Tax Revaluation (CT Welsh) phases. This Solution Design Document (SDD) specifically covers the Welsh Revaluation Phase, with future scalability in mind for other regions and business areas.
-
-Business Area	Overview	Go-Live Phase
-
-Council Tax (Wales)	Enables sales verification for Welsh properties as part of the 2028 Council Tax revaluation.	Covered in current SDD scope
-
+The SVT platform will deliver a scalable, cloud-native, low-code solution designed to be reusable for future revaluation exercises and adaptable to other regions.
 
 
 ---
 
-Let me know if you’d like to follow this up with a 1.2 Functional Scope or 1.3 Personas & Use Cases.
+Let me know if you'd like to follow up with 2.3 Business Drivers or the Scope Exclusions section next.
 
