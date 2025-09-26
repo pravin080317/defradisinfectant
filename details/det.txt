@@ -1,41 +1,40 @@
-Here's a clear and professional rewrite of the section for **SVT – Business Process** within the context of Dynamics 365 and Welsh Revaluation:
+Here is a curated list of virtual tables required for SVT (Sales Verification Tool), including their characteristics and purpose/description, based on your architecture (Dynamics 365 + Power Platform + external VaaS APIs + PAD editor + downstream sync tools like AVM/VT):
+
 
 ---
 
-### **SVT – Business Process Overview**
+✅ Virtual Tables Needed for SVT
 
-In the context of the **Dynamics 365 platform**, an *application* refers specifically to a **Model-Driven App**, which serves as a navigable interface comprising **Dataverse tables, dashboards, Canvas App custom pages**, and other user interaction elements.
+#	Virtual Table Name	Characteristic	Purpose / Description
 
-Within the **Welsh Revaluation (Reval)** area of the **CT Case Management App**, users can directly access **Sales Verification Tool (SVT)** functionality, alongside relevant downstream tools such as the **Valuation Tool (VT)** (covered separately in the VT SDD).
+1	svt_dal_salesrecord	Read-only, External (from VaaS Azure SQL via DAL API)	Pulls the core revaluation sales data from the DAP2 data lake via DAL API for caseworker review.
+2	svt_dal_outlierflagconfig	Read-only	Provides logic to support flagging of outlier records (used in initial filtering in the search screen).
+3	svt_dal_lrmilo	Read-only	Exposes Land Registry / MILO sale details, used in the Promote to Master section of the record view.
+4	svt_dal_wltt	Read-only	Returns WLTT record data (e.g. agent info, transaction details, premiums). Used for comparison.
+5	svt_dal_padsyncstatus	Read-only	Indicates if PAD attributes are in sync or need action. Drives CTA to open PAD editor via deep link.
+6	svt_dal_modelcomparison	Read-only	Used to show Latest Model Ratio, Previous Ratio, and Band for sale comparison and validation.
+7	svt_dal_attributegallery	Read-only, image metadata	Fetches reference to static property condition images (from SharePoint) used in Condition Score section.
+8	svt_dal_vos_caseworkerlist	Read-only	Fetches available caseworkers for task assignment. Used by Managers during the Allocate step.
+9	svt_dal_jobstatus	Read/Write	Manages the status of the job/request (New, Assigned, QA, Complete) used in business process flow.
+10	svt_dal_verificationstatus	Read/Write	Stores verification progress (section-wise completion status) used for conditional logic/UI controls.
+11	svt_dal_padvalidationresult	Read-only	Receives result from PAD validation check (external trigger via PAD editor service).
+12	svt_dal_audittrail	Append-only	Used to track changes to sale record fields (e.g. attribute changes, QA comments, promotion action).
 
----
 
-#### **Application Areas and Navigation**
-
-| **Area**                          | **Purpose**                                                                | **Notes**                                |
-| --------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------- |
-| **Sales Verification Tool (SVT)** | Enables search, filtering, review, and verification of Welsh sales records | Integrated into CT Case Management App   |
-| **Valuation Tool (VT)**           | Enables banding and valuation processes based on verified sales data       | Covered separately in Valuation Tool SDD |
-
----
-
-### **SVT Business Process Flow**
-
-The SVT is designed to enable a **structured, traceable, and persona-driven workflow** that supports the accurate review and verification of sales data by Caseworkers, Managers, and Quality Controllers.
-
-* Users begin by searching and filtering **Sales Reval Records**, sourced from **Azure SQL (VaaS)** via the embedded **Canvas App custom page**.
-* Each sales record contains internal data (e.g. sale price, ratio, outlier flags, condition scores) as well as linked external sources (e.g. Land Registry, GSV, Zoopla).
-* Caseworkers manually **verify** each sale using this information, entering decisions and justifications.
-* Verified records are then submitted for **Quality Assurance (QA)**.
-* **QA reviewers** assess submissions and either mark them as "Complete" (if passed), or return them to the **Allocated** state (if failed) with comments for rework.
-* Managers oversee assignments via dashboards and can reallocate records if necessary.
-
-This process ensures:
-
-* Seamless integration between **upstream data sources** (e.g., DAP2, LR, SharePoint) and **downstream tools** (e.g., AVM, VT).
-* High **data accuracy** at the start of the valuation workflow.
-* Consistent, **traceable decisions** that are auditable and reusable.
 
 ---
 
-Let me know if you want this broken down by persona (Caseworker, QA, Manager) or tied back into navigation design (dashboard view, screen flows, etc.).
+🔍 Notes:
+
+These virtual tables are custom data providers using Azure API Management + DAL API and registered using the Custom Virtual Table Provider pattern in Dataverse.
+
+Where applicable, canvas pages bind directly to these tables for read, while state changes (like promote, status update) are routed through custom APIs or Power Automate flows.
+
+Most are read-only from the external source, except for status tracking or workflow progression tables (jobstatus, verificationstatus).
+
+
+
+---
+
+Let me know if you want this in CSV format or added as a table section in your SDD.
+
