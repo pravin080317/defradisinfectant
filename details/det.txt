@@ -1,42 +1,41 @@
-Certainly. Below is a **ready-to-use documentation section** tailored specifically for the **SVT (Sales Verification Tool)** solution, focusing on **User Interface Design and Layout Approach** and **Overarching Principles / Guidelines**, considering Power Platform, Canvas Custom Pages, and Dynamics 365 standards.
+Here's a clear and professional rewrite of the section for **SVT – Business Process** within the context of Dynamics 365 and Welsh Revaluation:
 
 ---
 
-## **User Interface Design and Layout Approach – SVT**
+### **SVT – Business Process Overview**
 
-The user interface for SVT has been developed using **Power Platform’s low-code capabilities**, primarily leveraging **Canvas Custom Pages**, embedded into a Dynamics 365 Model-Driven App. The approach aims to deliver **persona-specific, intuitive, and consistent user experiences** across all internal roles involved in the sales verification process (Caseworker, Manager, Quality Control).
+In the context of the **Dynamics 365 platform**, an *application* refers specifically to a **Model-Driven App**, which serves as a navigable interface comprising **Dataverse tables, dashboards, Canvas App custom pages**, and other user interaction elements.
 
-### Key Considerations in UI Design
-
-* **Canvas Custom Pages** are built using **Power Apps Controls** (e.g., galleries, data cards, forms, custom components), ensuring they are **WCAG-compliant** and **responsive by default**.
-* Where possible, **out-of-the-box Power Platform components** are used to streamline accessibility, support low-code maintainability, and accelerate iteration.
-* UI wireframing was **skipped at the prototype stage** to rapidly deliver working screens for review, with final screen layouts to be validated and locked during **Low-Level Design (LLD)** walkthroughs.
-* Each custom page aligns with a **single persona** and clearly presents only the fields and controls relevant to that persona's workflow, reducing cognitive load.
-
-### Layout Patterns
-
-* Each screen maintains a **left-to-right, top-to-bottom reading order**, aligned to GOV.UK layout guidance and HMRC internal accessibility policies.
-* **Sales verification record forms** are split into **multiple logical sections** (e.g., Banding, Sale Summary, Condition Score, LR/WLTT/MILO, QA), allowing progressive disclosure of data while maintaining structure.
-* Pages with a high number of data sections (e.g., View Sales Record) include **scrolling**, but maintain consistent padding, headings, and landmark ARIA roles for screen readers.
-* **Submit, Assign, and Promote actions** are consistently placed at the **bottom-right** of the form or section, aligned to user action flow.
+Within the **Welsh Revaluation (Reval)** area of the **CT Case Management App**, users can directly access **Sales Verification Tool (SVT)** functionality, alongside relevant downstream tools such as the **Valuation Tool (VT)** (covered separately in the VT SDD).
 
 ---
 
-## **Overarching Principles / Guidelines – SVT UI**
+#### **Application Areas and Navigation**
 
-The following overarching principles were adopted in the design and build of SVT:
-
-| Principle                     | Description                                                                                                                                                      |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Clarity over Complexity**   | Each screen is designed to show only what the user needs. Complex interactions (like "Promote to Master") are visually isolated and contextual.                  |
-| **Persona-driven Screens**    | All screens and controls are built for a specific role (Caseworker, Manager, or QC), reducing cross-persona confusion and avoiding permission-related UX issues. |
-| **No Acronyms in UI**         | User-facing text avoids internal abbreviations (e.g., “Useful Sale” instead of “USF”), aligning with GOV.UK content style guidelines.                            |
-| **Consistent Navigation**     | Menu entries, dashboards, and views follow a consistent naming convention and layout order. Canvas pages and embedded views reuse common header/footer patterns. |
-| **Reusable Components**       | Where needed, PCF components or shared Canvas components are used (e.g., condition scoring, badge displays) to maintain design consistency.                      |
-| **Color and Accessibility**   | All buttons, charts, and alerts adhere to VOA color branding and WCAG 2.2 contrast standards. Focus states and keyboard navigation are tested during UAT.        |
-| **Minimal Training Required** | UI is designed such that users can perform verification, assignment, and QA actions without requiring extensive documentation or training.                       |
-| **Mobile Support (Optional)** | While optimized for desktop, all Canvas Custom Pages are **responsive** and can technically run on tablets or mobile devices for secondary scenarios.            |
+| **Area**                          | **Purpose**                                                                | **Notes**                                |
+| --------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------- |
+| **Sales Verification Tool (SVT)** | Enables search, filtering, review, and verification of Welsh sales records | Integrated into CT Case Management App   |
+| **Valuation Tool (VT)**           | Enables banding and valuation processes based on verified sales data       | Covered separately in Valuation Tool SDD |
 
 ---
 
-Let me know if you want this section inserted into your **SDD/LLD Word file**, styled with headings and references, or broken down by **individual persona screen mockups**.
+### **SVT Business Process Flow**
+
+The SVT is designed to enable a **structured, traceable, and persona-driven workflow** that supports the accurate review and verification of sales data by Caseworkers, Managers, and Quality Controllers.
+
+* Users begin by searching and filtering **Sales Reval Records**, sourced from **Azure SQL (VaaS)** via the embedded **Canvas App custom page**.
+* Each sales record contains internal data (e.g. sale price, ratio, outlier flags, condition scores) as well as linked external sources (e.g. Land Registry, GSV, Zoopla).
+* Caseworkers manually **verify** each sale using this information, entering decisions and justifications.
+* Verified records are then submitted for **Quality Assurance (QA)**.
+* **QA reviewers** assess submissions and either mark them as "Complete" (if passed), or return them to the **Allocated** state (if failed) with comments for rework.
+* Managers oversee assignments via dashboards and can reallocate records if necessary.
+
+This process ensures:
+
+* Seamless integration between **upstream data sources** (e.g., DAP2, LR, SharePoint) and **downstream tools** (e.g., AVM, VT).
+* High **data accuracy** at the start of the valuation workflow.
+* Consistent, **traceable decisions** that are auditable and reusable.
+
+---
+
+Let me know if you want this broken down by persona (Caseworker, QA, Manager) or tied back into navigation design (dashboard view, screen flows, etc.).
