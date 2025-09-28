@@ -1,40 +1,98 @@
-Here is a curated list of virtual tables required for SVT (Sales Verification Tool), including their characteristics and purpose/description, based on your architecture (Dynamics 365 + Power Platform + external VaaS APIs + PAD editor + downstream sync tools like AVM/VT):
+// STEP 1: Login events
+let Logins = customEvents
+| where name == "LAPortalLogin"
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    userCouncil = tostring(customDimensions.userCouncil),
+    sessionId = tostring(customDimensions.sessionId),
+    loginTime = todatetime(customDimensions.loginTime),
+    isMultiCouncilUser = tostring(customDimensions.isUserRepresentsMultipleCouncil),
+    eventType = "Login"
+| project timestamp, eventType, userId, userName, sessionId, loginTime, userCouncil, isMultiCouncilUser, pageName = "";
+
+// STEP 2: Page views
+let Views = pageViews
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    sessionId = tostring(customDimensions.sessionId),
+    userCouncil = tostring(customDimensions.userCouncil),
+    eventType = "PageView",
+    pageName = tostring(name)
+| project timestamp, eventType, userId, userName, sessionId, loginTime = datetime(null), userCouncil, isMultiCouncilUser = "", pageName;
+
+// STEP 3: CouncilSwitched events
+let Switches = customEvents
+| where name == "CouncilSwitched"
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    sessionId = tostring(customDimensions.sessionId),
+    previousCouncil = tostring(customDimensions.previousCouncilId),
+    newCouncil = tostring(customDimensions.newCouncilName),
+    switchTime = todatetime(customDimensions.switchTime),
+    eventType = "CouncilSwitched"
+| project timestamp, eventType, userId, userName, sessionId, loginTime = switchTime, userCouncil = newCouncil, isMultiCouncilUser = "", pageName = strcat("Switched from ", previousCouncil, " to ", newCouncil);
+
+// STEP 4: Combine all three sources
+Logins
+| union Views
+| union Switches
+| where userCouncil != "Unknown" and isnotempty(userCouncil)
+| summarize
+    councilsVisited = make_set(userCouncil),
+    totalCouncils = dcount(userCouncil),
+    switches = make_listif(pageName, eventType == "CouncilSwitched"),
+    firstLogin = minif(timestamp, eventType == "Login"),
+    lastSwitch = maxif(timestamp, eventType == "CouncilSwitched"),
+    userName = any(userName),
+    pagesVisited = countif(eventType == "PageView")
+  by userId, sessionId
+| where totalCouncils > 1
+| order by firstLogin desc
 
 
----
 
-✅ Virtual Tables Needed for SVT
+// STEP 1: Get login events
+customEvents
+| where name == "LAPortalLogin"
+| extend 
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    userCouncil = tostring(customDimensions.userCouncil),
+    sessionId = tostring(customDimensions.sessionId),
+    loginTime = todatetime(customDimensions.loginTime),
+    isMultiCouncilUser = tostring(customDimensions.isUserRepresentsMultipleCouncil),
+    eventType = "Login"
+| project timestamp, eventType, userId, userName, sessionId, loginTime, userCouncil, isMultiCouncilUser, pageName= ""
 
-#	Virtual Table Name	Characteristic	Purpose / Description
+//
+// STEP 2: Union with pageViews to track additional councils visited
+//
+| union (
+    pageViews
+    | extend 
+        userId = tostring(customDimensions.userId),
+        userName = tostring(customDimensions.userName),
+        sessionId = tostring(customDimensions.sessionId),
+        userCouncil = tostring(customDimensions.userCouncil),
+        eventType = "PageView",
+        pageName = tostring(name)
+    | project timestamp, eventType, userId, userName, sessionId, loginTime=datetime(null), userCouncil, isMultiCouncilUser="", pageName
+)
 
-1	svt_dal_salesrecord	Read-only, External (from VaaS Azure SQL via DAL API)	Pulls the core revaluation sales data from the DAP2 data lake via DAL API for caseworker review.
-2	svt_dal_outlierflagconfig	Read-only	Provides logic to support flagging of outlier records (used in initial filtering in the search screen).
-3	svt_dal_lrmilo	Read-only	Exposes Land Registry / MILO sale details, used in the Promote to Master section of the record view.
-4	svt_dal_wltt	Read-only	Returns WLTT record data (e.g. agent info, transaction details, premiums). Used for comparison.
-5	svt_dal_padsyncstatus	Read-only	Indicates if PAD attributes are in sync or need action. Drives CTA to open PAD editor via deep link.
-6	svt_dal_modelcomparison	Read-only	Used to show Latest Model Ratio, Previous Ratio, and Band for sale comparison and validation.
-7	svt_dal_attributegallery	Read-only, image metadata	Fetches reference to static property condition images (from SharePoint) used in Condition Score section.
-8	svt_dal_vos_caseworkerlist	Read-only	Fetches available caseworkers for task assignment. Used by Managers during the Allocate step.
-9	svt_dal_jobstatus	Read/Write	Manages the status of the job/request (New, Assigned, QA, Complete) used in business process flow.
-10	svt_dal_verificationstatus	Read/Write	Stores verification progress (section-wise completion status) used for conditional logic/UI controls.
-11	svt_dal_padvalidationresult	Read-only	Receives result from PAD validation check (external trigger via PAD editor service).
-12	svt_dal_audittrail	Append-only	Used to track changes to sale record fields (e.g. attribute changes, QA comments, promotion action).
-
-
-
----
-
-🔍 Notes:
-
-These virtual tables are custom data providers using Azure API Management + DAL API and registered using the Custom Virtual Table Provider pattern in Dataverse.
-
-Where applicable, canvas pages bind directly to these tables for read, while state changes (like promote, status update) are routed through custom APIs or Power Automate flows.
-
-Most are read-only from the external source, except for status tracking or workflow progression tables (jobstatus, verificationstatus).
-
-
-
----
-
-Let me know if you want this in CSV format or added as a table section in your SDD.
-
+//
+// STEP 3: Summarize per user-session and exclude unknown councils
+//
+| where userCouncil != "Unknown" and isnotempty(userCouncil)
+| summarize
+    councilsVisited = make_set(userCouncil),
+    totalCouncils = dcount(userCouncil),
+    firstLogin = minif(timestamp, eventType == "Login"),
+    userName = any(userName),
+    isMultiCouncilUser = any(isMultiCouncilUser),
+    pagesVisited = countif(eventType == "PageView")
+  by userId, sessionId
+| where totalCouncils > 1
+| order by firstLogin desc
