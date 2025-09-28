@@ -1,98 +1,37 @@
-// STEP 1: Login events
-let Logins = customEvents
-| where name == "LAPortalLogin"
-| extend 
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    userCouncil = tostring(customDimensions.userCouncil),
-    sessionId = tostring(customDimensions.sessionId),
-    loginTime = todatetime(customDimensions.loginTime),
-    isMultiCouncilUser = tostring(customDimensions.isUserRepresentsMultipleCouncil),
-    eventType = "Login"
-| project timestamp, eventType, userId, userName, sessionId, loginTime, userCouncil, isMultiCouncilUser, pageName = "";
-
-// STEP 2: Page views
-let Views = pageViews
-| extend 
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    sessionId = tostring(customDimensions.sessionId),
-    userCouncil = tostring(customDimensions.userCouncil),
-    eventType = "PageView",
-    pageName = tostring(name)
-| project timestamp, eventType, userId, userName, sessionId, loginTime = datetime(null), userCouncil, isMultiCouncilUser = "", pageName;
-
-// STEP 3: CouncilSwitched events
-let Switches = customEvents
-| where name == "CouncilSwitched"
-| extend 
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    sessionId = tostring(customDimensions.sessionId),
-    previousCouncil = tostring(customDimensions.previousCouncilId),
-    newCouncil = tostring(customDimensions.newCouncilName),
-    switchTime = todatetime(customDimensions.switchTime),
-    eventType = "CouncilSwitched"
-| project timestamp, eventType, userId, userName, sessionId, loginTime = switchTime, userCouncil = newCouncil, isMultiCouncilUser = "", pageName = strcat("Switched from ", previousCouncil, " to ", newCouncil);
-
-// STEP 4: Combine all three sources
-Logins
-| union Views
-| union Switches
-| where userCouncil != "Unknown" and isnotempty(userCouncil)
-| summarize
-    councilsVisited = make_set(userCouncil),
-    totalCouncils = dcount(userCouncil),
-    switches = make_listif(pageName, eventType == "CouncilSwitched"),
-    firstLogin = minif(timestamp, eventType == "Login"),
-    lastSwitch = maxif(timestamp, eventType == "CouncilSwitched"),
-    userName = any(userName),
-    pagesVisited = countif(eventType == "PageView")
-  by userId, sessionId
-| where totalCouncils > 1
-| order by firstLogin desc
-
-
-
-// STEP 1: Get login events
+// Get login events
 customEvents
 | where name == "LAPortalLogin"
+| where timestamp between (datetime(2025-07-01T00:00:00Z) .. now())
 | extend 
     userId = tostring(customDimensions.userId),
     userName = tostring(customDimensions.userName),
     userCouncil = tostring(customDimensions.userCouncil),
     sessionId = tostring(customDimensions.sessionId),
     loginTime = todatetime(customDimensions.loginTime),
-    isMultiCouncilUser = tostring(customDimensions.isUserRepresentsMultipleCouncil),
-    eventType = "Login"
-| project timestamp, eventType, userId, userName, sessionId, loginTime, userCouncil, isMultiCouncilUser, pageName= ""
+    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
+| where userCouncil != "Unknown" and isnotempty(userCouncil)
+| project timestamp, eventType="Login", userId, userName, sessionId, userCouncil, loginTime, isMultiCouncil
 
-//
-// STEP 2: Union with pageViews to track additional councils visited
-//
+// Combine with page views
 | union (
     pageViews
+    | where timestamp between (datetime(2025-07-01T00:00:00Z) .. now())
     | extend 
         userId = tostring(customDimensions.userId),
         userName = tostring(customDimensions.userName),
         sessionId = tostring(customDimensions.sessionId),
-        userCouncil = tostring(customDimensions.userCouncil),
-        eventType = "PageView",
-        pageName = tostring(name)
-    | project timestamp, eventType, userId, userName, sessionId, loginTime=datetime(null), userCouncil, isMultiCouncilUser="", pageName
+        userCouncil = tostring(customDimensions.userCouncil)
+    | where userCouncil != "Unknown" and isnotempty(userCouncil)
+    | project timestamp, eventType="PageView", userId, userName, sessionId, userCouncil, loginTime=datetime(null), isMultiCouncil=""
 )
 
-//
-// STEP 3: Summarize per user-session and exclude unknown councils
-//
-| where userCouncil != "Unknown" and isnotempty(userCouncil)
-| summarize
+// Summarize per session
+| summarize 
     councilsVisited = make_set(userCouncil),
     totalCouncils = dcount(userCouncil),
-    firstLogin = minif(timestamp, eventType == "Login"),
     userName = any(userName),
-    isMultiCouncilUser = any(isMultiCouncilUser),
+    firstLogin = minif(timestamp, eventType == "Login"),
     pagesVisited = countif(eventType == "PageView")
-  by userId, sessionId
+by userId, sessionId
 | where totalCouncils > 1
 | order by firstLogin desc
