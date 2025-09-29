@@ -1,51 +1,12 @@
-Here’s a simple and clear update for Section 6: Infrastructure and Assets based on the image and architecture diagram you shared:
-
-
----
-
-6. Describe the infrastructure and assets on which the data processing activity relies
-
-The Sales Verification Tool (SVT) operates on a cloud-first, low-code infrastructure primarily hosted within Microsoft Azure and the Power Platform ecosystem.
-
-IT Systems & Software:
-
-Power Platform (Canvas App, Model-Driven App) – Used for user interaction and workflow logic.
-
-Azure SQL (Valuation as a Service) – Acts as the main data store for sales records and verification outcomes.
-
-Dataverse Virtual Tables – Provide a secure and efficient interface between the UI and Azure SQL via API.
-
-API Management – Secures and standardizes access to backend services and APIs.
-
-Azure Data Lake and Databricks – Used for large-scale sales data processing and modelling.
-
-SharePoint Online – Hosts reference documents and images used during sales verification.
-
-
-Data Transmission Channels:
-
-Secure HTTPS connections via Power Platform connectors and Azure API Management.
-
-Azure Functions handle background data movement, including scheduled ingestion of external files from SharePoint to Azure Storage.
-
-
-People:
-
-Internal users such as Caseworkers, Managers, and QA Reviewers interact with the tool.
-
-Technical and support teams maintain the APIs, integration services, and monitoring components.
-
-
-Security and Hosting:
-
-Entirely hosted within Microsoft Azure with role-based access, audit logging, and tenant-level policy enforcement.
-
-
-
-📌 Refer to the attached integration diagram for visual representation of the data flow and system interactions.
-
-
----
-
-Let me know if you'd like to include a mini version of the diagram caption or annotate the infrastructure assets in a table too.
-
+customEvents
+| where name == "LAPortalLogin"
+| extend 
+    loginTime = todatetime(customDimensions.loginTime),
+    userId = tostring(customDimensions.userId),
+    userName = tostring(customDimensions.userName),
+    userCouncil = tostring(customDimensions.userCouncil),
+    sessionId = tostring(customDimensions.sessionId),
+    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
+| where isnotempty(userId)
+| project timestamp, loginTime, userId, userName, userCouncil, sessionId, isMultiCouncil
+| order by timestamp desc
