@@ -8,6 +8,6 @@ customEvents
     userCouncil = tostring(customDimensions.userCouncil),
     sessionId = tostring(customDimensions.sessionId),
     isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
-| where isnotempty(userId)
+| where isnotempty(userId) and userCouncil != "Unknown" and isnotempty(userCouncil)
 | project timestamp, loginTime, userId, userName, userCouncil, sessionId, isMultiCouncil
 | order by timestamp desc
