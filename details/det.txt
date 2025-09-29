@@ -1,13 +1,3 @@
-customEvents
-| where name == "LAPortalLogin"
-| where timestamp between (datetime(2025-06-01T00:00:00Z) .. now())
-| extend 
-    loginTime = todatetime(customDimensions.loginTime),
-    userId = tostring(customDimensions.userId),
-    userName = tostring(customDimensions.userName),
-    userCouncil = tostring(customDimensions.userCouncil),
-    sessionId = tostring(customDimensions.sessionId),
-    isMultiCouncil = tostring(customDimensions.isUserRepresentsMultipleCouncil)
-| where isnotempty(userId) and userCouncil != "Unknown" and isnotempty(userCouncil)
-| project timestamp, loginTime, userId, userName, userCouncil, sessionId, isMultiCouncil
-| order by timestamp desc
+The Sales Verification Tool (SVT) has been developed to support the accuracy, transparency, and defensibility of Welsh property valuations by enabling users to thoroughly review, verify, and annotate individual sales records. It acts as a pre-valuation filtering and decision-capturing tool within the broader Revaluation lifecycle, ensuring that only relevant, quality-checked sales are used for downstream automated and manual valuation processes.
+
+SVT is a key component of the Welsh Revaluation programme and sits alongside the Valuation Tool (VT) within the CT Case Management App. By enabling analysts to assess the usefulness of outlier sales from datasets such as SDLT, WLTT, and LRPPD, the tool feeds validated sales records into the wider AVM ecosystem. It also establishes a clear audit trail of user decisions and facilitates persona-based interaction through role-specific dashboards and guided workflows.
