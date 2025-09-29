@@ -1,5 +1,6 @@
 customEvents
 | where name == "LAPortalLogin"
+| where timestamp between (datetime(2025-06-01T00:00:00Z) .. now())
 | extend 
     loginTime = todatetime(customDimensions.loginTime),
     userId = tostring(customDimensions.userId),
