@@ -1,3 +1,39 @@
-The Sales Verification Tool (SVT) has been developed to support the accuracy, transparency, and defensibility of Welsh property valuations by enabling users to thoroughly review, verify, and annotate individual sales records. It acts as a pre-valuation filtering and decision-capturing tool within the broader Revaluation lifecycle, ensuring that only relevant, quality-checked sales are used for downstream automated and manual valuation processes.
+Perfect — let’s rewrite this clearly, breaking out **Authentication** (who can sign in) and **Authorization** (what they can do once inside).
 
-SVT is a key component of the Welsh Revaluation programme and sits alongside the Valuation Tool (VT) within the CT Case Management App. By enabling analysts to assess the usefulness of outlier sales from datasets such as SDLT, WLTT, and LRPPD, the tool feeds validated sales records into the wider AVM ecosystem. It also establishes a clear audit trail of user decisions and facilitates persona-based interaction through role-specific dashboards and guided workflows.
+---
+
+## 🔐 LA Portal Security – Authentication & Authorization
+
+### **Authentication (Who can sign in)**
+
+* The portal uses a **single HMRC Entra ID tenant**.
+* **Council users** are added via an **Access Package** managed by the ECS team.
+* The access package (`VOA-BST-PRD`) assigns approved users into the Entra ID **security group** `DYN-D365-PRD-GUEST-SC`.
+* Only users in this group can successfully authenticate to the **Prod portal**.
+* This ensures that authentication is restricted — **no self-registration** or uncontrolled user onboarding is possible.
+
+---
+
+### **Authorization (What they can access after sign-in)**
+
+* Once authenticated, users must also exist in the **Dataverse Contact table**.
+* Each Contact is linked to:
+
+  * The correct **Local Authority (Account)**, and
+  * A **Web Role** (`CT User`), which grants access rights.
+* **Table Permissions** are assigned to the Web Role, controlling which data the user can view or update.
+* Internal line-of-business tables have **no portal permissions**, so they remain inaccessible to external users.
+* This ensures council users can only access the **staging tables** exposed via the portal, and nothing else.
+
+---
+
+### ✅ Summary
+
+* **Authentication** is enforced at the **Entra ID group level** via ECS-managed access packages.
+* **Authorization** is enforced inside **Dataverse** via Contacts, Accounts, Web Roles, and Table Permissions.
+* Together, these controls ensure that **only approved council users can sign in**, and even then, they can **only access the data they are permitted to see.**
+
+---
+
+Would you like me to also create a **diagram (flow)** —
+**Entra ID Group (Access Package) ➝ Authentication ➝ Contact ➝ Web Role ➝ Table Permissions ➝ Data** — so you can show this visually in your EA meeting?
