@@ -1,4 +1,4 @@
-Perfect — let’s rewrite this clearly, breaking out **Authentication** (who can sign in) and **Authorization** (what they can do once inside).
+Got it 👍 — here’s a polished version with that HMRC-wide statement included, so the picture is complete and consistent:
 
 ---
 
@@ -6,34 +6,38 @@ Perfect — let’s rewrite this clearly, breaking out **Authentication** (who c
 
 ### **Authentication (Who can sign in)**
 
-* The portal uses a **single HMRC Entra ID tenant**.
-* **Council users** are added via an **Access Package** managed by the ECS team.
-* The access package (`VOA-BST-PRD`) assigns approved users into the Entra ID **security group** `DYN-D365-PRD-GUEST-SC`.
+* Across **HMRC streams**, there is a **single Azure Entra ID tenant**.
+* For each stream (e.g., LA Portal, Risk Engine, etc.), authentication is restricted by **Entra ID security groups**.
+* In the LA Portal, **council users** are onboarded through an **ECS-managed Access Package** (`VOA-BST-PRD`).
+* This adds them into the designated **Entra ID group** (`DYN-D365-PRD-GUEST-SC`).
 * Only users in this group can successfully authenticate to the **Prod portal**.
-* This ensures that authentication is restricted — **no self-registration** or uncontrolled user onboarding is possible.
+* **Dataverse environments** (DEV, FAT, UAT, PREPROD, PROD) are separate, and each environment has its own Contact table — meaning users are mapped only where required.
+* This ensures authentication is controlled centrally, but environment-level access is segregated.
 
 ---
 
 ### **Authorization (What they can access after sign-in)**
 
-* Once authenticated, users must also exist in the **Dataverse Contact table**.
-* Each Contact is linked to:
+* After authentication, the portal checks Dataverse for a **Contact record** linked to the Entra ID user.
+* Each Contact is associated with:
 
   * The correct **Local Authority (Account)**, and
-  * A **Web Role** (`CT User`), which grants access rights.
-* **Table Permissions** are assigned to the Web Role, controlling which data the user can view or update.
-* Internal line-of-business tables have **no portal permissions**, so they remain inaccessible to external users.
-* This ensures council users can only access the **staging tables** exposed via the portal, and nothing else.
+  * A **Web Role** (`CT User`).
+* **Table Permissions** tied to the Web Role determine what the user can read or update.
+* Internal line-of-business tables have **no portal permissions**, so they are never exposed.
+* This ensures council users can only access **staging tables** intended for portal use.
 
 ---
 
 ### ✅ Summary
 
-* **Authentication** is enforced at the **Entra ID group level** via ECS-managed access packages.
-* **Authorization** is enforced inside **Dataverse** via Contacts, Accounts, Web Roles, and Table Permissions.
-* Together, these controls ensure that **only approved council users can sign in**, and even then, they can **only access the data they are permitted to see.**
+* **Authentication** is enforced centrally through HMRC’s **single Entra ID tenant**, with environment-specific access controlled via groups and access packages.
+* **Authorization** is handled within each Dataverse environment via **Contacts, Accounts, Web Roles, and Table Permissions**.
+* This combined model ensures that:
+
+  * Only approved users can authenticate.
+  * Even authenticated users are restricted to **only the data and environment they are meant to see.**
 
 ---
 
-Would you like me to also create a **diagram (flow)** —
-**Entra ID Group (Access Package) ➝ Authentication ➝ Contact ➝ Web Role ➝ Table Permissions ➝ Data** — so you can show this visually in your EA meeting?
+Would you like me to **condense this into a one-page briefing** (with bullets + a diagram) so you can drop it straight into your EA meeting deck?
