@@ -1,43 +1,7 @@
-Got it 👍 — here’s a polished version with that HMRC-wide statement included, so the picture is complete and consistent:
-
----
-
-## 🔐 LA Portal Security – Authentication & Authorization
-
-### **Authentication (Who can sign in)**
-
-* Across **HMRC streams**, there is a **single Azure Entra ID tenant**.
-* For each stream (e.g., LA Portal, Risk Engine, etc.), authentication is restricted by **Entra ID security groups**.
-* In the LA Portal, **council users** are onboarded through an **ECS-managed Access Package** (`VOA-BST-PRD`).
-* This adds them into the designated **Entra ID group** (`DYN-D365-PRD-GUEST-SC`).
-* Only users in this group can successfully authenticate to the **Prod portal**.
-* **Dataverse environments** (DEV, FAT, UAT, PREPROD, PROD) are separate, and each environment has its own Contact table — meaning users are mapped only where required.
-* This ensures authentication is controlled centrally, but environment-level access is segregated.
-
----
-
-### **Authorization (What they can access after sign-in)**
-
-* After authentication, the portal checks Dataverse for a **Contact record** linked to the Entra ID user.
-* Each Contact is associated with:
-
-  * The correct **Local Authority (Account)**, and
-  * A **Web Role** (`CT User`).
-* **Table Permissions** tied to the Web Role determine what the user can read or update.
-* Internal line-of-business tables have **no portal permissions**, so they are never exposed.
-* This ensures council users can only access **staging tables** intended for portal use.
-
----
-
-### ✅ Summary
-
-* **Authentication** is enforced centrally through HMRC’s **single Entra ID tenant**, with environment-specific access controlled via groups and access packages.
-* **Authorization** is handled within each Dataverse environment via **Contacts, Accounts, Web Roles, and Table Permissions**.
-* This combined model ensures that:
-
-  * Only approved users can authenticate.
-  * Even authenticated users are restricted to **only the data and environment they are meant to see.**
-
----
-
-Would you like me to **condense this into a one-page briefing** (with bullets + a diagram) so you can drop it straight into your EA meeting deck?
+| Option                                                                | Description                                                                                               | Suitable for                                                         | Auth / Security                                       | HMRC Compliance                                   | Comments                                                           |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
+| **1️⃣ Dataverse Custom API + Plugin (Server-side)**                   | Register a *Custom API* in Dataverse that triggers a C# Plugin. The Plugin calls external API (via APIM). | Secure backend integration (e.g. create/update PAD, SVT data fetch). | Uses Dataverse service principal or managed identity. | ✅ Fully compliant (no secrets in UI).             | Best for “server-to-server” calls — async or transactional.        |
+| **2️⃣ Custom Connector (Canvas App)**                                 | Canvas App connects to API via Power Platform Custom Connector (using APIM endpoint).                     | For UI-driven fetch (e.g. SVT dashboard search/filter).              | OAuth 2.0 via Azure AD (through APIM).                | ✅ if connector uses Azure AD & no hardcoded keys. | Best for read-only dashboard data — aligns to SVT search scenario. |
+| **3️⃣ PCF Control → Dynamics Web API → APIM (via Service Principal)** | PCF runs client-side JS; it calls a Dataverse custom action or directly APIM (through token).             | For complex UI components (map, batch split, flag summary grid).     | Needs MSAL to acquire token from Azure AD.            | ⚠️ Allowed only if token acquired securely.       | More complex but powerful (used in SBL/AVM PCFs).                  |
+| **4️⃣ Power Automate (Custom Action bridge)**                         | Triggered via Canvas App; Flow calls external API.                                                        | For background updates / batch submission.                           | Flow connection uses service principal.               | ✅ Safe but slower.                                | Not suitable for high-frequency filtering.                         |
+| **5️⃣ Direct HTTP call from Canvas app (Not Allowed)**                | Using `HTTP()` or `Office365HttpRequest` directly from Canvas.                                            | None.                                                                | Uses user identity.                                   | ❌ Violates HMRC/VOA boundary controls.            | Never use for production.                                          |
