@@ -1,3 +1,19 @@
+Excellent and very relevant question — this sits right at the heart of your **SVT and SBL architecture decisions** (especially since the team moved from Virtual Tables to API-based integration).
+Let’s break it down clearly for a **Model-Driven App with a Custom Page (Canvas App)** inside Dynamics 365 / Power Platform, in HMRC/DAP2-aligned terms:
+
+---
+
+## 🎯 Context
+
+You’re embedding a **Canvas App custom page** inside a **Model-Driven App (MDA)** — e.g. the *SVT Manager Dashboard* or *SBL Batch View* page.
+The data is not stored in Dataverse but fetched dynamically from **external APIs (DAP2 / Azure SQL / DLM)**.
+
+Hence, you need a secure, performant way to **invoke external APIs** — while staying inside the Dynamics/Power Platform boundary and HMRC standards (no direct secret storage, no bypass of API Management).
+
+---
+
+## ⚙️ Integration Options (from most compliant to least preferred)
+
 | Option                                                                | Description                                                                                               | Suitable for                                                         | Auth / Security                                       | HMRC Compliance                                   | Comments                                                           |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
 | **1️⃣ Dataverse Custom API + Plugin (Server-side)**                   | Register a *Custom API* in Dataverse that triggers a C# Plugin. The Plugin calls external API (via APIM). | Secure backend integration (e.g. create/update PAD, SVT data fetch). | Uses Dataverse service principal or managed identity. | ✅ Fully compliant (no secrets in UI).             | Best for “server-to-server” calls — async or transactional.        |
@@ -5,3 +21,81 @@
 | **3️⃣ PCF Control → Dynamics Web API → APIM (via Service Principal)** | PCF runs client-side JS; it calls a Dataverse custom action or directly APIM (through token).             | For complex UI components (map, batch split, flag summary grid).     | Needs MSAL to acquire token from Azure AD.            | ⚠️ Allowed only if token acquired securely.       | More complex but powerful (used in SBL/AVM PCFs).                  |
 | **4️⃣ Power Automate (Custom Action bridge)**                         | Triggered via Canvas App; Flow calls external API.                                                        | For background updates / batch submission.                           | Flow connection uses service principal.               | ✅ Safe but slower.                                | Not suitable for high-frequency filtering.                         |
 | **5️⃣ Direct HTTP call from Canvas app (Not Allowed)**                | Using `HTTP()` or `Office365HttpRequest` directly from Canvas.                                            | None.                                                                | Uses user identity.                                   | ❌ Violates HMRC/VOA boundary controls.            | Never use for production.                                          |
+
+---
+
+## 🧱 Recommended Architecture for Your Case (SVT & SBL Custom Page)
+
+### **A. For Read-only Dashboards / Filters (e.g. SVT Manager View):**
+
+✅ **Use a Custom Connector**
+
+* Create a **Power Platform Custom Connector** → wrap your **APIM endpoint** (DAP2 API).
+* Configure **Azure AD OAuth 2.0** (client ID = Dataverse service principal or app registration).
+* Connect from Canvas Page using this connector.
+* Responses bind directly to galleries / dropdowns.
+
+👉 *Used for:* “Outstanding Task Filters”, “Sales Flags”, “Slice Ratio Ranges”, “Search Results Grid”.
+
+---
+
+### **B. For Write Operations / Case Updates / PAD Enhancements:**
+
+✅ **Use Dataverse Custom API (Plugin wrapper)**
+
+* Register **Custom API** in Dataverse.
+* The plugin inside it makes a secure HTTP call (using managed identity / APIM).
+* Canvas App or Model-Driven Command Bar calls this API through `PowerFx.Run` or via `WebAPI`.
+
+👉 *Used for:* “Promote to Master”, “Submit Verification”, “Create Data Enhancement Request”.
+
+---
+
+### **C. For Complex UI Components (e.g. PCF Grid / Map):**
+
+✅ **Use PCF → Dataverse Custom API → APIM**
+
+* PCF control makes a call to a Dataverse Custom API (or Custom Action).
+* The API executes plugin logic → securely calls backend API through APIM.
+* This approach avoids exposing API URLs or secrets in the PCF JavaScript bundle.
+
+👉 *Used for:* “Analyse and Split Batch”, “SBL Map Component”, “SVT Flag Drilldown”.
+
+---
+
+## 🔒 Security and Compliance Notes
+
+* All external calls must route via **Azure API Management (APIM)** – no direct Azure SQL or Function URLs.
+* Authentication must be **AAD-based OAuth (no key auth)**.
+* No secret storage inside app code or PCF controls.
+* If performance requires caching, use **Azure Function + Redis layer** behind APIM, not client cache.
+
+---
+
+## 🧾 Example Implementation Flow (for your SVT Dashboard)
+
+**1. Canvas Custom Page (Model-Driven App)**
+↓ calls
+**2. Custom Connector (Power Platform)**
+↓ proxies to
+**3. Azure API Management (APIM)**
+↓ routes to
+**4. Azure Function / DAP2 API**
+↓ fetches from
+**5. Azure SQL (SVT data tables)**
+
+---
+
+## 🚀 Summary Recommendation for SVT/SBL
+
+| Use Case                                | Preferred Method                           | Notes                                   |
+| --------------------------------------- | ------------------------------------------ | --------------------------------------- |
+| Read-only dashboards / filters          | **Custom Connector (Canvas → APIM)**       | Fast, secure, OAuth-based               |
+| Update actions (band change, submit QA) | **Dataverse Custom API + Plugin → APIM**   | Secure, transactional                   |
+| Complex visual components               | **PCF + Dataverse Custom Action**          | Allows async data loads, no secrets     |
+| Background syncs or jobs                | **Power Automate or Plugin (server-side)** | Used for SBL batch syncs or DLM updates |
+
+---
+
+Would you like me to draft the **architecture diagram and dataflow (Canvas Page → Dataverse → APIM → Azure SQL)** in Welsh Reval standard format (showing which components use Managed Identity, which use OAuth)?
+It’ll help you include this in the **LDD section for “Deviation from Virtual Table”**.
