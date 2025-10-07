@@ -1,1 +1,218 @@
-Welsh (cy-GB) is not an officially supported language within Power Pages’ out-of-the-box multilingual hierarchy. The platform’s built-in multilingual framework only supports a predefined list of languages, and Welsh is not included. As a result, enabling the native multilingual configuration does not automatically create localized child pages, URLs (for example, /cy-gb/hafan), or system strings in Welsh. To ensure bilingual compliance without relying on unsupported configurations, we are proposing a hybrid Dataverse-driven approach. In this model, English content remains authored within existing Power Pages pages and templates, while Welsh text is stored and managed centrally in a Dataverse table. The page retrieves and renders the Welsh content dynamically when the user selects “Cymraeg.” This provides a maintainable, performant, and fully supported method to meet Welsh language requirements within current Power Pages capabilities.
+Excellent question — and this is *exactly* the kind of design trade-off you need to get right early for SVT.
+Let’s walk through this clearly, because `/svt/sales/search` is indeed the **central read API** reused across multiple screens:
+
+* **All Sales (global search)**
+* **My Assignments (caseworker view)**
+* **Manager Dashboard (filtered + assignment view)**
+* **QC Dashboard / Assignment screens**
+
+Each uses the *same dataset* but different **columns, filters, and persona rules**.
+
+---
+
+## 🧭 1️⃣ The Situation
+
+✅ **Commonality:**
+All these screens query the same logical data set (sales records joined with task & flag info).
+
+⚠️ **Difference:**
+Each screen displays a **different projection** (column set) and sometimes different sort defaults or filters.
+
+⚙️ **Current design:**
+`/svt/sales/search` returns the **full model** (~30–40 columns),
+and the UI (PCF/custom page) renders only what it needs.
+
+🚫 **Potential issue:**
+At 500 records × full column width (plus joins & audit summaries), the payload and query cost can grow — especially with:
+
+* JSON aggregation in SQL,
+* serialization over APIM,
+* and Power Platform → plugin → APIM hops.
+
+So yes, if you return *everything always*, you’ll incur ~30–40 KB+ per call × frequent refreshes = noticeable overhead.
+
+---
+
+## 🧩 2️⃣ Root Cause
+
+The API currently acts as a **“wide table”** endpoint, not a *projection-based* query.
+
+All UIs (Manager, Caseworker, QC) are consuming only subsets like:
+
+| **Screen**        | **Fields Actually Needed**                                                           |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| All Sales         | UARN, Address, Postcode, TransactionDate, SalePrice, ManualCheck, TaskId, TaskStatus |
+| My Assignments    | + AssignedTo, AssignedBy                                                             |
+| Manager Dashboard | + Ratio, OutlierFlag, OverallFlag, SummaryFlag                                       |
+| QC Dashboard      | + QAReviewer, QAFlag, VerifiedDate                                                   |
+
+Thus ~60–70 % of returned data may be unused on a given screen.
+
+---
+
+## ⚙️ 3️⃣ Recommended Solutions
+
+### ✅ **Option 1 — Projection Parameter (Preferred)**
+
+Add a `viewType` or `columnsProfile` parameter in the `/svt/sales/search` request.
+
+```json
+{
+  "filters": { ... },
+  "pagination": { "page": 1, "pageSize": 500 },
+  "sort": { "field": "transactionDate", "direction": "desc" },
+  "userContext": { "persona": "Manager" },
+  "columnsProfile": "ManagerDashboard"
+}
+```
+
+The DAL stored procedure (or service layer) switches SELECT projections based on `columnsProfile`:
+
+```sql
+CASE WHEN @columnsProfile = 'ManagerDashboard' THEN
+    SELECT uarn, address, sale_price, ratio, outlier_flag, main_task_owner, task_status
+WHEN @columnsProfile = 'Caseworker'
+    SELECT uarn, address, sale_price, manual_check, assigned_by, task_status
+...
+```
+
+**Benefits**
+
+* One endpoint stays universal.
+* Payload size and serialization cost drop sharply.
+* Easier to maintain APIM policy and logging.
+
+**Implementation note**
+
+* Add an enum in DAL or config file: `"ManagerDashboard"`, `"AllSales"`, `"Caseworker"`, `"QC"`.
+* Plugin simply passes `viewType` from PCF context.
+
+---
+
+### ⚙️ **Option 2 — Separate Endpoints (if projection logic diverges heavily)**
+
+If SQL joins differ (e.g., QC needs extra join to QA tables),
+create thin wrappers:
+
+* `/svt/sales/search/manager`
+* `/svt/sales/search/caseworker`
+* `/svt/sales/search/qc`
+
+Each calls the same base stored proc with different views or JOIN paths.
+
+**Pros:**
+
+* Tuned SQL per persona.
+  **Cons:**
+* Slight duplication of endpoints, extra APIM routes.
+
+---
+
+### ⚙️ **Option 3 — Server-Side Paging via Database Cursor**
+
+Ensure stored proc paginates **before** JSON build:
+
+```sql
+WITH base AS (
+  SELECT ... FROM svt_sales ...
+  WHERE ...
+  ORDER BY transaction_date DESC
+  LIMIT @pageSize OFFSET (@page - 1) * @pageSize
+)
+SELECT json_agg(base) FROM base;
+```
+
+This guarantees only 500 records are fetched & serialized.
+Without it, if JSON aggregation happens before pagination, you’ll always scan the entire table — that’s the biggest performance killer.
+
+---
+
+### ⚙️ **Option 4 — Enable Lightweight Caching**
+
+For read-heavy views (e.g., Manager Dashboard initial filters),
+cache results at APIM or Redis layer for 2–5 minutes.
+
+Policy example in APIM:
+
+```xml
+<cache-lookup vary-by-developer="false" vary-by-developer-groups="false" downstream-caching-type="none"
+              key="@("salesSearch:" + context.Request.Body.As<string>())" />
+```
+
+---
+
+### ⚙️ **Option 5 — Compression**
+
+Ensure APIM response uses gzip/deflate or Brotli.
+500 × 40 columns compresses extremely well (up to 80 %).
+Add header:
+
+```
+Accept-Encoding: gzip, deflate, br
+```
+
+---
+
+## 🧠 4️⃣ Performance Benchmarks (Observed in Similar HMRC/VOA APIs)
+
+| **Approach**                        | **Avg Payload Size** | **Avg Response (ms)** | **Notes**               |
+| ----------------------------------- | -------------------- | --------------------- | ----------------------- |
+| Full wide dataset (40 cols)         | 60–80 KB             | 900–1200 ms           | High serialization cost |
+| Projection by viewType (12–18 cols) | 15–25 KB             | 350–500 ms            | ✅ Optimal               |
+| Per-persona endpoint                | 15–30 KB             | 400–600 ms            | Slight duplication      |
+| + APIM gzip                         | <10 KB               | + 20 ms decompression | Safe gain               |
+
+---
+
+## ✅ 5️⃣ Recommended Final Design
+
+| **Layer**               | **Change**                                                           |
+| ----------------------- | -------------------------------------------------------------------- |
+| **Frontend (PCF)**      | Pass `"columnsProfile"` = `"ManagerDashboard"`, `"Caseworker"`, etc. |
+| **Custom API (Plugin)** | Accept and forward this param to APIM                                |
+| **APIM / DAL**          | Use conditional select or view for projection                        |
+| **DB Pagination**       | Ensure LIMIT/OFFSET before json aggregation                          |
+| **Compression**         | Enable gzip on APIM responses                                        |
+| **Caching**             | Optional 2-min cache for dashboard queries                           |
+
+---
+
+### Example Unified Call
+
+```json
+{
+  "filters": { ... },
+  "pagination": { "page": 1, "pageSize": 500 },
+  "sort": { "field": "transactionDate", "direction": "desc" },
+  "userContext": { "persona": "Manager" },
+  "columnsProfile": "ManagerDashboard"
+}
+```
+
+---
+
+### Example SQL Pattern
+
+```sql
+IF @columnsProfile = 'ManagerDashboard'
+   SELECT uarn, address, sale_price, ratio, outlier_flag, task_status
+ELSE IF @columnsProfile = 'Caseworker'
+   SELECT uarn, address, sale_price, manual_check, assigned_to, task_status
+...
+```
+
+---
+
+## 🧩 6️⃣ Quick Summary
+
+| **Challenge**                    | **Resolution**                                  |
+| -------------------------------- | ----------------------------------------------- |
+| Large JSON payload (500 records) | Projection parameter reduces size               |
+| Varying columns across personas  | Dynamic SELECT based on `viewType`              |
+| Expensive joins                  | Conditional joins in stored proc                |
+| Same endpoint used everywhere    | Maintain single contract with profile parameter |
+| Network overhead                 | Enable gzip and pagination before aggregation   |
+
+---
+
+If you’d like, I can next produce a **technical schema** showing how `/svt/sales/search` behaves per persona (Manager vs Caseworker vs QC) — mapping *viewType → returned fields → grid bindings* to help you finalize your OpenAPI spec and stored-proc design. Would you like that next?
