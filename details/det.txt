@@ -1,184 +1,126 @@
-Absolutely ✅ — below is the **updated Jira task breakdown** for your **POC sprint** implementing the **Hybrid (Option 2) Welsh translation model**, reflecting the refined table design (with `PageUrl`, `ContentKey`, `EnglishContentId`, and `WelshContent`).
-
-You can copy-paste this directly into Jira (Epic → Stories → Tasks), or I can also format it as an importable CSV if needed.
-
----
-
-## 🧩 **Epic: Welsh Translation – Hybrid Dataverse POC (Option 2)**
-
-**Goal:**
-Demonstrate bilingual content handling in Power Pages by keeping English content within existing web pages/templates and dynamically retrieving Welsh text from a Dataverse table (`WelshTranslations`) using `PageUrl` and `ContentKey` mapping.
+Excellent — yes, adding the **page URL** (or logical page key) is a very good idea for traceability, API filtering, and governance.
+Let’s refine the **Dataverse table schema** and show **how data should look** — both in structure and in actual stored HTML content.
 
 ---
 
-### **Story 1 – Dataverse Schema and Security Configuration**
+## 🧩 **Dataverse Table Design – `WelshTranslations`**
 
-**Objective:** Create a Dataverse table and supporting components to store Welsh content against each page section.
+### **Purpose**
 
-**Tasks:**
-
-1. **Create Dataverse Table – `WelshTranslations`**
-
-   * Columns:
-
-     * `PageUrl` (Text, 250)
-     * `PageName` (Text, 100)
-     * `ContentKey` (Text, 100)
-     * `EnglishContentId` (Text, 100)
-     * `WelshContent` (Multiline Text, HTML)
-     * `ContentType` (Choice: Text, HTML, Label, JS Message)
-     * `SectionName` (Text, 100)
-     * `IsActive` (Boolean)
-     * `LastUpdatedBy`, `LastUpdatedOn`
-   * Add indexes on `PageUrl` and `ContentKey`.
-
-2. **Configure Table Permissions**
-
-   * Portal web roles: Read-only access to `WelshTranslations`.
-   * Editor role: Full CRUD (Model-driven app access).
-
-3. **Create Model-driven App for Editors**
-
-   * Simple editor form showing: `PageUrl`, `ContentKey`, `WelshContent (Rich Text Editor)`, `IsActive`.
-   * Add a Power Automate flow to notify reviewers when a record is modified.
+Store Welsh translations for specific content blocks that already exist in Power Pages.
+Each record links back to the *English source* via a unique reference ID or page URL.
 
 ---
 
-### **Story 2 – Power Pages Configuration and Reference Setup**
+### **🗂 Table: WelshTranslations**
 
-**Objective:** Add reference markers in Power Pages and enable API access.
-
-**Tasks:**
-
-1. **Add `data-i18n-id` Attributes**
-
-   * Tag content blocks in 3–5 sample pages (Home, Dashboard, Footer).
-   * Example:
-
-     ```html
-     <h1 data-i18n-id="header-title">Local Authority Portal</h1>
-     ```
-
-2. **Maintain Naming Convention**
-
-   * `data-i18n-id` format: `<page>-<section>-<element>` (e.g., `home-header-title`).
-
-3. **Enable Portal Web API Access**
-
-   * Grant API read permissions for `WelshTranslations`.
-   * Validate endpoint:
-     `/api/data/v9.2/welshtranslations?$filter=pageurl eq '/dashboard'`.
-
-4. **Add Feature Flag (Site Setting)**
-
-   * `Site/WelshTranslationEnabled = true`.
+| Column Name          | Data Type                  | Description                                          | Example                                    |
+| -------------------- | -------------------------- | ---------------------------------------------------- | ------------------------------------------ |
+| **TranslationId**    | Autonumber / GUID          | Primary Key                                          | `WT-0001`                                  |
+| **PageName**         | Text (100)                 | Logical name of the page for reference               | `Home`                                     |
+| **PageUrl**          | Text (250)                 | Full or relative URL of the page                     | `/dashboard`                               |
+| **ContentKey**       | Text (100)                 | Unique ID from HTML or web template (`data-i18n-id`) | `home-hero-title`                          |
+| **EnglishContentId** | Text (100)                 | HTML reference ID of English content block           | `section_home_hero`                        |
+| **WelshContent**     | Multiline Text (Unlimited) | Welsh text or HTML fragment to inject                | `<h1>Croeso i’r porth awdurdod lleol</h1>` |
+| **ContentType**      | Choice / Option Set        | Text / HTML / Label / JS Message                     | `HTML`                                     |
+| **SectionName**      | Text (100)                 | Logical grouping (Header/Footer/Main)                | `Header`                                   |
+| **LastUpdatedBy**    | Lookup (SystemUser)        | Maintained by content editor                         |                                            |
+| **LastUpdatedOn**    | DateTime                   | Timestamp for last update                            |                                            |
+| **IsActive**         | Boolean                    | Used for toggling translations on/off                | ✅                                          |
 
 ---
 
-### **Story 3 – Client-side Integration (JS / Liquid)**
+### **📘 How the Data Looks (Examples)**
 
-**Objective:** Fetch and render Welsh text dynamically on user toggle.
+#### **Example 1 – Page Header**
 
-**Tasks:**
+| PageName | PageUrl      | ContentKey        | EnglishContentId  | WelshContent                           | ContentType | SectionName |
+| -------- | ------------ | ----------------- | ----------------- | -------------------------------------- | ----------- | ----------- |
+| Home     | `/dashboard` | `header-title`    | `header-title`    | `<h1>Porth yr Awdurdod Lleol</h1>`     | HTML        | Header      |
+| Home     | `/dashboard` | `header-subtitle` | `header-subtitle` | `<p>Croeso i’r gwasanaeth ar-lein</p>` | HTML        | Header      |
 
-1. **Develop Toggle Component**
+#### **Example 2 – Footer Links**
 
-   * Add “Cymraeg / English” toggle to header.
-   * Store user preference in `localStorage` (e.g., `"preferredLanguage": "cy"`).
+| PageName | PageUrl      | ContentKey        | EnglishContentId  | WelshContent          | ContentType | SectionName |
+| -------- | ------------ | ----------------- | ----------------- | --------------------- | ----------- | ----------- |
+| Home     | `/dashboard` | `footer-feedback` | `footer-feedback` | `Anfonwch adborth`    | Text        | Footer      |
+| Home     | `/dashboard` | `footer-privacy`  | `footer-privacy`  | `Polisi Preifatrwydd` | Text        | Footer      |
 
-2. **Implement Fetch and Replace Logic**
+#### **Example 3 – Dynamic Message**
 
-   * On page load or toggle:
-
-     ```js
-     fetch(`/api/data/v9.2/welshtranslations?$filter=pageurl eq '${window.location.pathname}'`)
-       .then(r => r.json())
-       .then(data => {
-         data.value.forEach(item => {
-           const el = document.querySelector(`[data-i18n-id="${item.contentkey}"]`);
-           if (el && item.welshcontent) el.innerHTML = item.welshcontent;
-         });
-         document.documentElement.lang = "cy";
-       });
-     ```
-   * Cache Welsh data in `sessionStorage` to reduce repeat API calls.
-
-3. **Add Fallback and Error Handling**
-
-   * If record not found, retain English.
-   * Log missing `ContentKey` values to console or Application Insights.
-
-4. **Update `<html lang>` Attribute**
-
-   * Switch between `en` and `cy` dynamically for accessibility.
+| PageName | PageUrl          | ContentKey            | EnglishContentId | WelshContent                 | ContentType | SectionName |
+| -------- | ---------------- | --------------------- | ---------------- | ---------------------------- | ----------- | ----------- |
+| Report   | `/report/submit` | `validation-required` | `val-required`   | `Mae’r maes hwn yn ofynnol.` | JS Message  | Script      |
 
 ---
 
-### **Story 4 – Sample Content Creation and Testing**
+### **🧠 How the Retrieval Will Work**
 
-**Objective:** Populate Welsh entries in Dataverse and validate bilingual rendering.
+#### 1. **In the Power Pages HTML / Template**
 
-**Tasks:**
+Add a `data-i18n-id` attribute to each content block:
 
-1. **Populate Sample Data**
+```html
+<h1 id="header-title" data-i18n-id="header-title">Local Authority Portal</h1>
+<p id="header-subtitle" data-i18n-id="header-subtitle">Welcome to the online service</p>
+```
 
-   * For 10–15 blocks (header, footer, form labels).
-   * Example record:
+#### 2. **On Page Load or Toggle**
 
-     | PageUrl      | ContentKey     | EnglishContentId | WelshContent                       |
-     | ------------ | -------------- | ---------------- | ---------------------------------- |
-     | `/dashboard` | `header-title` | `header-title`   | `<h1>Porth yr Awdurdod Lleol</h1>` |
+When the user selects **Cymraeg**, a lightweight JS retrieves Welsh content:
 
-2. **Functional Testing**
+```js
+const pageUrl = window.location.pathname;
+fetch(`/api/data/v9.2/welshtranslations?$filter=pageurl eq '${pageUrl}'`)
+  .then(res => res.json())
+  .then(data => {
+    data.value.forEach(item => {
+      const element = document.querySelector(`[data-i18n-id="${item.contentkey}"]`);
+      if (element && item.welshcontent) {
+        element.innerHTML = item.welshcontent;
+      }
+    });
+    document.documentElement.lang = "cy"; // update <html lang>
+  });
+```
 
-   * Verify toggle behavior and content switching.
-   * Confirm fallback to English for missing keys.
-
-3. **Accessibility Testing**
-
-   * Validate `<html lang>` switch, screen reader output, and color contrast.
-
-4. **Performance Verification**
-
-   * Measure Dataverse Web API response time (<200 ms expected).
-   * Confirm smooth DOM update and no layout shifts.
-
----
-
-### **Story 5 – Documentation and Demo**
-
-**Objective:** Record outcomes and lessons learned for future rollout.
-
-**Tasks:**
-
-1. **Document POC Architecture**
-
-   * Include Dataverse schema, API flow, and JS replacement logic.
-2. **Create Demo Screenshots / Recording**
-
-   * Show English → Welsh switch in real time.
-3. **List Improvement Opportunities**
-
-   * e.g., caching, Power Automate bulk import, or admin dashboard.
-4. **Handover to Architecture Review Board**
-
-   * Present findings and readiness for full-scale rollout.
+✅ Cached in `sessionStorage` after first fetch for speed.
+✅ If content not found, keep English as fallback.
 
 ---
 
-### **📆 Sprint Timeline (2 Weeks)**
+### **🔒 Governance / Maintenance Model**
 
-| Phase                  | Duration | Owner        | Outcome                     |
-| ---------------------- | -------- | ------------ | --------------------------- |
-| Dataverse Setup        | 2 days   | Dev / Admin  | Table + Security configured |
-| Portal Setup           | 2 days   | Portal Dev   | HTML markers + API enabled  |
-| JS Integration         | 3 days   | Frontend Dev | Toggle & render working     |
-| Content Load & Testing | 2 days   | QA / Editor  | Bilingual output validated  |
-| Documentation & Demo   | 1 day    | BA / Dev     | Architecture review ready   |
+* English text continues to be managed via **Power Pages** (existing workflow).
 
-**Total Effort:** ~10 working days (one sprint).
-**Deliverable:** Working bilingual toggle (English/Welsh) across sample pages using Dataverse as translation source.
+* Welsh text managed in **Dataverse** using a simple **model-driven editor form**:
+
+  * Fields visible: PageUrl, ContentKey, WelshContent (rich text editor).
+  * Optional Power Automate flow for notifying reviewers when translations are updated.
+
+* For bulk updates, the content can be **exported/imported via Excel** or Power Automate.
 
 ---
 
-Would you like me to generate a **Jira CSV template** (Epic → Story → Task) formatted for bulk import with story points and assignees?
+### **📈 Benefits of Including PageUrl**
+
+| Advantage            | Description                                       |
+| -------------------- | ------------------------------------------------- |
+| Easier querying      | Filter directly by URL in the Web API             |
+| Clearer traceability | Editors can see which page each record belongs to |
+| Supports caching     | Client can cache per-URL batch of translations    |
+| Simplifies migration | If page name changes, URL remains a stable key    |
+| Governance           | Easier to audit completeness per page             |
+
+---
+
+### ✅ **Summary**
+
+* **English content:** Stored and rendered normally via web pages/templates.
+* **Welsh content:** Stored in Dataverse, linked via `PageUrl` + `ContentKey`.
+* **Runtime behavior:** Fetch Welsh content for the current page and inject into DOM using matching IDs.
+* **Benefits:** Low-code, centralized control, minimal page maintenance, no URL duplication.
+
+---
+
+Would you like me to draft the **Dataverse table creation script (using Power Platform CLI or schema XML)** for this table so your DevOps team can provision it quickly?
