@@ -1,7 +1,136 @@
-<div id="schedules-update-status" class="govuk-visually-hidden" aria-live="polite"></div>
-// ✅ Announce change for screen readers
-      $("#schedules-update-status").text(`Schedules updated for ${selectedMonth} 2025`);
-    } else {
-      $(".govuk-schedules-month").show();
-      $("#schedules-update-status").text("All schedules are now displayed");
-    }
+Excellent question — and very relevant for tracking your Application Insights / Log Analytics monthly cost at a granular level.
+Here’s how you can do it directly using Kusto Query Language (KQL) inside your Logs blade in Azure Portal.
+
+
+---
+
+🔍 1. Key idea
+
+Every telemetry item in Application Insights (Requests, Dependencies, Exceptions, CustomEvents, Traces, etc.) has hidden fields:
+
+_IsBillable → whether it counts toward your bill.
+
+_BilledSize → the actual billed data size (in bytes).
+
+_OriginalSize → original uncompressed size (optional).
+
+
+You can sum _BilledSize across all tables to calculate total data ingestion (in GB) for any time period — daily, weekly, or monthly.
+
+
+---
+
+📊 2. Query to get monthly data ingestion (in GB)
+
+You can run this in Logs → New Query inside your Application Insights workspace (or your linked Log Analytics workspace if it’s workspace-based):
+
+union isfuzzy=true
+    AppRequests,
+    AppDependencies,
+    AppTraces,
+    AppExceptions,
+    AppPageViews,
+    AppEvents,
+    AppMetrics
+| where _IsBillable == true
+| where timestamp >= startofmonth(now())  // current month
+| summarize IngestedGB = sum(_BilledSize) / 1e9
+
+✅ Output:
+A single number — total GB ingested so far this month.
+
+If you want to see historical trend per month:
+
+union isfuzzy=true
+    AppRequests,
+    AppDependencies,
+    AppTraces,
+    AppExceptions,
+    AppPageViews,
+    AppEvents,
+    AppMetrics
+| where _IsBillable == true
+| summarize IngestedGB = sum(_BilledSize) / 1e9 by bin(timestamp, 30d)
+| order by timestamp desc
+
+This shows you a month-wise chart of ingestion volume.
+
+
+---
+
+📅 3. Query to check per-day usage in the current month
+
+union isfuzzy=true
+    AppRequests,
+    AppDependencies,
+    AppTraces,
+    AppExceptions,
+    AppPageViews,
+    AppEvents,
+    AppMetrics
+| where _IsBillable == true
+| where timestamp >= startofmonth(now())
+| summarize IngestedGB = sum(_BilledSize) / 1e9 by bin(timestamp, 1d)
+| order by timestamp asc
+
+You can visualize this as a line chart (in the query results pane) to see which days had spikes.
+
+
+---
+
+💡 4. Optional: Breakdown by table type
+
+union isfuzzy=true
+    AppRequests,
+    AppDependencies,
+    AppTraces,
+    AppExceptions,
+    AppPageViews,
+    AppEvents,
+    AppMetrics
+| where _IsBillable == true
+| where timestamp >= startofmonth(now())
+| summarize IngestedGB = sum(_BilledSize) / 1e9 by $table
+| order by IngestedGB desc
+
+This gives you the top contributors — e.g. requests vs traces — so you can identify what’s generating the most telemetry.
+
+
+---
+
+💰 5. Estimating monthly cost from query
+
+If your region’s price is (say) $2.30 per GB, you can extend your query:
+
+union isfuzzy=true
+    AppRequests,
+    AppDependencies,
+    AppTraces,
+    AppExceptions,
+    AppPageViews,
+    AppEvents,
+    AppMetrics
+| where _IsBillable == true
+| where timestamp >= startofmonth(now())
+| summarize IngestedGB = sum(_BilledSize) / 1e9
+| extend EstimatedCostUSD = IngestedGB * 2.30
+
+
+---
+
+⚙️ 6. Automate tracking
+
+You can:
+
+Save this query as a Function and schedule it via Azure Monitor Workbook or Logic App to run weekly/monthly.
+
+Send results to an email alert or Power BI dashboard.
+
+Set a daily ingestion alert (if > certain GB threshold).
+
+
+
+---
+
+Would you like me to give you a ready-to-save Azure Workbook JSON template that displays this monthly + daily + table-wise ingestion visually (like a dashboard)? It’ll let you plug it directly into your portal.
+
