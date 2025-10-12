@@ -1,136 +1,108 @@
-Excellent question — and very relevant for tracking your Application Insights / Log Analytics monthly cost at a granular level.
-Here’s how you can do it directly using Kusto Query Language (KQL) inside your Logs blade in Azure Portal.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Council Tax Schedules – Outstanding Reports</title>
+<style>
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1em;
+    margin: 10mm;
+  }
 
+  header, footer {
+    width: 100%;
+  }
 
----
+  .logo {
+    max-width: 70px;
+    height: auto;
+  }
 
-🔍 1. Key idea
+  header, .page-header {
+    border-bottom: 1px solid #000;
+    margin-bottom: 1em;
+  }
 
-Every telemetry item in Application Insights (Requests, Dependencies, Exceptions, CustomEvents, Traces, etc.) has hidden fields:
+  footer, .page-footer {
+    border-top: 1px solid #000;
+    font-size: 0.9em;
+    text-align: right;
+    margin-top: 2em;
+  }
 
-_IsBillable → whether it counts toward your bill.
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
 
-_BilledSize → the actual billed data size (in bytes).
+  th, td {
+    border: 1px solid #000;
+    padding: 0.5em;
+    text-align: left;
+    font-size: 0.95em;
+  }
 
-_OriginalSize → original uncompressed size (optional).
+  th {
+    background-color: #f2f2f2;
+  }
 
+  @media print {
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+  }
+</style>
+</head>
 
-You can sum _BilledSize across all tables to calculate total data ingestion (in GB) for any time period — daily, weekly, or monthly.
+<body>
 
+<header class="page-header" role="banner">
+  <table role="presentation">
+    <tr>
+      <td style="width:10%;">
+        <img src="data:image/jpg;base64,#HTML_LOGO#"
+             alt="Valuation Office Agency logo"
+             class="logo">
+      </td>
+      <td style="width:60%;">
+        <h1>Council Tax Schedules – Outstanding Reports</h1>
+        <p>Billing Authority: <strong>#BA_CODE# #BA_NAME#</strong><br>
+        Valuation Office – NVU Inner London</p>
+      </td>
+      <td style="width:30%; text-align:right;">
+        <p><strong>Date Created:</strong> #CURRENT_DATE#</p>
+      </td>
+    </tr>
+  </table>
+</header>
 
----
+<main id="main-content" role="main">
+  <h2>Outstanding Reports</h2>
+  <table id="data_table" aria-describedby="table-description">
+    <caption id="table-description" class="govuk-visually-hidden">
+      Council Tax outstanding reports for billing authorities.
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Billing Authority Report</th>
+        <th scope="col">Property Address</th>
+        <th scope="col">Property Reference</th>
+      </tr>
+    </thead>
+    <tbody>
+      #TABLE_PLACEHOLDER#
+    </tbody>
+  </table>
+</main>
 
-📊 2. Query to get monthly data ingestion (in GB)
+<footer class="page-footer" role="contentinfo">
+  <p>
+    Crown © 2022<br>
+    <a href="https://www.voa.gov.uk" target="_blank" rel="noopener noreferrer">
+      www.voa.gov.uk
+    </a>
+  </p>
+</footer>
 
-You can run this in Logs → New Query inside your Application Insights workspace (or your linked Log Analytics workspace if it’s workspace-based):
-
-union isfuzzy=true
-    AppRequests,
-    AppDependencies,
-    AppTraces,
-    AppExceptions,
-    AppPageViews,
-    AppEvents,
-    AppMetrics
-| where _IsBillable == true
-| where timestamp >= startofmonth(now())  // current month
-| summarize IngestedGB = sum(_BilledSize) / 1e9
-
-✅ Output:
-A single number — total GB ingested so far this month.
-
-If you want to see historical trend per month:
-
-union isfuzzy=true
-    AppRequests,
-    AppDependencies,
-    AppTraces,
-    AppExceptions,
-    AppPageViews,
-    AppEvents,
-    AppMetrics
-| where _IsBillable == true
-| summarize IngestedGB = sum(_BilledSize) / 1e9 by bin(timestamp, 30d)
-| order by timestamp desc
-
-This shows you a month-wise chart of ingestion volume.
-
-
----
-
-📅 3. Query to check per-day usage in the current month
-
-union isfuzzy=true
-    AppRequests,
-    AppDependencies,
-    AppTraces,
-    AppExceptions,
-    AppPageViews,
-    AppEvents,
-    AppMetrics
-| where _IsBillable == true
-| where timestamp >= startofmonth(now())
-| summarize IngestedGB = sum(_BilledSize) / 1e9 by bin(timestamp, 1d)
-| order by timestamp asc
-
-You can visualize this as a line chart (in the query results pane) to see which days had spikes.
-
-
----
-
-💡 4. Optional: Breakdown by table type
-
-union isfuzzy=true
-    AppRequests,
-    AppDependencies,
-    AppTraces,
-    AppExceptions,
-    AppPageViews,
-    AppEvents,
-    AppMetrics
-| where _IsBillable == true
-| where timestamp >= startofmonth(now())
-| summarize IngestedGB = sum(_BilledSize) / 1e9 by $table
-| order by IngestedGB desc
-
-This gives you the top contributors — e.g. requests vs traces — so you can identify what’s generating the most telemetry.
-
-
----
-
-💰 5. Estimating monthly cost from query
-
-If your region’s price is (say) $2.30 per GB, you can extend your query:
-
-union isfuzzy=true
-    AppRequests,
-    AppDependencies,
-    AppTraces,
-    AppExceptions,
-    AppPageViews,
-    AppEvents,
-    AppMetrics
-| where _IsBillable == true
-| where timestamp >= startofmonth(now())
-| summarize IngestedGB = sum(_BilledSize) / 1e9
-| extend EstimatedCostUSD = IngestedGB * 2.30
-
-
----
-
-⚙️ 6. Automate tracking
-
-You can:
-
-Save this query as a Function and schedule it via Azure Monitor Workbook or Logic App to run weekly/monthly.
-
-Send results to an email alert or Power BI dashboard.
-
-Set a daily ingestion alert (if > certain GB threshold).
-
-
-
----
-
-Would you like me to give you a ready-to-save Azure Workbook JSON template that displays this monthly + daily + table-wise ingestion visually (like a dashboard)? It’ll let you plug it directly into your portal.
-
+</body>
+</html>
