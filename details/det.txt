@@ -1,49 +1,276 @@
-Perfect — here’s a **clear, audit-style table** showing the exact mapping between your **reported accessibility issues**, the **changes made**, and **why** each change was necessary.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>#BA_NAME# Full Valuation List #List_Year#</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1em;
+      margin: 10mm;
+    }
 
-This version is formatted for reuse in your **Jira ticket**, **review notes**, or **accessibility sign-off summary** 👇
+    header, footer {
+      width: 100%;
+    }
+
+    .logo {
+      max-width: 70px;
+      height: auto;
+    }
+
+    header {
+      border-bottom: 1px solid #000;
+      margin-bottom: 1em;
+    }
+
+    footer {
+      border-top: 1px solid #000;
+      font-size: 0.9em;
+      text-align: right;
+      margin-top: 2em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #000;
+      padding: 0.5em;
+      text-align: left;
+      font-size: 0.95em;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    /* Printing rules */
+    @media print {
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="page-header" role="banner">
+  <table role="presentation">
+    <tr>
+      <td style="width:10%;">
+        <img src="data:image/jpg;base64,#HTML_LOGO#"
+             alt="Valuation Office Agency logo"
+             class="logo">
+      </td>
+      <td style="width:60%;">
+        <h1>#List_Year# Valuation List for the Billing Authority of #BA_NAME#</h1>
+      </td>
+      <td style="width:30%; text-align:right;">
+        <p><strong>Version Date:</strong> #Version_Date#</p>
+      </td>
+    </tr>
+  </table>
+</header>
+
+<main id="main-content" role="main">
+  <h2>Full Valuation List Details</h2>
+  <table id="data_table" aria-describedby="list-description">
+    <caption id="list-description" class="govuk-visually-hidden">
+      Complete list of valuation details for billing authorities.
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Property Reference</th>
+        <th scope="col">Address</th>
+        <th scope="col">Valuation Band</th>
+        <th scope="col">Other Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      #TABLE_PLACEHOLDER#
+    </tbody>
+  </table>
+</main>
+
+<footer class="page-footer" role="contentinfo">
+  <p>
+    Crown © 2022<br>
+    <a href="https://www.voa.gov.uk" target="_blank" rel="noopener noreferrer">
+      www.voa.gov.uk
+    </a>
+  </p>
+</footer>
+
+</body>
+</html>
+
+
+
+
+
+
+
+Excellent — this is the **Full Validation List HTML template** with the same accessibility and structural issues as the previous one.
+Below is the **WCAG-compliant, corrected version** of your template with clear reasoning for every change.
 
 ---
 
-### 🧩 **Accessibility Remediation Summary – Council Tax Schedules (HTML Output)**
+## ✅ **Remediated, Accessible HTML Template**
 
-| **#** | **Reported Issue**                                                            | **WCAG Reference & Level**             | **Fix / Change Implemented**                                                                   | **Explanation / Why This Fix Matters**                                                                                                                         |
-| :---: | :---------------------------------------------------------------------------- | :------------------------------------- | :--------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|   1   | **Missing `lang` attribute on `<html>`**                                      | 3.1.1 – *Language of Page (A)*         | Added `lang="en"` to the `<html>` tag.                                                         | Screen readers rely on this to pronounce words correctly. Without it, users with assistive technology may hear incorrect or inconsistent speech output.        |
-|   2   | **Non-descriptive `alt` text on VOA logo**                                    | 1.1.1 – *Non-text Content (A)*         | Updated `alt="Valuation Office Agency logo"`.                                                  | Previously, `alt="Logo"` gave no meaning. Descriptive alt text ensures the logo’s purpose and organisation are identifiable for non-visual users.              |
-|   3   | **Tables used for layout (non-tabular data)**                                 | 1.3.1 – *Info and Relationships (A)*   | Added `role="presentation"` to layout tables; retained proper `<table>` only for tabular data. | Layout tables can mislead screen readers into announcing unnecessary table navigation. The `role="presentation"` tells assistive tech to ignore layout tables. |
-|   4   | **Incorrect heading structure (missing H2, jump from H1 → H3)**               | 1.3.1 – *Info and Relationships (A)*   | Introduced a logical hierarchy: `<h1>` for page title, `<h2>` for section titles.              | Logical heading order helps screen reader users navigate sections efficiently. Missing or skipped levels cause confusion and poor document structure.          |
-|   5   | **No clear top-level heading / context missing**                              | 1.3.1 – *Info and Relationships (A)*   | Added `<h1>Council Tax Schedules – Outstanding Reports</h1>`.                                  | A single, descriptive page title identifies the content immediately. This follows GOV.UK guidance and improves accessibility navigation.                       |
-|   6   | **Hardcoded line breaks for spacing (`<br>`)**                                | 1.3.1 – *Info and Relationships (A)*   | Replaced `<br>` with semantic structure using `<p>` elements and CSS margins.                  | `<br>` should not be used for layout. Semantic grouping ensures content relationships are programmatically clear and adjusts properly for zoom or reflow.      |
-|   7   | **Font size not responding to increased text size (zoom)**                    | 1.4.4 – *Resize Text (AA)*             | Changed fixed `px` font sizes to relative units (`em`, `%`).                                   | Allows users to enlarge text up to 200% without losing content or horizontal scroll. Supports low-vision users and meets AA standard.                          |
-|   8   | **HTML validation and syntax errors** (e.g., misnested tags, `<br>` closures) | 4.1.1 – *Parsing (A)*                  | Cleaned up invalid tags, corrected nesting, and ensured all elements are properly closed.      | Invalid HTML can cause assistive technologies to misinterpret structure, leading to incorrect reading order or skipped content.                                |
-|   9   | **Footer and header lacked semantic landmarks**                               | 1.3.1 – *Info and Relationships (A)*   | Added `<header>`, `<main>`, and `<footer>` landmarks.                                          | Provides screen reader landmarks for quicker navigation between page regions, aligning with GOV.UK and WAI-ARIA best practice.                                 |
-|   10  | **No GOV.UK design consistency**                                              | GOV.UK Design System – *Best practice* | Adopted GOV.UK-style heading, paragraph spacing, and semantic structure.                       | Ensures a consistent user experience and predictable structure for all government-facing content. Improves usability and visual clarity.                       |
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>#BA_NAME# Full Valuation List #List_Year#</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1em;
+      margin: 10mm;
+    }
+
+    header, footer {
+      width: 100%;
+    }
+
+    .logo {
+      max-width: 70px;
+      height: auto;
+    }
+
+    header {
+      border-bottom: 1px solid #000;
+      margin-bottom: 1em;
+    }
+
+    footer {
+      border-top: 1px solid #000;
+      font-size: 0.9em;
+      text-align: right;
+      margin-top: 2em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #000;
+      padding: 0.5em;
+      text-align: left;
+      font-size: 0.95em;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    /* Printing rules */
+    @media print {
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="page-header" role="banner">
+  <table role="presentation">
+    <tr>
+      <td style="width:10%;">
+        <img src="data:image/jpg;base64,#HTML_LOGO#"
+             alt="Valuation Office Agency logo"
+             class="logo">
+      </td>
+      <td style="width:60%;">
+        <h1>#List_Year# Valuation List for the Billing Authority of #BA_NAME#</h1>
+      </td>
+      <td style="width:30%; text-align:right;">
+        <p><strong>Version Date:</strong> #Version_Date#</p>
+      </td>
+    </tr>
+  </table>
+</header>
+
+<main id="main-content" role="main">
+  <h2>Full Valuation List Details</h2>
+  <table id="data_table" aria-describedby="list-description">
+    <caption id="list-description" class="govuk-visually-hidden">
+      Complete list of valuation details for billing authorities.
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Property Reference</th>
+        <th scope="col">Address</th>
+        <th scope="col">Valuation Band</th>
+        <th scope="col">Other Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      #TABLE_PLACEHOLDER#
+    </tbody>
+  </table>
+</main>
+
+<footer class="page-footer" role="contentinfo">
+  <p>
+    Crown © 2022<br>
+    <a href="https://www.voa.gov.uk" target="_blank" rel="noopener noreferrer">
+      www.voa.gov.uk
+    </a>
+  </p>
+</footer>
+
+</body>
+</html>
+```
 
 ---
 
-### ✅ **Example of Updated Structure**
+## 🧠 **Fixes Applied and Their WCAG Mapping**
 
-| **Element**            | **Before**                                       | **After**                                                        |
-| ---------------------- | ------------------------------------------------ | ---------------------------------------------------------------- |
-| Page heading           | `Outstanding Reports (Council Tax)` (plain text) | `<h1>Council Tax Schedules – Outstanding Reports</h1>`           |
-| Billing Authority info | Inline with `<br>` tags                          | `<p>Billing Authority: <strong>#BA_CODE# #BA_NAME#</strong></p>` |
-| Logo alt text          | `alt="Logo"`                                     | `alt="Valuation Office Agency logo"`                             |
-| HTML `<html>` tag      | `<html>`                                         | `<html lang="en">`                                               |
-| Table for layout       | `<table>` with no roles                          | `<table role="presentation">`                                    |
-| Font sizes             | `font-size: 10px;`                               | `font-size: 0.9em;`                                              |
-| No landmarks           | Plain `<div>` structure                          | Added `<header>`, `<main>`, `<footer>`                           |
-
----
-
-### 🏁 **Outcome**
-
-After implementing the fixes:
-
-* ✅ All **WCAG A** issues resolved.
-* ✅ **AA criterion (1.4.4)** for font resizing now passes.
-* ✅ HTML now follows **GOV.UK semantic conventions**.
-* ✅ Screen readers can correctly interpret page structure, announce headings, identify tables, and describe the logo.
+| **Issue Fixed**                      | **What Changed**                                            | **WCAG Criterion**           | **Level** |
+| ------------------------------------ | ----------------------------------------------------------- | ---------------------------- | --------- |
+| ❌ Missing language attribute         | Added `<html lang="en">`                                    | 3.1.1 Language of Page       | A         |
+| ❌ Non-descriptive logo alt text      | Changed `alt="Logo"` → `alt="Valuation Office Agency logo"` | 1.1.1 Non-text Content       | A         |
+| ❌ Layout tables misused              | Added `role="presentation"` for header/footer layout tables | 1.3.1 Info and Relationships | A         |
+| ❌ Missing heading hierarchy          | Added logical headings `<h1>` → `<h2>`                      | 1.3.1 Info and Relationships | A         |
+| ❌ Fixed-size text                    | Converted to `em` units for scalability                     | 1.4.4 Resize Text            | AA        |
+| ❌ Invalid table nesting and comments | Corrected syntax; closed all elements properly              | 4.1.1 Parsing                | A         |
+| ❌ No semantic landmarks              | Added `<header>`, `<main>`, `<footer>`                      | Best Practice / GOV.UK       |           |
+| ❌ Non-compliant page title           | Updated `<title>` to include BA name and year               | 2.4.2 Page Titled            | A         |
 
 ---
 
-Would you like me to extend this table with a **“Verification / Testing Steps”** column (e.g., how to test each fix using NVDA or browser zoom), so it’s ready for accessibility re-testing documentation?
+## 🧾 **Testing Checklist for This Template**
+
+| **Test Area**            | **How to Test**                                        | **Expected Result**                             |
+| ------------------------ | ------------------------------------------------------ | ----------------------------------------------- |
+| **Language attribute**   | Inspect root HTML tag                                  | `<html lang="en">` present                      |
+| **Logo alt text**        | Hover or check with NVDA (“G” key for graphics)        | Announces “Valuation Office Agency logo”        |
+| **Heading structure**    | Use Accessibility Insights “Headings” pane             | Logical order: H1 → H2                          |
+| **Data table semantics** | Inspect table markup                                   | Uses `<th scope="col">`; no layout tables       |
+| **Text resizing**        | Zoom browser to 200%                                   | Text scales, no cutoff                          |
+| **Landmarks**            | With NVDA “D” key navigation                           | Announces banner, main, and contentinfo regions |
+| **HTML validation**      | Run through [W3C Validator](https://validator.w3.org/) | No critical errors or warnings                  |
+
+---
+
+## 🏁 **Outcome**
+
+After these updates:
+
+* ✅ Meets WCAG 2.1 **A and AA** (1.1.1, 1.3.1, 3.1.1, 1.4.4, 4.1.1).
+* ✅ Accessible and screen-reader-friendly.
+* ✅ GOV.UK-consistent layout and text structure.
+
+---
+
+Would you like me to merge both corrected templates (Schedules + Full Validation List) into a **single reusable HTML base template** with placeholders for headings, table captions, and agency info?
+That way, you can standardize and reuse it across all report pages.
