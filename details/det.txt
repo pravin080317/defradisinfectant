@@ -1,82 +1,73 @@
-Here’s a clear, professional message you can share with your team 👇
+Great clarification. Here's the **updated Jira ticket content** incorporating your new points — specifying that:
 
-
----
-
-📨 Team Update: Template Comparison and Accessibility Testing
-
-Hi team,
-
-We’ve now completed the accessibility-compliant versions of all HTML report templates (Schedule of Alterations, No Action Schedule, Full Valuation List, Statement of Numbers and Bands, and Summary of Numbers and Bands).
-
-Please do the following checks before deployment:
-
+* The Application Insights endpoint is public.
+* The issue is observed only for **some councils** (e.g., Bracknell Forest).
+* The **network team** should investigate **client-side or endpoint-level blocks**, not App Insights configuration in Azure.
 
 ---
 
-🔍 1. Compare Old vs Updated Templates
+### 🧾 **Jira Ticket: Application Insights Tracking Blocked for Specific Councils (e.g., Bracknell Forest)**
 
-Open both the old and new templates side-by-side in Visual Studio (or VS Code).
-
-Review the HTML structure and CSS changes – focus on cleaned markup, proper tag hierarchy, and semantic elements (<header>, <main>, <footer>).
-
-Verify that ETL placeholders (e.g. #BA_NAME#, #TABLE_PLACEHOLDER#, #LIST_YEAR#) are unchanged.
-
-
-🌐 2. Browser Rendering Check
-
-Open each template in a browser (Edge or Chrome).
-
-Confirm that visual formatting (logo, title, tables, footer) matches the previous layout.
-
-Ensure bilingual text (Welsh/English) displays correctly and no overlapping occurs.
-
-Note: the “Translate page from Welsh” prompt may not appear anymore — that’s expected since the new templates correctly declare lang="en" with Welsh segments tagged lang="cy" for accessibility.
-
-
-♿ 3. Accessibility Verification
-
-Perform quick WCAG validation focusing on:
-
-Language attributes: <html lang="en"> present; Welsh text tagged lang="cy".
-
-Headings: Logical order (H1 → H2, no skipped levels).
-
-Tables: <caption>, <thead>, <th scope="col"> defined.
-
-Alt text: Logo includes descriptive alt text (“Valuation Office Agency logo”).
-
-Landmarks: <header>, <main>, <footer> read correctly by screen readers.
-
-Text scaling: Confirm readability at 200% zoom (no clipping).
-
-
-You can use:
-
-NVDA or JAWS (screen reader testing)
-
-axe DevTools / WAVE / Accessibility Insights for automated WCAG checks.
-
-
-✅ Expected Outcome
-
-No functional change in data binding (ETL placeholders still work).
-
-Layout and styling visually consistent with old versions.
-
-Accessibility issues from earlier audits (1.3.1, 3.1.1, 4.1.1) resolved.
-
-
+**Summary:**
+Application Insights events (e.g., `CouncilSwitched`, `LAPortalLogin`) are being blocked in the browser **only for specific councils**, such as **Bracknell Forest**, impacting telemetry visibility.
 
 ---
 
-Let’s capture any layout deviations or accessibility regressions during testing so we can finalise the rollout package.
+**Description:**
+While reviewing telemetry logs, we noticed that **telemetry requests to Application Insights are blocked in the browser** for a few councils. The issue is **not global**, and is **not related to Azure-side configuration**, as Application Insights endpoints are publicly accessible, and the instrumentation key is embedded in the code for logging.
 
-Thanks,
-[Your Name]
-
+The screenshot attached shows telemetry POST requests being blocked with `net::ERR_BLOCKED_BY_CLIENT` in the console, observed specifically when accessing via **Bracknell Forest Council** accounts.
 
 ---
 
-Would you like me to format this as a short Teams message version (2–3 lines, concise for chat)?
+**Key Points:**
 
+* App Insights uses a **public ingestion endpoint**:
+  `https://uksouth-1.in.applicationinsights.azure.com/v2/track`
+* Anyone can post to this with a valid instrumentation key.
+* Azure-side access restrictions (e.g., firewall) **are not in place**.
+* This appears to be a **client-side issue**, possibly due to:
+
+  * Council-specific browser/network settings
+  * Endpoint protection software or security extensions
+  * DNS/proxy/firewall rules specific to the council network
+
+---
+
+**Evidence:**
+
+* Screenshot showing `net::ERR_BLOCKED_BY_CLIENT` errors for Bracknell Forest users
+* ApplicationInsights calls (e.g., `trackEvent`) are made correctly in code but never reach Azure
+
+---
+
+**Action Required:**
+
+* [ ] Request **Bracknell Forest Council IT / Network team** to:
+
+  * Investigate whether their browser, proxy, or endpoint security is blocking telemetry requests
+  * Check if outbound requests to `*.applicationinsights.azure.com` or Microsoft telemetry domains are restricted
+* [ ] Confirm if similar issues exist for other councils or are isolated
+
+---
+
+**Whitelisting Recommendation:**
+Ensure the following domains are **not blocked** in the client environment:
+
+* `*.applicationinsights.azure.com`
+* `dc.services.visualstudio.com`
+* `eu-mobile.events.data.microsoft.com`
+
+---
+
+**Priority:**
+Medium – Impacts data analysis and user monitoring for selected councils.
+
+---
+
+**Attachments:**
+✅ Screenshot showing blocked requests and council context (Bracknell Forest)
+
+---
+
+Let me know if you'd like this turned into a Word or Markdown file or pushed into a specific Jira format (e.g., epic/task/sub-task), or if you'd like an additional test case added for QA validation.
