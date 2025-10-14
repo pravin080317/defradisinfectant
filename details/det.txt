@@ -1,73 +1,53 @@
-Great clarification. Here's the **updated Jira ticket content** incorporating your new points — specifying that:
-
-* The Application Insights endpoint is public.
-* The issue is observed only for **some councils** (e.g., Bracknell Forest).
-* The **network team** should investigate **client-side or endpoint-level blocks**, not App Insights configuration in Azure.
+Perfect — here’s how you can clearly explain **what was fixed** for issues **#5 (GOV.UK Design System)** and **#6 (multiple HTML errors)**, and why you still need to verify the **generated files** before confirming closure:
 
 ---
 
-### 🧾 **Jira Ticket: Application Insights Tracking Blocked for Specific Councils (e.g., Bracknell Forest)**
+For issues **#5 and #6**, here’s what we addressed as part of the template fixes:
 
-**Summary:**
-Application Insights events (e.g., `CouncilSwitched`, `LAPortalLogin`) are being blocked in the browser **only for specific councils**, such as **Bracknell Forest**, impacting telemetry visibility.
+**5. Doesn’t follow GOV.UK Design System**
+We’ve updated the templates to align with GOV.UK styling and structural guidance.
+This includes:
 
----
+* Introducing consistent heading hierarchy (`<h1>`, `<h2>`, `<h3>`) and spacing between paragraphs.
+* Replacing non-semantic `<div>` and layout tables with proper semantic elements (`<header>`, `<main>`, `<footer>`).
+* Adding meaningful `alt` text for logos and ensuring bilingual headings follow GOV.UK’s accessible presentation pattern.
+* Updating page structure and margins to match GOV.UK typography and layout best practices for readability and print.
 
-**Description:**
-While reviewing telemetry logs, we noticed that **telemetry requests to Application Insights are blocked in the browser** for a few councils. The issue is **not global**, and is **not related to Azure-side configuration**, as Application Insights endpoints are publicly accessible, and the instrumentation key is embedded in the code for logging.
+**6. Multiple HTML Errors**
+We’ve reviewed and corrected markup syntax and structural issues across templates, including:
 
-The screenshot attached shows telemetry POST requests being blocked with `net::ERR_BLOCKED_BY_CLIENT` in the console, observed specifically when accessing via **Bracknell Forest Council** accounts.
+* Fixing unclosed or misnested tags (`</div>`, `</table>`, etc.).
+* Replacing incorrect attributes (e.g., `width:` instead of `width=`).
+* Ensuring consistent quotation marks and properly nested table elements.
+* Removing redundant or invalid HTML elements (like unnecessary `<br>` or empty `<td>` used for spacing).
 
----
+These changes make the templates **structurally valid** and ensure they pass HTML validation and accessibility checks.
 
-**Key Points:**
+However, since the **ETL process dynamically generates the actual HTML output**, we need to **verify the generated files** to ensure these template-level fixes have carried over correctly into the final outputs (i.e., that the dynamic content doesn’t reintroduce invalid tags, misalignment, or broken hierarchy).
 
-* App Insights uses a **public ingestion endpoint**:
-  `https://uksouth-1.in.applicationinsights.azure.com/v2/track`
-* Anyone can post to this with a valid instrumentation key.
-* Azure-side access restrictions (e.g., firewall) **are not in place**.
-* This appears to be a **client-side issue**, possibly due to:
+Once we receive and review the nine generated HTML files from the DAL team, we’ll confirm the results and send a **detailed summary** to the Accessibility team showing:
 
-  * Council-specific browser/network settings
-  * Endpoint protection software or security extensions
-  * DNS/proxy/firewall rules specific to the council network
-
----
-
-**Evidence:**
-
-* Screenshot showing `net::ERR_BLOCKED_BY_CLIENT` errors for Bracknell Forest users
-* ApplicationInsights calls (e.g., `trackEvent`) are made correctly in code but never reach Azure
+* Which WCAG A/AA issues were fully resolved,
+* Which remain pending ETL-side adjustments, and
+* Validation screenshots/evidence for each fix.
 
 ---
 
-**Action Required:**
+Would you like me to make this into a **Teams-ready concise message** (3–4 lines) summarizing the same points for your project channel?
 
-* [ ] Request **Bracknell Forest Council IT / Network team** to:
 
-  * Investigate whether their browser, proxy, or endpoint security is blocking telemetry requests
-  * Check if outbound requests to `*.applicationinsights.azure.com` or Microsoft telemetry domains are restricted
-* [ ] Confirm if similar issues exist for other councils or are isolated
+
+Here’s a clear and professional way to respond to that message:
 
 ---
 
-**Whitelisting Recommendation:**
-Ensure the following domains are **not blocked** in the client environment:
+Thanks for raising these points.
 
-* `*.applicationinsights.azure.com`
-* `dc.services.visualstudio.com`
-* `eu-mobile.events.data.microsoft.com`
+We’ve fixed the identified accessibility issues in the templates; however, until we verify the **generated HTML files**, we can’t confirm the exact status of each fix. Once the generated outputs are available, we’ll review them in detail and share a consolidated update with the Accessibility team outlining what’s been fixed and how each issue maps to the WCAG A/AA criteria.
 
----
-
-**Priority:**
-Medium – Impacts data analysis and user monitoring for selected councils.
+For now, we’ll need **regular support from the Data Migration (DAL) team** to provide the nine HTML files generated from the updated templates. After we verify these outputs, the DAL team can then proceed to **implement and re-test** using the fixed templates to ensure the final accessibility compliance.
 
 ---
 
-**Attachments:**
-✅ Screenshot showing blocked requests and council context (Bracknell Forest)
+Would you like me to make it slightly shorter for posting directly in your Teams thread?
 
----
-
-Let me know if you'd like this turned into a Word or Markdown file or pushed into a specific Jira format (e.g., epic/task/sub-task), or if you'd like an additional test case added for QA validation.
