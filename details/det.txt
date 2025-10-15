@@ -1,53 +1,25 @@
-Perfect — here’s how you can clearly explain **what was fixed** for issues **#5 (GOV.UK Design System)** and **#6 (multiple HTML errors)**, and why you still need to verify the **generated files** before confirming closure:
+Here’s a clear **Accessibility Fix Action Plan** table you can share with your team or include in your meeting notes 👇
 
 ---
 
-For issues **#5 and #6**, here’s what we addressed as part of the template fixes:
+### **Accessibility Fix Action Plan – HTML Templates and Dynamic Content**
 
-**5. Doesn’t follow GOV.UK Design System**
-We’ve updated the templates to align with GOV.UK styling and structural guidance.
-This includes:
-
-* Introducing consistent heading hierarchy (`<h1>`, `<h2>`, `<h3>`) and spacing between paragraphs.
-* Replacing non-semantic `<div>` and layout tables with proper semantic elements (`<header>`, `<main>`, `<footer>`).
-* Adding meaningful `alt` text for logos and ensuring bilingual headings follow GOV.UK’s accessible presentation pattern.
-* Updating page structure and margins to match GOV.UK typography and layout best practices for readability and print.
-
-**6. Multiple HTML Errors**
-We’ve reviewed and corrected markup syntax and structural issues across templates, including:
-
-* Fixing unclosed or misnested tags (`</div>`, `</table>`, etc.).
-* Replacing incorrect attributes (e.g., `width:` instead of `width=`).
-* Ensuring consistent quotation marks and properly nested table elements.
-* Removing redundant or invalid HTML elements (like unnecessary `<br>` or empty `<td>` used for spacing).
-
-These changes make the templates **structurally valid** and ensure they pass HTML validation and accessibility checks.
-
-However, since the **ETL process dynamically generates the actual HTML output**, we need to **verify the generated files** to ensure these template-level fixes have carried over correctly into the final outputs (i.e., that the dynamic content doesn’t reintroduce invalid tags, misalignment, or broken hierarchy).
-
-Once we receive and review the nine generated HTML files from the DAL team, we’ll confirm the results and send a **detailed summary** to the Accessibility team showing:
-
-* Which WCAG A/AA issues were fully resolved,
-* Which remain pending ETL-side adjustments, and
-* Validation screenshots/evidence for each fix.
+| **Area / Component**                             | **Responsibility**                                | **Tasks / Fixes Required**                                                                                                                                                                                                                                                                         | **Dependencies / Collaboration**                                                                         | **Status / Next Steps**                                 |
+| ------------------------------------------------ | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **Main Template (Static Sections)**              | **Ashwini**, **Prabha**, **Samantha**             | - Add semantic structure: `<header>`, `<main>`, `<footer>`<br>- Ensure correct heading hierarchy (`<h1>`, `<h2>`, etc.)<br>- Add bilingual static content (`lang="en"` / `lang="cy"`)<br>- Fix alt text, language attribute, and visual spacing<br>- Validate HTML syntax and remove layout tables | Samantha to take overall ownership and coordinate with Ashwini and Prabha for implementation and testing | In Progress – Awaiting generated files for verification |
+| **Dynamic Table (Generated via Azure Function)** | **Kesava**, **Samantha**                          | - Update Azure Function logic generating `#TABLE_PLACEHOLDER#` to:<br> • Use proper `<thead>`, `<tbody>`, `<th scope="col">`<br> • Add `<caption>` for table description<br> • Remove `<br>` tags and redundant numbering<br> • Ensure valid nesting and closure of tags                           | Kesava & Samantha to sync with Ashwini and Prabha to align structure with main template                  | Pending – Needs code-level updates in Azure Function    |
+| **Integrated Template Review**                   | **Samantha** (Owner)                              | - Integrate fixed templates with Azure Function output<br>- Generate test HTML files using updated templates<br>- Ensure ETL output renders correctly under `<main>` structure                                                                                                                     | Works with Kesava for regeneration; collaborates with Ashwini & Prabha for consistency                   | Planned – Post dynamic fix completion                   |
+| **Verification of Generated HTML Files**         | **Samantha**, **Ashwini**, **Prabha**, **Kesava** | - Open all 9 generated HTML files<br>- Verify semantic correctness, visual consistency, and accessibility (WCAG 1.3.1, 3.1.1, 4.1.1)<br>- Confirm no missing alt text, heading order, or broken layout<br>- Note any refinements needed                                                            | Collaborative review session after regeneration                                                          | To Be Scheduled                                         |
+| **Accessibility Team Alignment**                 | **All (Led by Samantha)**                         | - Schedule a call with the Accessibility team<br>- Present the fixes applied (template-level + dynamic content)<br>- Share before/after examples and validation evidence<br>- Seek formal confirmation of closure for all A/AA issues                                                              | Post-verification call                                                                                   | Pending – To be arranged after verification             |
 
 ---
 
-Would you like me to make this into a **Teams-ready concise message** (3–4 lines) summarizing the same points for your project channel?
+### ✅ **Summary**
 
-
-
-Here’s a clear and professional way to respond to that message:
-
----
-
-Thanks for raising these points.
-
-We’ve fixed the identified accessibility issues in the templates; however, until we verify the **generated HTML files**, we can’t confirm the exact status of each fix. Once the generated outputs are available, we’ll review them in detail and share a consolidated update with the Accessibility team outlining what’s been fixed and how each issue maps to the WCAG A/AA criteria.
-
-For now, we’ll need **regular support from the Data Migration (DAL) team** to provide the nine HTML files generated from the updated templates. After we verify these outputs, the DAL team can then proceed to **implement and re-test** using the fixed templates to ensure the final accessibility compliance.
+* **Ashwini / Prabha / Samantha:** Fix and test **main templates** (static accessibility improvements).
+* **Kesava / Samantha:** Fix **Azure Function-generated dynamic HTML tables**.
+* **Samantha:** Acts as overall coordinator — integrates fixes, runs generation, leads review, and aligns with the accessibility team post-verification.
 
 ---
 
-Would you like me to make it slightly shorter for posting directly in your Teams thread?
-
+Would you like me to prepare a short **Teams message summary** of this plan (3–4 lines) to post in your project channel?
