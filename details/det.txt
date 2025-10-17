@@ -1,25 +1,80 @@
-Here’s a clear **Accessibility Fix Action Plan** table you can share with your team or include in your meeting notes 👇
+Here’s a **combined, client-facing explanation** you can use in a **workshop, Show & Tell, or steering meeting** to clearly outline the **filtering challenges in SVT using PCF grid**, compared to out-of-the-box capabilities like Dynamics or SharePoint.
 
 ---
 
-### **Accessibility Fix Action Plan – HTML Templates and Dynamic Content**
-
-| **Area / Component**                             | **Responsibility**                                | **Tasks / Fixes Required**                                                                                                                                                                                                                                                                         | **Dependencies / Collaboration**                                                                         | **Status / Next Steps**                                 |
-| ------------------------------------------------ | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| **Main Template (Static Sections)**              | **Ashwini**, **Prabha**, **Samantha**             | - Add semantic structure: `<header>`, `<main>`, `<footer>`<br>- Ensure correct heading hierarchy (`<h1>`, `<h2>`, etc.)<br>- Add bilingual static content (`lang="en"` / `lang="cy"`)<br>- Fix alt text, language attribute, and visual spacing<br>- Validate HTML syntax and remove layout tables | Samantha to take overall ownership and coordinate with Ashwini and Prabha for implementation and testing | In Progress – Awaiting generated files for verification |
-| **Dynamic Table (Generated via Azure Function)** | **Kesava**, **Samantha**                          | - Update Azure Function logic generating `#TABLE_PLACEHOLDER#` to:<br> • Use proper `<thead>`, `<tbody>`, `<th scope="col">`<br> • Add `<caption>` for table description<br> • Remove `<br>` tags and redundant numbering<br> • Ensure valid nesting and closure of tags                           | Kesava & Samantha to sync with Ashwini and Prabha to align structure with main template                  | Pending – Needs code-level updates in Azure Function    |
-| **Integrated Template Review**                   | **Samantha** (Owner)                              | - Integrate fixed templates with Azure Function output<br>- Generate test HTML files using updated templates<br>- Ensure ETL output renders correctly under `<main>` structure                                                                                                                     | Works with Kesava for regeneration; collaborates with Ashwini & Prabha for consistency                   | Planned – Post dynamic fix completion                   |
-| **Verification of Generated HTML Files**         | **Samantha**, **Ashwini**, **Prabha**, **Kesava** | - Open all 9 generated HTML files<br>- Verify semantic correctness, visual consistency, and accessibility (WCAG 1.3.1, 3.1.1, 4.1.1)<br>- Confirm no missing alt text, heading order, or broken layout<br>- Note any refinements needed                                                            | Collaborative review session after regeneration                                                          | To Be Scheduled                                         |
-| **Accessibility Team Alignment**                 | **All (Led by Samantha)**                         | - Schedule a call with the Accessibility team<br>- Present the fixes applied (template-level + dynamic content)<br>- Share before/after examples and validation evidence<br>- Seek formal confirmation of closure for all A/AA issues                                                              | Post-verification call                                                                                   | Pending – To be arranged after verification             |
+## 🎯 Filtering in SVT – What’s Possible, What’s Challenging
 
 ---
 
-### ✅ **Summary**
+### ✅ **What Dynamics / SharePoint Offer by Default**
 
-* **Ashwini / Prabha / Samantha:** Fix and test **main templates** (static accessibility improvements).
-* **Kesava / Samantha:** Fix **Azure Function-generated dynamic HTML tables**.
-* **Samantha:** Acts as overall coordinator — integrates fixes, runs generation, leads review, and aligns with the accessibility team post-verification.
+| Platform                       | Filtering               | Notes                                                        |
+| ------------------------------ | ----------------------- | ------------------------------------------------------------ |
+| **Dynamics 365 (Dataverse)**   | ✅ Built-in              | Header filters, sorting, saved views, security trimming.     |
+| **SharePoint Lists**           | ✅ Built-in              | Search, filter by column, views, and indexed performance.    |
+| **Canvas App Tables**          | ❌ Manual                | Needs Power Fx filters, no native column UI.                 |
+| **SVT (PCF Grid - Fluent UI)** | ❌ Manual (Custom Build) | No default filter controls. Needs end-to-end implementation. |
 
 ---
 
-Would you like me to prepare a short **Teams message summary** of this plan (3–4 lines) to post in your project channel?
+### ⚙️ **In SVT, Filters Must Be Built Manually**
+
+* We are using a **PCF grid (Fluent UI DetailsList)** inside a **Canvas Custom Page**, but:
+
+  * Data **does not come from Dataverse or SharePoint**.
+  * Instead, it comes from **custom APIs calling Azure SQL**.
+* This means we need to build:
+
+  * The **filter UI** (text box, dropdown, date pickers, etc.)
+  * The **backend filtering logic** (API and SQL query filtering)
+  * The **UI refresh logic** (rebind grid after each filter)
+
+---
+
+### 🧱 **Key Challenges with PCF Filtering in SVT**
+
+| Area                         | Challenges                                                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Performance**              | Server-side filtering is a must. Loading full dataset to filter in UI will crash or lag. Filters must be passed to API, API must push to SQL (indexed). |
+| **Accessibility**            | No built-in screen reader support. All ARIA roles, labels, and live updates must be manually coded for WCAG 2.2 compliance.                             |
+| **State Management**         | Each filter input must retain state. Filter combinations need managing (e.g. Sale Date + Flag + Status). Clearing/resetting needs custom logic.         |
+| **User Experience**          | Users are used to Dynamics/SharePoint filters. In PCF, there’s no "Clear Filters", no saved views, no auto-summary unless we build it.                  |
+| **Security Filtering**       | All filters must respect user-level permissions. Unlike Dynamics/SharePoint, there is **no auto-security trimming** — needs to be built into API.       |
+| **Testing Complexity**       | QA must test multiple combinations of filters, along with paging, sorting, and edge cases (e.g. empty results, slow API responses).                     |
+| **Derived Fields Filtering** | SVT includes derived fields like flags, bands, QA status — filtering them needs additional backend logic (joins, computed columns).                     |
+
+---
+
+### 💬 What This Means for the SVT Tool
+
+> "In Dynamics or SharePoint, filters are ready-made. In SVT, because we’re working with custom components and SQL, we’ll need to **build filtering from scratch** — both on the front end and the back end.
+>
+> This gives us flexibility but also increases development time and testing effort. Filters will be fully possible — but to make them **performant, secure, and accessible**, we’ll need to implement:
+>
+> * Filter inputs (text/dropdown/date),
+> * Backend filtering APIs,
+> * Grid refresh & paging logic,
+> * Accessibility-compliant labels & keyboard navigation,
+> * Security-aware data restrictions."
+
+---
+
+### 📌 Summary for Decision-Makers
+
+| Topic                    | Notes                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| **Feasible?**            | ✅ Yes, but not out-of-the-box                                                    |
+| **Effort?**              | Moderate to High (custom build)                                                  |
+| **Accessibility Ready?** | ❌ Not by default – must be implemented                                           |
+| **Performance Impact?**  | Depends on API & SQL filter design                                               |
+| **User Experience?**     | Will replicate Dynamics style – but manually                                     |
+| **Recommendation**       | Proceed with filters, but scoped clearly with API design and accessibility input |
+
+---
+
+Let me know if you'd like this converted to:
+
+* ✅ PowerPoint bullets
+* ✅ Confluence page format
+* ✅ Summary table for sign-off
+* ✅ Developer work item list for ALM planning
