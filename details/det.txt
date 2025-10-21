@@ -5,8 +5,8 @@ SET @xml_body =
     SELECT
         (
             SELECT 
-                -- Billing Authority Report with aria-hidden only if blank
-                (
+                -- ✅ Fix escaping issue for Billing Authority Report
+                CAST((
                     SELECT 
                         CASE 
                             WHEN ISNULL(CTO.[Billing Authority Report], '') = '' THEN 
@@ -15,31 +15,11 @@ SET @xml_body =
                                 '<td>' + CAST(CTO.[Billing Authority Report] AS NVARCHAR(MAX)) + '</td>' 
                         END AS [text()]
                     FOR XML PATH(''), TYPE
-                ),
+                ).value('.', 'NVARCHAR(MAX)') AS XML),
 
-                -- Property Address with aria-hidden only if blank
-                (
-                    SELECT 
-                        CASE 
-                            WHEN ISNULL(CTO.[Property Address], '') = '' THEN 
-                                '<td aria-hidden="true"></td>' 
-                            ELSE 
-                                '<td>' + CAST(CTO.[Property Address] AS NVARCHAR(MAX)) + '</td>' 
-                        END AS [text()]
-                    FOR XML PATH(''), TYPE
-                ),
-
-                -- Property Reference with aria-hidden only if blank
-                (
-                    SELECT 
-                        CASE 
-                            WHEN ISNULL(CTO.[Property Reference], '') = '' THEN 
-                                '<td aria-hidden="true"></td>' 
-                            ELSE 
-                                '<td>' + CAST(CTO.[Property Reference] AS NVARCHAR(MAX)) + '</td>' 
-                        END AS [text()]
-                    FOR XML PATH(''), TYPE
-                )
+                -- 🟢 Other fields left as-is
+                (SELECT CTO.[Property Address] AS 'td' FOR XML PATH(''), TYPE),
+                (SELECT CTO.[Property Reference] AS 'td' FOR XML PATH(''), TYPE)
 
             FROM #CT_Outstanding CTO
             ORDER BY 
