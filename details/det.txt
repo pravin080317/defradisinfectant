@@ -6,3 +6,18 @@ For the SVT screens — particularly the Manager and QC dashboards where data vo
 From the API side, I’d like the team to explore implementing a two-tier caching strategy: short-term caching at the APIM level (1–2 minutes) for identical GET queries to cut down on repetitive requests, and a more flexible Redis-based cache within the Valuation API (around 5-minute TTL, with key-based invalidation). The API cache should store query slices (e.g., 500-record pages filtered by billing authority, flags, or task status) and support intelligent invalidation when assignments or PAD updates occur. This approach will drastically reduce round-trips to SQL for repeated filter/sort combinations and give us consistent sub-second response times for dashboards.
 
 For the DB team, the expectation is not to introduce caching within the database itself, but to make the data model cache-friendly. That means ensuring all queries are deterministic, using indexed views and composite indexes on the most common filters (Billing Authority, Transaction Date, Sale Price, Task Status, Outlier Flag). The database should remain the single source of truth, but the API caching layer will take on the load for high-frequency reads. We need you to review query stability and confirm that paged queries (OFFSET/FETCH or keyset) perform consistently under 50K rows so they can safely be cached and reused by the API layer.
+
+
+Confirming the limitation on Power Apps Canvas: client-side filtering/sorting is only practical up to ~2,000 records (and it degrades as you approach that). So even if the API returns 10k results, the UI cannot reliably filter/sort them on the client—this won’t meet the business need for the Manager/QC dashboards.
+
+Proposal (server-driven grid):
+
+Keep the UI (PCF in custom page) lightweight and request paged data (500 rows/page) with filter/sort parameters.
+
+Do all filtering, sorting, and search in the API/DB (indexed WHERE/ORDER BY; keyset/OFFSET paging).
+
+Add short-TTL caching (Redis in API + APIM response cache) to keep UX sub-second for repeated queries.
+
+On mutations (assignment, sale/PAD updates), invalidate related cache so the next read is fresh.
+
+This gives us consistent performance for 20–50k datasets, aligns with delegability limits, and avoids pushing large payloads to the browser. If you’re happy, I’ll lock this as the baseline and brief DB/API on the indexing and endpoints they need to support.
