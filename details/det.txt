@@ -1,23 +1,42 @@
-Please note that any data refresh, update, or assignment activity should automatically trigger cache invalidation for the affected data scope. For example, when a manager or QC performs an assignment, or when a caseworker updates a sale record or PAD attribute, the related cache entries (for that Billing Authority, batch, or sale) must be cleared in Redis and will repopulate on the next API call. This ensures that users always see the latest information while still benefiting from cached reads for static or unmodified data. The invalidation logic should be handled within the API layer — the database will always remain the authoritative source.
+DECLARE @xml_body XML;
 
+SET @xml_body = (
+    SELECT (
+        SELECT
+            '<table border="1" width="100%" role="table" aria-describedby="caption_' 
+            + REPLACE(TOWN.TOWN_TO_SORT, ' ', '_') + '">' + 
+            '<caption id="caption_' + REPLACE(TOWN.TOWN_TO_SORT, ' ', '_') + 
+            '">Valuation data for ' + TOWN.TOWN_TO_SORT + '</caption>' +
 
-For the SVT screens — particularly the Manager and QC dashboards where data volumes can reach 20–50K records — we need to start treating caching as an essential performance layer rather than an optional enhancement.
+            (
+                SELECT
+                    '<tr>' +
+                    CASE WHEN ISNULL(final.[Reference Number],'') = ''
+                        THEN '<td aria-hidden="true"></td>'
+                        ELSE '<td>' + final.[Reference Number] + '</td>'
+                    END +
+                    CASE WHEN ISNULL(final.[Address Including Postcode],'') = ''
+                        THEN '<td aria-hidden="true"></td>'
+                        ELSE '<td>' + final.[Address Including Postcode] + '</td>'
+                    END +
+                    CASE WHEN ISNULL(final.[Valuation Band],'') = ''
+                        THEN '<td aria-hidden="true"></td>'
+                        ELSE '<td>' + final.[Valuation Band] + '</td>'
+                    END +
+                    CASE WHEN ISNULL(final.[Effective Date],'') = ''
+                        THEN '<td aria-hidden="true"></td>'
+                        ELSE '<td>' + final.[Effective Date] + '</td>'
+                    END +
+                    '</tr>'
+                FROM #fullCTList_tblxmlbody_England final
+                WHERE final.TOWN_TO_SORT = TOWN.TOWN_TO_SORT
+                ORDER BY final.TOWN_TO_SORT, final.sort_id ASC
+                FOR XML PATH(''), TYPE
+            ).value('.', 'NVARCHAR(MAX)')
 
-From the API side, I’d like the team to explore implementing a two-tier caching strategy: short-term caching at the APIM level (1–2 minutes) for identical GET queries to cut down on repetitive requests, and a more flexible Redis-based cache within the Valuation API (around 5-minute TTL, with key-based invalidation). The API cache should store query slices (e.g., 500-record pages filtered by billing authority, flags, or task status) and support intelligent invalidation when assignments or PAD updates occur. This approach will drastically reduce round-trips to SQL for repeated filter/sort combinations and give us consistent sub-second response times for dashboards.
-
-For the DB team, the expectation is not to introduce caching within the database itself, but to make the data model cache-friendly. That means ensuring all queries are deterministic, using indexed views and composite indexes on the most common filters (Billing Authority, Transaction Date, Sale Price, Task Status, Outlier Flag). The database should remain the single source of truth, but the API caching layer will take on the load for high-frequency reads. We need you to review query stability and confirm that paged queries (OFFSET/FETCH or keyset) perform consistently under 50K rows so they can safely be cached and reused by the API layer.
-
-
-Confirming the limitation on Power Apps Canvas: client-side filtering/sorting is only practical up to ~2,000 records (and it degrades as you approach that). So even if the API returns 10k results, the UI cannot reliably filter/sort them on the client—this won’t meet the business need for the Manager/QC dashboards.
-
-Proposal (server-driven grid):
-
-Keep the UI (PCF in custom page) lightweight and request paged data (500 rows/page) with filter/sort parameters.
-
-Do all filtering, sorting, and search in the API/DB (indexed WHERE/ORDER BY; keyset/OFFSET paging).
-
-Add short-TTL caching (Redis in API + APIM response cache) to keep UX sub-second for repeated queries.
-
-On mutations (assignment, sale/PAD updates), invalidate related cache so the next read is fresh.
-
-This gives us consistent performance for 20–50k datasets, aligns with delegability limits, and avoids pushing large payloads to the browser. If you’re happy, I’ll lock this as the baseline and brief DB/API on the indexing and endpoints they need to support.
+            + '</table>'
+        FROM #TOWN TOWN
+        ORDER BY TOWN.TOWN_TO_SORT
+        FOR XML PATH(''), TYPE
+    ).value('.', 'NVARCHAR(MAX)')
+);
