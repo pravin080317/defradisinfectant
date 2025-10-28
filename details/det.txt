@@ -1,171 +1,30 @@
-Here’s a detailed **JIRA ticket** you can raise for the **SVT End-to-End PoC** — connecting the **UI (PCF Canvas Page)** → **Custom API (Dataverse)** → **APIM** → **Valuation API (mocked for now)** → **SQL call structure**.
-This ticket describes the full flow, dependencies, and validation steps — aligned to how you typically run your technical spikes or integration PoCs.
+Perfect 👍 — let’s start structuring the **SVT (Sales Verification Tool) – Low-Level Design (LLD)** step by step.
+
+Here’s a clear, HMRC-aligned **draft for the first section: Business Background**, written to fit the Welsh Revaluation 2028 context and suitable for inclusion in the LLD template.
 
 ---
 
-### **JIRA Ticket: SVT – End-to-End PoC (UI to Backend via APIM with Mock API Data)**
+## **1. Business Background**
 
-**Epic Link:** SVT Integration / SVT Architecture Foundation
-**Component:** SVT – API and Data Integration
-**Type:** Spike / PoC
-**Priority:** High
-**Status:** To Do
-**Assignee:** [API Developer / Full Stack Dev]
-**Reporter:** [Your Name]
+The **Sales Verification Tool (SVT)** is a core component of the Welsh Revaluation 2028 programme, supporting the **Valuation Office Agency (VOA)** in validating residential sales data used for Council Tax banding. The tool enables valuers, caseworkers, managers, and QA users to verify sales evidence sourced from **Land Registry (LR), MILO, and SDLT/WLTT** against property attributes and Automated Valuation Model (AVM) outputs.
 
----
+SVT facilitates data-driven decision-making by allowing users to:
 
-### **Summary**
+* Review, validate, or exclude property sales from the valuation evidence set.
+* Record verification outcomes and QA decisions through structured screens and workflows.
+* Maintain complete audit trails of all user actions and API interactions.
+* Feed validated evidence into the **Valuation Tool (VT)** for batch analysis and band margin refinement.
 
-Perform an **end-to-end proof of concept (PoC)** to validate the integration flow between the **SVT UI (PCF Canvas Page)**, **Dataverse Custom API**, **APIM**, and the **Valuation API layer**, simulating data retrieval and response from the backend (mocked at API level).
-This PoC will ensure all components (UI → Custom API → APIM → API → DB) are connected, configurable, and ready for real data integration in later sprints.
+SVT replaces manual Excel-based verification with a **centralized, API-driven Power Platform interface** backed by **Azure SQL** as the master data store. Unlike previous implementations, **no data is stored in Dataverse**; instead, data is consumed and updated via APIs exposed through **Azure API Management (APIM)**, ensuring scalability and governance alignment with the DAP2 architecture.
 
----
+The tool supports personas such as:
 
-### **Objective**
+* **Caseworker** – performs sales verification and records outcomes.
+* **Manager** – reviews case allocation and workload balancing.
+* **QA (Quality Assurance)** – performs random or triggered checks for data accuracy.
 
-Validate that data can be fetched from the SVT UI, passed through Dynamics Custom API and APIM, and received from the Valuation API (currently mocked), with placeholders for SQL query execution.
-The PoC will confirm:
-
-* Data flow connectivity
-* Authentication (AAD → APIM)
-* Request/response structure
-* Pagination, filtering, and sorting parameter handling
-* Response time benchmark for mock payloads
+The SVT solution aligns with the wider **Valuation Ecosystem**, integrating with AVM, SBL (Stand Back & Look), and DLM (Dual List Maintenance) processes to ensure verified sales evidence is available for valuation modelling, PAD updates, and audit reporting.
 
 ---
 
-### **Scope**
-
-This PoC covers:
-
-1. **PCF / Canvas App**
-
-   * A basic SVT grid UI (Manager Dashboard view)
-   * 18–19 columns with dummy header mapping
-   * Pagination (Page 1/2)
-   * Sorting and filtering UI controls
-   * Trigger API call via `OnVisible` or `Button.OnSelect`
-2. **Dynamics Custom API (Dataverse layer)**
-
-   * Create a custom API (e.g. `defra_SVTGetSalesData`)
-   * Pass parameters (filter, sort, page, pageSize) to APIM
-   * Add bearer token header for secured call
-3. **APIM Layer**
-
-   * Define a new endpoint `/svt/sales`
-   * Mock backend API response using **APIM mock-response policy**
-   * Apply transformation to simulate 500-record paged response
-4. **Valuation API (Mocked)**
-
-   * Mock JSON payload to simulate SQL query output with pagination metadata
-   * Simulate parameters accepted: `billingAuthority`, `flag`, `sort`, `page`, `pageSize`
-5. **SQL Layer (for later integration)**
-
-   * Define expected SQL query pattern (OFFSET/FETCH)
-   * No live DB calls in this PoC, only structure mock
-
----
-
-### **Acceptance Criteria**
-
-| # | Criteria                                                           | Expected Outcome                              |
-| - | ------------------------------------------------------------------ | --------------------------------------------- |
-| 1 | UI grid loads 500 mock records from backend                        | Mock data visible with correct column mapping |
-| 2 | Top-level filter changes trigger new API call                      | API receives query parameters correctly       |
-| 3 | Pagination buttons trigger next-page calls                         | Page 2 returns mock “next 500” dataset        |
-| 4 | Sorting parameter (e.g., `SalePrice:asc`) flows through all layers | Response sorted accordingly in mock payload   |
-| 5 | APIM returns mocked JSON within <1s                                | Response meets baseline latency               |
-| 6 | API logs show trace from UI → Custom API → APIM → Mock API         | Full connectivity confirmed                   |
-| 7 | Authentication works (AAD token via Custom API to APIM)            | 200 OK response authenticated                 |
-| 8 | Console/Telemetry capture request/response                         | Logs available in Application Insights        |
-
----
-
-### **Mock API Response Sample**
-
-**URL:** `GET /svt/sales?billingAuthority=Cardiff&flag=Outlier&page=1&pageSize=500`
-
-**Response (Mocked in APIM or API):**
-
-```json
-{
-  "totalCount": 3521,
-  "page": 1,
-  "pageSize": 500,
-  "records": [
-    {
-      "SaleId": 10998752,
-      "TaskId": 556987,
-      "UARN": 18741001,
-      "Address": "12 Cambrian Street",
-      "Postcode": "CF10 1XY",
-      "BillingAuthority": "Cardiff",
-      "TransactionDate": "2023-07-17",
-      "SalePrice": 395000,
-      "OutlierFlag": "Yes",
-      "Ratio": 1.32,
-      "TaskStatus": "New",
-      "AssignedTo": "Unassigned"
-    }
-  ]
-}
-```
-
----
-
-### **Expected Deliverables**
-
-| Layer                | Deliverable                                                          | Owner                |
-| -------------------- | -------------------------------------------------------------------- | -------------------- |
-| **UI / PCF Team**    | Minimal grid to call Custom API and render mock data                 | [Front-end dev]      |
-| **Custom API**       | Endpoint `/defra_SVTGetSalesData` connecting to APIM with parameters | [Power Platform dev] |
-| **APIM**             | Route definition `/svt/sales` + mock-response policy                 | [API Gateway dev]    |
-| **Valuation API**    | Mock controller `/sales` returning JSON as above                     | [Backend dev]        |
-| **DB Team (Future)** | SQL query template with expected pagination/filter pattern           | [DBA]                |
-
----
-
-### **Technical Notes**
-
-* Authentication via AAD token (managed identity for Custom API)
-* Use mock data JSON stored in Azure Blob or static file for API testing
-* Enable tracing in Application Insights for request chain
-* Cache behaviour not required for PoC (handled in next sprint)
-* PowerFx script should trigger `Set(varResponse, CustomConnector.GetSVTData(...))`
-
----
-
-### **Out of Scope**
-
-* Real-time SQL queries
-* Redis caching or APIM caching policies
-* Assignment or write operations
-* QA and Caseworker screens
-
----
-
-### **Testing Plan**
-
-| Test Case | Scenario                              | Expected Result               |
-| --------- | ------------------------------------- | ----------------------------- |
-| 1         | Load dashboard page                   | Returns 500 records           |
-| 2         | Apply filter “Outlier = Yes”          | Returns filtered mock dataset |
-| 3         | Click “Next Page”                     | Loads mock page 2             |
-| 4         | Change sort to “SalePrice:desc”       | Returns sorted mock records   |
-| 5         | Change Billing Authority to “Swansea” | New mock dataset loaded       |
-| 6         | Monitor trace in APIM                 | Shows full call chain success |
-
----
-
-### **Definition of Done**
-
-✅ UI grid renders mock paged data
-✅ API parameters flow through all layers correctly
-✅ Mock data returned via APIM in <1s
-✅ Logging enabled at APIM and API layers
-✅ Ready to switch from mock to real SQL integration next sprint
-
----
-
-Would you like me to create a **matching Jira task breakdown table** (subtasks for each layer: UI / Custom API / APIM / Backend) so you can copy-paste that into Jira under this story? It’ll help the team pick up their respective responsibilities directly.
+Would you like me to move next to **“2. Scope & Objectives”** or **“2. System Architecture Overview”** (since both usually follow Business Background in LLD)?
