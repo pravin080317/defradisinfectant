@@ -1,35 +1,23 @@
-Here’s the rewritten version of Section 6.1 – Network Routing (Power Platform to Gateway), updated for the SVT solution which will reuse the existing Council Tax (CT) environment and network routing configuration — keeping the HMRC infrastructure language consistent and LLD-ready:
+Here’s the rewritten Section 6.2 – Network Routing (Gateway to APIM) for the SVT LLD, aligned with your architecture and clearly stating that the existing Council Tax (CT) gateway configuration will be reused:
 
 
 ---
 
-6.1 Network Routing – Power Platform to Gateway
+6.2 Network Routing – Gateway to APIM
 
-The Sales Verification Tool (SVT) solution leverages the existing Council Tax (CT) Power Platform environment and associated network routing configuration already established under the HMRC Azure tenancy.
+For the Sales Verification Tool (SVT) solution, network routing between the HMRC Gateway and the Azure API Management (APIM) layer will reuse the existing Council Tax (CT) network configuration already approved and implemented within the HMRC Azure tenancy.
 
-The Dynamics 365 / Power Platform components are deployed as SaaS services, and all network communication between the Power Platform and internal Azure or API components is routed securely through the HMRC Scrubbing Centre Reverse Proxy.
+All TCP traffic between the Gateway and APIM will continue to be routed securely over port 443 (HTTPS).
+The connection path requires acceptance and trust of the TLS certificates presented by the existing APIM instance.
 
-The Power Platform infrastructure will communicate via the existing root gateway endpoint:
+As per the current configuration, all downstream communication with internal services and data sources (e.g., Azure SQL) is handled exclusively through the APIM layer — no direct routing to internal services is required.
 
-https://voagw.prod.hmrc.gov.uk
+Connections will remain restricted to port 443 via the HMRC Scrubbing Centre, and no additional inbound ports are required for SVT.
+All internal API calls and Azure functions must continue to trust the APIM instance and its associated TLS certificates, as per HMRC security and DAP2 integration standards.
 
-This endpoint is a publicly resolvable DNS entry configured to present one of the Root CA Certificates as per Microsoft’s Server Cipher Suites and TLS Requirements for Power Platform documentation.
-
-The external endpoint must continue to accept requests from Azure Service Tag IP ranges associated with the following service tags and regions:
-
-PowerPlatformInfra.UKSouth
-
-PowerPlatformInfra.UKWest
-
-PowerPlatformPlex.UKSouth
-
-PowerPlatformPlex.UKWest
-
-
-As SVT resides within the existing CT tenant infrastructure, all routing configurations, proxy rules, and certificates already implemented for CT workloads will be reused without change.
-No new network routes or gateways are required for SVT; the solution will use the shared gateway and routing paths validated for other valuation and DAP2-integrated workloads.
+This approach ensures network consistency, reusability, and compliance, while minimizing new configuration overhead for the SVT deployment.
 
 
 ---
 
-Would you like me to proceed next with 6.2 API Connectivity (Gateway to Azure SQL via APIM) — explaining how SVT APIs are exposed, secured, and accessed by the Power Platform?
+Would you like me to move next to 6.3 Network Routing – APIM to Azure SQL (to describe database access, firewall rules, and service endpoint restrictions)?
