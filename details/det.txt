@@ -1,30 +1,35 @@
-Perfect 👍 — let’s start structuring the **SVT (Sales Verification Tool) – Low-Level Design (LLD)** step by step.
+Here’s the rewritten version of Section 6.1 – Network Routing (Power Platform to Gateway), updated for the SVT solution which will reuse the existing Council Tax (CT) environment and network routing configuration — keeping the HMRC infrastructure language consistent and LLD-ready:
 
-Here’s a clear, HMRC-aligned **draft for the first section: Business Background**, written to fit the Welsh Revaluation 2028 context and suitable for inclusion in the LLD template.
-
----
-
-## **1. Business Background**
-
-The **Sales Verification Tool (SVT)** is a core component of the Welsh Revaluation 2028 programme, supporting the **Valuation Office Agency (VOA)** in validating residential sales data used for Council Tax banding. The tool enables valuers, caseworkers, managers, and QA users to verify sales evidence sourced from **Land Registry (LR), MILO, and SDLT/WLTT** against property attributes and Automated Valuation Model (AVM) outputs.
-
-SVT facilitates data-driven decision-making by allowing users to:
-
-* Review, validate, or exclude property sales from the valuation evidence set.
-* Record verification outcomes and QA decisions through structured screens and workflows.
-* Maintain complete audit trails of all user actions and API interactions.
-* Feed validated evidence into the **Valuation Tool (VT)** for batch analysis and band margin refinement.
-
-SVT replaces manual Excel-based verification with a **centralized, API-driven Power Platform interface** backed by **Azure SQL** as the master data store. Unlike previous implementations, **no data is stored in Dataverse**; instead, data is consumed and updated via APIs exposed through **Azure API Management (APIM)**, ensuring scalability and governance alignment with the DAP2 architecture.
-
-The tool supports personas such as:
-
-* **Caseworker** – performs sales verification and records outcomes.
-* **Manager** – reviews case allocation and workload balancing.
-* **QA (Quality Assurance)** – performs random or triggered checks for data accuracy.
-
-The SVT solution aligns with the wider **Valuation Ecosystem**, integrating with AVM, SBL (Stand Back & Look), and DLM (Dual List Maintenance) processes to ensure verified sales evidence is available for valuation modelling, PAD updates, and audit reporting.
 
 ---
 
-Would you like me to move next to **“2. Scope & Objectives”** or **“2. System Architecture Overview”** (since both usually follow Business Background in LLD)?
+6.1 Network Routing – Power Platform to Gateway
+
+The Sales Verification Tool (SVT) solution leverages the existing Council Tax (CT) Power Platform environment and associated network routing configuration already established under the HMRC Azure tenancy.
+
+The Dynamics 365 / Power Platform components are deployed as SaaS services, and all network communication between the Power Platform and internal Azure or API components is routed securely through the HMRC Scrubbing Centre Reverse Proxy.
+
+The Power Platform infrastructure will communicate via the existing root gateway endpoint:
+
+https://voagw.prod.hmrc.gov.uk
+
+This endpoint is a publicly resolvable DNS entry configured to present one of the Root CA Certificates as per Microsoft’s Server Cipher Suites and TLS Requirements for Power Platform documentation.
+
+The external endpoint must continue to accept requests from Azure Service Tag IP ranges associated with the following service tags and regions:
+
+PowerPlatformInfra.UKSouth
+
+PowerPlatformInfra.UKWest
+
+PowerPlatformPlex.UKSouth
+
+PowerPlatformPlex.UKWest
+
+
+As SVT resides within the existing CT tenant infrastructure, all routing configurations, proxy rules, and certificates already implemented for CT workloads will be reused without change.
+No new network routes or gateways are required for SVT; the solution will use the shared gateway and routing paths validated for other valuation and DAP2-integrated workloads.
+
+
+---
+
+Would you like me to proceed next with 6.2 API Connectivity (Gateway to Azure SQL via APIM) — explaining how SVT APIs are exposed, secured, and accessed by the Power Platform?
